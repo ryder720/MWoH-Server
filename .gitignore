@@ -1,0 +1,48 @@
+# ====================================================================
+# Marvel: War of Heroes Private Server — Master Gitignore
+# ====================================================================
+# This file ensures that copyrighted game assets, decompiled smali trees,
+# SQLite databases, heavy binary APKs, and diagnostic logs remain in
+# the local workspace but are never committed to the Git repository.
+
+# C# ASP.NET Core Build Artefacts
+Server/bin/
+Server/obj/
+Server/Logs/
+Server/mwoh.db
+Server/mwoh.db-journal
+
+# Local Environment Variables and User Configuration
+.env
+.env.*
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Android APK binaries and signatures
+*.apk
+*.idsig
+
+# APK Toolkit GUI folder
+APK_Toolkit_by_0xd00d/
+
+# Decompiled work directories and temporary outputs
+APK/Decompiled/
+Tools/Patcher/temp_decompiled/
+Tools/Patcher/patched_unsigned.apk
+Tools/Patcher/patched_unsigned.apk.aligned
+Tools/Patcher/bin/
+
+# Scraped assets (illustrations and database images)
+Tools/Scraper/illustrations/
+
+# Local diagnostic logs
+EmulatorLogs/
+*.log
+mwoh_logcat.txt
+latest_run.log
+
+# Operating System files
+.DS_Store
+Thumbs.db

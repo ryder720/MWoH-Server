@@ -1,0 +1,33 @@
+## Visual Studio / Build Outputs
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+x64/
+x86/
+bld/
+
+## IDE Cache / Configuration
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Publishing / Packaging
+publish/
+out/
+dist/
+
+## Local Databases & Runtime Files
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+appsettings.Development.json
+
+## Local Logs
+Logs/
+

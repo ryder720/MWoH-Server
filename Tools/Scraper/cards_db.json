@@ -1,0 +1,450 @@
+[
+    {
+        "title": "A Jingle and a Tingle Stocking",
+        "alignment": "Speed",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/c/ce/AJingleAndATingleStocking3.jpg/revision/latest?cb=20121221143413"
+        ],
+        "variants": {
+            "[A Jingle and a Tingle] Stocking": {
+                "stats": {
+                    "base_atk": 50,
+                    "base_def": 50,
+                    "max_atk": 50,
+                    "max_def": 50,
+                    "mastery_bonus_atk": 0,
+                    "mastery_bonus_def": 0
+                },
+                "rarity": "Rare",
+                "power": 999,
+                "price": "10,000",
+                "max_level": "1",
+                "max_mastery": "0",
+                "quote": "Hmmm, who could this be for? Someone who likes candy canes and gingerbread men? What other clues can you find, Agent? Solve the puzzle and your holiday season will be quite a bit brighter."
+            }
+        },
+        "general": {
+            "alignment": "Speed",
+            "gender": "None",
+            "faction": "Super Hero",
+            "first_release_date": "Unknown"
+        },
+        "visual_title": "[A Jingle and a Tingle] Stocking"
+    },
+    {
+        "title": "A Lot Insane Bullseye",
+        "alignment": "Speed",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/7/73/ALotInsaneBullseye6.jpg/revision/latest?cb=20140618205815",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/d/d3/ALotInsaneBullseye7.jpg/revision/latest?cb=20150129175031"
+        ],
+        "variants": {
+            "[A Lot Insane] Bullseye": {
+                "stats": {
+                    "base_atk": 3520,
+                    "base_def": 2660,
+                    "max_atk": 10109,
+                    "max_def": 7648,
+                    "mastery_bonus_atk": 1319,
+                    "mastery_bonus_def": 998
+                },
+                "rarity": "Ultimate Rare",
+                "power": 33,
+                "price": "244,950",
+                "max_level": "70",
+                "max_mastery": "45",
+                "quote": "I bet you didn't think I could force myself to go into cardiac arrest, huh? Being chained up gives you plenty of time to think... like how to kill your captors in the worst way possible."
+            },
+            "[A Lot Insane] Bullseye+": {
+                "stats": {
+                    "catalog_atk": 4224,
+                    "catalog_def": 3192,
+                    "proper_fused_atk": 6246,
+                    "proper_fused_def": 4722,
+                    "max_atk": 14152,
+                    "max_def": 10707,
+                    "mastery_bonus_atk": 1582,
+                    "mastery_bonus_def": 1197
+                },
+                "rarity": "Legendary",
+                "power": 33,
+                "price": "489,900",
+                "max_level": "80",
+                "max_mastery": "250",
+                "quote": "Daredevil's gone rogue? I don't believe it for a second. He's a little softy, and that's why he'll always lose. Time to give him shades of Elektra all over again."
+            }
+        },
+        "general": {
+            "alignment": "Speed",
+            "gender": "Male",
+            "faction": "Villain",
+            "ability_name": "Cardiac Kid",
+            "ability_effect": "Extremely strengthen ATK of your Speeds.",
+            "first_release_date": "Unknown"
+        },
+        "visual_title": "[A Lot Insane] Bullseye"
+    },
+    {
+        "title": "A.I. Alexis",
+        "alignment": "Speed",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/e/e1/AIAlexis5.jpg/revision/latest?cb=20131229034353",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/5/56/AIAlexis6.jpg/revision/latest?cb=20131229034359"
+        ],
+        "variants": {
+            "[A.I.] Alexis": {
+                "stats": {
+                    "base_atk": 2570,
+                    "base_def": 2520,
+                    "max_atk": 7383,
+                    "max_def": 7245,
+                    "mastery_bonus_atk": 963,
+                    "mastery_bonus_def": 945
+                },
+                "rarity": "Super Special Rare",
+                "power": 28,
+                "price": "94,200",
+                "max_level": "60",
+                "max_mastery": "40",
+                "quote": "Alexis' memory banks have been locked and are now inaccessible to her, causing her to have no memory prior to being found by the Avengers A.I. at a hospital where she kept repeating the phrase, \"Dimitrios is coming.\""
+            },
+            "[A.I.] Alexis+": {
+                "stats": {
+                    "catalog_atk": 3084,
+                    "catalog_def": 3024,
+                    "proper_fused_atk": 4562,
+                    "proper_fused_def": 4474,
+                    "max_atk": 10338,
+                    "max_def": 10144,
+                    "mastery_bonus_atk": 1156,
+                    "mastery_bonus_def": 1134
+                },
+                "rarity": "Ultimate Rare",
+                "power": 28,
+                "price": "188,400",
+                "max_level": "70",
+                "max_mastery": "200",
+                "quote": "Alexis does not fit the physical profile of a robot, cyborg, or android, as determined by the Vision. She doesn't have the right energy signature to be a human, however, and apparently exists on several quantum layers."
+            }
+        },
+        "general": {
+            "alignment": "Speed",
+            "gender": "Female",
+            "faction": "Super Hero",
+            "ability_name": "I, Robot",
+            "ability_effect": "Significantly raise ATK/DEF of your Speeds.",
+            "first_release_date": "December 27, 2013"
+        },
+        "visual_title": "[A.I.] Alexis"
+    },
+    {
+        "title": "1610 Havok",
+        "alignment": "Bruiser",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/c/cd/1610Havok6.jpg/revision/latest?cb=20150720225359",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/a/a8/1610Havok7.jpg/revision/latest?cb=20150720225420"
+        ],
+        "variants": {
+            "[1610] Havok": {
+                "stats": {
+                    "base_atk": 3280,
+                    "base_def": 2900,
+                    "max_atk": 9430,
+                    "max_def": 8326
+                },
+                "rarity": "Ultimate Rare",
+                "power": 33,
+                "price": "244,950",
+                "max_level": "70",
+                "max_mastery": "45",
+                "quote": "Emma Frost formed a mutant peacekeeping team known as the Academy of Tomorrow, with Havok as one of the stalwarts. Magneto attacked the team and after Cyclops was assassinated by Quicksilver, Havok was institutionalized."
+            },
+            "[1610] Havok+": {
+                "stats": {
+                    "catalog_atk": 3936,
+                    "catalog_def": 3480,
+                    "proper_fused_atk": 5822,
+                    "proper_fused_def": 5146,
+                    "max_atk": 13202,
+                    "max_def": 11657
+                },
+                "rarity": "Legendary",
+                "power": 33,
+                "price": "489,900",
+                "max_level": "80",
+                "max_mastery": "250",
+                "quote": "Unknown"
+            }
+        },
+        "general": {
+            "alignment": "Bruiser",
+            "gender": "Male",
+            "faction": "Super Hero",
+            "ability_name": "Breaking Out",
+            "ability_effect": "Extremely strengthen ATK of your Bruisers.",
+            "first_release_date": "June 24, 2015"
+        },
+        "visual_title": "[1610] Havok"
+    },
+    {
+        "title": "A.I.M. MODOK",
+        "alignment": "Bruiser",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/b7/AIMModok6.png/revision/latest?cb=20140202061310",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/4/4f/AIMModok7.png/revision/latest?cb=20140202064152"
+        ],
+        "variants": {
+            "[A.I.M.] MODOK": {
+                "stats": {
+                    "base_atk": 2850,
+                    "base_def": 2850,
+                    "max_atk": 8188,
+                    "max_def": 8188,
+                    "mastery_bonus_atk": 1068,
+                    "mastery_bonus_def": 1068
+                },
+                "rarity": "Ultimate Rare",
+                "power": 31,
+                "price": "244,650",
+                "max_level": "70",
+                "max_mastery": "45",
+                "quote": "As MODOK, George Tarleton has psionic powers enabling him to mentally control both individuals and large groups, and generate force fields able to withstand minor nuclear explosions."
+            },
+            "[A.I.M.] MODOK+": {
+                "stats": {
+                    "catalog_atk": 3420,
+                    "catalog_def": 3420,
+                    "proper_fused_atk": 5058,
+                    "proper_fused_def": 5058,
+                    "max_atk": 11464,
+                    "max_def": 11464,
+                    "mastery_bonus_atk": 1282,
+                    "mastery_bonus_def": 1282
+                },
+                "rarity": "Legendary",
+                "power": 31,
+                "price": "489,300",
+                "max_level": "80",
+                "max_mastery": "250",
+                "quote": "Once I was a mere guinea pig for the scientists of A.I.M.! But they did their job too well... and now... I am their master!"
+            }
+        },
+        "general": {
+            "alignment": "Bruiser",
+            "gender": "Male",
+            "faction": "Villain",
+            "ability_name": "Psionic Powers",
+            "ability_effect": "Extremely lower ATK/DEF of opposing heroes.",
+            "first_release_date": "January 30, 2014"
+        },
+        "visual_title": "[A.I.M.] MODOK"
+    },
+    {
+        "title": "Adamantium Born Ultron",
+        "alignment": "Bruiser",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/bc/AdamantiumBornUltron6.png/revision/latest?cb=20130910125114",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/4/47/AdamantiumBornUltron7.jpg/revision/latest?cb=20130910192311"
+        ],
+        "variants": {
+            "[Adamantium Born] Ultron": {
+                "stats": {
+                    "base_atk": 3200,
+                    "base_def": 2980,
+                    "max_atk": 9200,
+                    "max_def": 8556
+                },
+                "rarity": "Ultimate Rare",
+                "power": 33,
+                "price": "244,950",
+                "max_level": "70",
+                "max_mastery": "45",
+                "quote": "Most incarnations of Ultron tend to be virtually indestructible due to the fact that their outer armors are usually composed of adamantium, which is almost impervious to damage."
+            },
+            "[Adamantium Born] Ultron+": {
+                "stats": {
+                    "catalog_atk": 3840,
+                    "catalog_def": 3576,
+                    "proper_fused_atk": 5680,
+                    "proper_fused_def": 5288,
+                    "max_atk": 12880,
+                    "max_def": 11979
+                },
+                "rarity": "Legendary",
+                "power": 33,
+                "price": "489,900",
+                "max_level": "80",
+                "max_mastery": "250",
+                "quote": "The Avengers... Once, they may have posed a threat to Ultron. Once, they may have been a danger. But no more, for Ultron is a being of living adamantium!"
+            }
+        },
+        "general": {
+            "alignment": "Bruiser",
+            "gender": "None",
+            "faction": "Villain",
+            "ability_name": "Indestructible",
+            "ability_effect": "Extremely strengthen ATK of your Bruisers/Tactics.",
+            "first_release_date": "September 10, 2013"
+        },
+        "visual_title": "[Adamantium Born] Ultron"
+    },
+    {
+        "title": "5 of 4 Franklin",
+        "alignment": "Tactics",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/22/5Of4Franklin5.jpg/revision/latest?cb=20150101013418",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/8/8c/5Of4Franklin6.jpg/revision/latest?cb=20150101013418"
+        ],
+        "variants": {
+            "[5 of 4] Franklin": {
+                "stats": {
+                    "base_atk": 2680,
+                    "base_def": 2560,
+                    "max_atk": 7705,
+                    "max_def": 7349,
+                    "mastery_bonus_atk": 1005,
+                    "mastery_bonus_def": 959
+                },
+                "rarity": "Super Special Rare",
+                "power": 29,
+                "price": "94,350",
+                "max_level": "60",
+                "max_mastery": "40",
+                "quote": "As the oldest child of Reed Richards and Sue Storm, it was no surprise to anyone when Franklin developed powers of his own. That they manifested so young did cause concern to many."
+            },
+            "[5 of 4] Franklin+": {
+                "stats": {
+                    "catalog_atk": 3216,
+                    "catalog_def": 3072,
+                    "proper_fused_atk": 4758,
+                    "proper_fused_def": 4542,
+                    "max_atk": 10788,
+                    "max_def": 10288,
+                    "mastery_bonus_atk": 1206,
+                    "mastery_bonus_def": 1150
+                },
+                "rarity": "Ultimate Rare",
+                "power": 29,
+                "price": "188,700",
+                "max_level": "70",
+                "max_mastery": "200",
+                "quote": "As the child of half of the Fantastic Four, Franklin became the official fifth member. While this status didn’t allow him to go out on missions with them, he did get a matching uniform with the number 5 on it. And more often than not, trouble has often led him to misadventures of his own."
+            }
+        },
+        "general": {
+            "alignment": "Tactics",
+            "gender": "Male",
+            "faction": "Super Hero",
+            "ability_name": "Legacy of Power",
+            "ability_effect": "Significantly strengthen ATK of your heroes.",
+            "first_release_date": "December 31, 2014"
+        },
+        "visual_title": "[5 of 4] Franklin"
+    },
+    {
+        "title": "A Little OCD Bullseye",
+        "alignment": "Tactics",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/c/ca/ALittleOCDBullseye5.jpg/revision/latest?cb=20140424134311",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/2d/ALittleOCDBullseye6.jpg/revision/latest?cb=20140424201134"
+        ],
+        "variants": {
+            "[A Little OCD] Bullseye": {
+                "stats": {
+                    "base_atk": 2740,
+                    "base_def": 2500,
+                    "max_atk": 7878,
+                    "max_def": 7176,
+                    "mastery_bonus_atk": 1028,
+                    "mastery_bonus_def": 936
+                },
+                "rarity": "Super Special Rare",
+                "power": 29,
+                "price": "94,350",
+                "max_level": "60",
+                "max_mastery": "40",
+                "quote": "Bullseye's focus on preparation and intelligence gathering crosses the line into personal obsession fairly often. It has happened with Daredevil, Elektra, and the Kingpin. His psychopathic tendencies, and the poor impulse control that goes with them, are the only thing keeping him from being the perfect killer."
+            },
+            "[A Little OCD] Bullseye+": {
+                "stats": {
+                    "catalog_atk": 3288,
+                    "catalog_def": 3000,
+                    "proper_fused_atk": 4864,
+                    "proper_fused_def": 4436,
+                    "max_atk": 11029,
+                    "max_def": 10047,
+                    "mastery_bonus_atk": 1233,
+                    "mastery_bonus_def": 1123
+                },
+                "rarity": "Ultimate Rare",
+                "power": 29,
+                "price": "188,700",
+                "max_level": "70",
+                "max_mastery": "200",
+                "quote": "Lord Dark Wind reinforced Bullseye's skeleton with adamantium after Bullseye was nearly killed in a fall. Now he is able to sustain-and dish out-even more punishment."
+            }
+        },
+        "general": {
+            "alignment": "Tactics",
+            "gender": "Male",
+            "faction": "Villain",
+            "ability_name": "Adamantium Bones",
+            "ability_effect": "Significantly strengthen ATK of your Tactics.",
+            "first_release_date": "April 24, 2014"
+        },
+        "visual_title": "[A Little OCD] Bullseye"
+    },
+    {
+        "title": "A Man Divided Iron Man",
+        "alignment": "Tactics",
+        "images": [
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/b6/AManDividedIronMan3.jpg/revision/latest?cb=20141015214223",
+            "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/8/88/AManDividedIronMan4.jpg/revision/latest?cb=20141024153915"
+        ],
+        "variants": {
+            "[A Man Divided] Iron Man": {
+                "stats": {
+                    "base_atk": 1690,
+                    "base_def": 1480,
+                    "max_atk": 4865,
+                    "max_def": 4244,
+                    "mastery_bonus_atk": 635,
+                    "mastery_bonus_def": 554
+                },
+                "rarity": "Rare",
+                "power": 18,
+                "price": "12,700",
+                "max_level": "40",
+                "max_mastery": "30",
+                "quote": "Tony Stark has always been a a man divided between two worlds. As the head of Stark Industries, he enjoys the challenges, creativity and celebrity afforded him as one of the elite upper class citizens not just of the United States, but of the world."
+            },
+            "[A Man Divided] Iron Man+": {
+                "stats": {
+                    "catalog_atk": 2028,
+                    "catalog_def": 1776,
+                    "proper_fused_atk": 3002,
+                    "proper_fused_def": 2626,
+                    "max_atk": 6811,
+                    "max_def": 5942,
+                    "mastery_bonus_atk": 761,
+                    "mastery_bonus_def": 664
+                },
+                "rarity": "Special Rare",
+                "power": 18,
+                "price": "25,400",
+                "max_level": "50",
+                "max_mastery": "150",
+                "quote": "As Iron Man, he wields one of the most powerful weapons on the planet. A weapon he created himself, but one that allows him to be part of the most powerful organized group of heroes on Earth. The Avengers."
+            }
+        },
+        "general": {
+            "alignment": "Tactics",
+            "gender": "Male",
+            "faction": "Super Hero",
+            "ability_name": "Parallel Lives",
+            "ability_effect": "Notably strengthen ATK of your heroes.",
+            "first_release_date": "October 15, 2014"
+        },
+        "visual_title": "[A Man Divided] Iron Man"
+    }
+]
