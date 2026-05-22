@@ -411,26 +411,196 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Mobage] Callback loading. Verifier: {oauth_verifier}, Token: {oauth_token}");
 
             var user = _authService.GetUserByToken(oauth_token);
-            if (user != null)
+            if (user == null)
             {
-                string sessionId = user.Profile?.SessionId ?? _authService.GenerateSession(user);
-                
-                // Set the critical "sid" Cookie in response for game WebView mapping
-                Response.Cookies.Append("sid", sessionId, new Microsoft.AspNetCore.Http.CookieOptions
-                {
-                    Path = "/",
-                    HttpOnly = false,
-                    Secure = false
-                });
+                var errorHtml = GetStatusHtml(
+                    "LINK FAILURE",
+                    "Could not retrieve secure profile associated with this authorization token. Please try again.",
+                    "/login",
+                    "Retry Authentication",
+                    true
+                );
+                return Content(errorHtml, "text/html");
             }
 
-            var successHtml = GetStatusHtml(
-                "LINK SECURED", 
-                "Your device token has been cryptographically signed. The S.H.I.E.L.D. secure node is fully synchronized.<br><br>You can now return to the game client.",
-                "ngcore://closeWebView?status=success", 
-                "Return to Game Client", 
-                false
-            );
+            string sessionId = user.Profile?.SessionId ?? _authService.GenerateSession(user);
+            
+            // Set the critical "sid" Cookie in response for game WebView mapping
+            Response.Cookies.Append("sid", sessionId, new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                Path = "/",
+                HttpOnly = false,
+                Secure = false
+            });
+
+            // Extract all credential values for native seed bridge
+            string userId = user.Profile?.PlayerIdString ?? "123456";
+            string userNickname = user.Profile?.Nickname ?? user.Username;
+            string authToken = user.ActiveToken ?? oauth_token;
+            string oauthToken = user.ActiveToken ?? oauth_token;
+            string oauthSecret = "J7NgeGzFn6bjkuTm3pWh2cwm6EOgg"; // Cryptographic secret for signature verification
+            string oauth2Token = user.ActiveToken ?? oauth_token;
+            string guestNickname = user.Username;
+            string guestPassword = user.PasswordHash;
+            string cookie = $"sid={sessionId}";
+
+            var successHtml = $@"
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Link Secured | S.H.I.E.L.D. Secure Terminal</title>
+    <link href='https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap' rel='stylesheet'>
+    <style>
+        :root {{
+            --bg-color: #080c14;
+            --panel-bg: rgba(13, 20, 35, 0.75);
+            --border-color: rgba(245, 158, 11, 0.3);
+            --accent-gold: #f59e0b;
+            --accent-red: #ef4444;
+            --text-color: #e2e8f0;
+        }}
+
+        * {{
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }}
+
+        body {{
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 50% 0%, rgba(245, 158, 11, 0.15) 0px, transparent 50%);
+            color: var(--text-color);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }}
+
+        .container {{
+            width: 100%;
+            max-width: 420px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 30px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            text-align: center;
+            animation: scaleUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }}
+
+        .icon {{
+            font-size: 48px;
+            color: var(--accent-gold);
+            margin-bottom: 20px;
+            display: inline-block;
+        }}
+
+        h1 {{
+            font-size: 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffffff;
+            margin-bottom: 15px;
+        }}
+
+        p {{
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }}
+
+        .action-btn {{
+            display: block;
+            width: 100%;
+            background: var(--accent-gold);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }}
+
+        .action-btn:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.1);
+        }}
+
+        @keyframes scaleUp {{
+            from {{ opacity: 0; transform: scale(0.95); }}
+            to {{ opacity: 1; transform: scale(1); }}
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='icon'>&#128274;</div>
+        <h1>LINK SECURED</h1>
+        <p>Your device token has been cryptographically signed. The S.H.I.E.L.D. secure node is fully synchronized.<br><br>You can now return to the game client.</p>
+        <a href='ngcore://closeWebView?status=success' class='action-btn'>Return to Game Client</a>
+    </div>
+
+    <script>
+        function triggerBridgeCall(url) {{
+            var iframe = document.createElement(""iframe"");
+            iframe.setAttribute(""src"", url);
+            iframe.style.display = ""none"";
+            document.body.appendChild(iframe);
+            setTimeout(function() {{
+                iframe.parentNode.removeChild(iframe);
+            }}, 500);
+        }}
+
+        var saved = false;
+        window.respondToWeb = function(callbackId, status, data) {{
+            console.log(""respondToWeb callback: "" + callbackId);
+            if (callbackId === ""saveAuth"") {{
+                saved = true;
+                setTimeout(function() {{
+                    window.location.href = ""ngcore://closeWebView?status=success"";
+                }}, 100);
+            }}
+        }};
+
+        // Trigger native Mobage SDK credentials saving bridge call
+        var bridgeUrl = ""ngcore://saveAuthCredential/saveAuth"" + 
+            ""?userId="" + encodeURIComponent(""{userId}"") +
+            ""&userNickname="" + encodeURIComponent(""{userNickname}"") +
+            ""&authToken="" + encodeURIComponent(""{authToken}"") +
+            ""&oauthToken="" + encodeURIComponent(""{oauthToken}"") +
+            ""&oauthSecret="" + encodeURIComponent(""{oauthSecret}"") +
+            ""&oauth2Token="" + encodeURIComponent(""{oauth2Token}"") +
+            ""&guestNickname="" + encodeURIComponent(""{guestNickname}"") +
+            ""&guestPassword="" + encodeURIComponent(""{guestPassword}"") +
+            ""&cookie="" + encodeURIComponent(""{cookie}"");
+
+        setTimeout(function() {{
+            triggerBridgeCall(bridgeUrl);
+        }}, 100);
+
+        // Fallback timeout to close WebView in case native side fails or doesn't invoke callback
+        setTimeout(function() {{
+            if (!saved) {{
+                console.log(""saveAuth callback not received, closing via timeout."");
+                window.location.href = ""ngcore://closeWebView?status=success"";
+            }}
+        }}, 1500);
+    </script>
+</body>
+</html>
+";
 
             return Content(successHtml, "text/html");
         }

@@ -45,6 +45,7 @@ using (var scope = app.Services.CreateScope())
     
     dbContext.Database.EnsureCreated();
     DatabaseSeeder.SeedCards(dbContext, logger);
+    DatabaseSeeder.SeedItems(dbContext, logger);
 }
 
 // 4. Set up HTTP pipeline

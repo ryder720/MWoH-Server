@@ -1,0 +1,338 @@
+[
+    {
+        "id": 1,
+        "name": "Shield Barrier",
+        "description": "Prevents one attack targeting your Resource. Needs to be placed on the Resource for effect.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/2a/Shield_Barrier.jpg"
+    },
+    {
+        "id": 2,
+        "name": "Ultimate Card Pack Ticket",
+        "description": "Can be used to exchange for an Ultimate Card Pack.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/28/UltimateCardPackTicket.jpg"
+    },
+    {
+        "id": 3,
+        "name": "Energy Pack",
+        "description": "Recharges all Energy.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/2d/Energy_Pack.jpg"
+    },
+    {
+        "id": 4,
+        "name": "Personal Energy Pack",
+        "description": "Recharges all Energy. Personal Use Only.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/23/Personal_Energy_Pack.png"
+    },
+    {
+        "id": 5,
+        "name": "Power Pack",
+        "description": "Recharges all Attack and Defense Power&#160;and RDS. Also the base unit of currency for the trading system in the game.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/0/08/Power_Pack.jpg"
+    },
+    {
+        "id": 6,
+        "name": "Personal Power Pack",
+        "description": "Recharges all Attack and Defense Power and RDS. Personal use only.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/7/71/Personal_Power_Pack.png"
+    },
+    {
+        "id": 7,
+        "name": "Personal Energy Kit",
+        "description": "Recharge half of Energy. Personal use only",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/b4/Personal_Energy_Kit.jpg"
+    },
+    {
+        "id": 8,
+        "name": "Personal Power Kit",
+        "description": "Recharge half of Attack and Defense Power and RDS. Personal use only",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/a/a1/Personal_Power_Kit.jpg"
+    },
+    {
+        "id": 9,
+        "name": "Cosmic Canister",
+        "description": "For use in the Man of Science. God of Mischief side event to raise a card's mastery by one for each Cosmic Canister.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/6/6e/CosmicCanister.jpg"
+    },
+    {
+        "id": 10,
+        "name": "Level Up ISO-8 Serum",
+        "description": "Boosting a card with this item raises its level by three. Personal use only.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/d/db/LevelUpISO8Serum.jpg"
+    },
+    {
+        "id": 11,
+        "name": "Card Stock",
+        "description": "Increases the amount of cards you hold by the number on the item Note: This is automatically applied once claimed from presents",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/6/6a/CardStockPlus.jpg"
+    },
+    {
+        "id": 12,
+        "name": "Co-op Power Pack",
+        "description": "Co-op power packs are special items for use in Co-op X. If you use one, you'll deal 1.5 times the damage and get five norn crystals! *Only 6 RDS and 12 RDS hyper attacks are available. *Co-op power packs can't be traded or gifted. *They will turn into personal power packs after Co-op X ends. Personal use only.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/bb/CoopPowerPack.jpg"
+    },
+    {
+        "id": 13,
+        "name": "Danger Bar",
+        "description": "This item recharges one RDS. *You consume RDS when you attack in Co-op X Event. *Danger bars can only be used during battles against Co-op Boss. *Unused Danger bars will disappear once the event ends (due to being consumed by Galactus.)",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/1/15/DangerBar.jpg"
+    },
+    {
+        "id": 14,
+        "name": "RDS Bar",
+        "description": "This item recharges one RDS. *You consume RDS when you attack in a raid event. *RDS bars can only be used during battles against raid villains. *Unused RDS bars will disappear once the event ends (due to being consumed by Galactus.)",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/2/21/RDS_Bar.jpg"
+    },
+    {
+        "id": 15,
+        "name": "Trainer Power Pack",
+        "description": "Recharges all Attack and Defense Power. It is only usable during S.H.I.E.L.D. Enforcement Training. The unused Trainer Power Pack will be disposed after the event.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/4/4e/TrainerPowerPack.jpg"
+    },
+    {
+        "id": 16,
+        "name": "Power Ticket",
+        "description": "Allows you to draw one card, item or superpower from the superpower processor.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/0/07/PowerTicket.jpg"
+    },
+    {
+        "id": 17,
+        "name": "Personal Fuel Canister",
+        "description": "Using this item tops off your fuel. Once the event ends, every personal fuel canister will be converted into one personal power pack. *This item can't be traded or gifted.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/d/d7/PersonalFuelCanister.jpg"
+    },
+    {
+        "id": 18,
+        "name": "Fuel Canister",
+        "description": "Using this item tops off your fuel. Once the event ends, one fuel canister will be converted at a one power pack rate. *This item can't be traded or gifted.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/0/0f/FuelCanister.jpg"
+    },
+    {
+        "id": 19,
+        "name": "GPS Radar",
+        "description": "This item is used in the event to find trunks. Using one also raises the drop rate of the special Iron Man cards. Once the event ends, three GPS radars will be converted at a two energy pack rate.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/9/9e/GPSRadar.jpg"
+    },
+    {
+        "id": 20,
+        "name": "Personal GPS Radar",
+        "description": "This item is used in the event to find trunks. Using one also raises the drop rate of the special Iron Man cards. Once the event ends, three GPS radars will be converted at a two energy pack rate.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/9/99/PersonalGPSRadar.jpg"
+    },
+    {
+        "id": 21,
+        "name": "Battle Session Power Pack",
+        "description": "Recharges all Attack and Defense during S.H.I.E.L.D. Combat Readiness Training. The unused Battle Session Power Pack will be disposed after the event.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/e/e0/BattleSessionPowerPack.jpg"
+    },
+    {
+        "id": 22,
+        "name": "Battle Point Booster",
+        "description": "This item slightly boosts the number of battle points you get in pool battles. Personal use only. This item grants you a special audience with Odin, in which he'll overboost one UL+ card of your choosing by one level per decree used. Your card must be fused into its final form and boosted to its maximum level and mastery.*This item can't be traded or gifted. Personal use only.* This item grants you a special audience with Odin, in which he'll overboost one L+ card of your choosing by one level per decree used. Your card must be fused into its final form and boosted to its maximum level and mastery. You can overboost L+ cards up to level 110.*This item can't be traded or gifted. Personal use only.* This item grants you a special audience with Odin, in which he'll overboost one UR+ card of your choosing by one level per decree used. Your card must be fused into its final form and boosted to its maximum level and mastery. You can overboost UR cards up to level 80.*This item can't be traded or gifted. Personal use only.* This item grants you a special audience with Odin, in which he'll overboost one SSR+ card of your choosing by one level per decree used. Your card must be fused into its final form and boosted to its maximum level and mastery.*This item can't be traded or gifted. Personal use only.*",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/bf/BattlePointBooster.jpg"
+    },
+    {
+        "id": 23,
+        "name": "Norn Crystal",
+        "description": "Exchange norn crystals to get a reward from the deluxe reward set of applicable events.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/6/6f/NornCrystal.jpg"
+    },
+    {
+        "id": 24,
+        "name": "Norn Shard",
+        "description": "Exchange norn shards to get a reward from the standard reward set of applicable events.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/3/30/NornShard.jpg"
+    },
+    {
+        "id": 25,
+        "name": "Special Ultimate Card Pack Ticket",
+        "description": "When exchanged, will guarantee an SR card or over.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/5/50/SpecialUltimateCardPackTicket.jpg"
+    },
+    {
+        "id": 26,
+        "name": "Epic Boost",
+        "description": "Boost the ATK/DEF of the specified UR and L+ card by 15%. *The specified card is the UR reward for the Proving Grounds.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": ""
+    },
+    {
+        "id": 27,
+        "name": "Personal Boom ISO-8 Serum",
+        "description": "Gives a 10% chance to boost a card's ability level.Personal use only. Collect and merge 100 of these special cosmic shards to create 1 [Bruiser] UR Cosmic Cube. This type of cosmic cube can be fused with any UR card with Bruiser alignment.Personal use only. Collect and merge 100 of these special cosmic shards to create 1 [Speed] UR Cosmic Cube. This type of cosmic cube can be fused with any UR card with Speed alignment.Personal use only. Collect and merge 100 of these special cosmic shards to create 1 [Tactics] UR Cosmic Cube. This type of cosmic cube can be fused with any UR card with Tactics alignment.Personal use only. Collect and merge 200 of these special cosmic shards to create 1 [Bruiser] L Cosmic Cube. This type of cosmic cube can be fused with any L card with Bruiser alignment.Personal use only. Collect and merge 200 of these special cosmic shards to create 1 [Speed] L Cosmic Cube. This type of cosmic cube can be fused with any L card with Speed alignment.Personal use only. Collect and merge 200 of these special cosmic shards to create 1 [Tactics] L Cosmic Cube. This type of cosmic cube can be fused with any L card with Tactics alignment.Personal use only.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/6/6b/PersonalBoomISO8Serum.jpg"
+    },
+    {
+        "id": 28,
+        "name": "Vibranium Pack",
+        "description": "Use this to aid you in your fight against Santron! This was available during the \"A Marvel-ous Christmas\" Event.",
+        "type": "General",
+        "effect_value": 0,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/b4/VibraniumPack.jpg"
+    },
+    {
+        "id": 29,
+        "name": "Heart-Shaped Energy Pack",
+        "description": "Recharges all energy. Personal use only. This pack was made available with the Valentine's Day CP.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/e/eb/Heart-ShapedEnergyPack.jpg"
+    },
+    {
+        "id": 30,
+        "name": "Valentine Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available with the Valentine's Day CP. Recharges all energy. Personal use only. This pack was available with the St. Patrick's Day CP. Recharges all attack/defense power and RDS. Personal use only. This pack was available with the St. Patrick's Day CP.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/f/ff/ValentinePowerPack.jpg"
+    },
+    {
+        "id": 31,
+        "name": "Personal Magnus Energy Pack",
+        "description": "Recharges all energy. Personal use only. This pack was made available with the Magnus CP.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/3/3c/Personal_Magnus_Energy_Pack.jpg"
+    },
+    {
+        "id": 32,
+        "name": "Personal Magnus Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available with the Magnus CP.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/0/0f/Personal_Magnus_Power_Pack2.jpg"
+    },
+    {
+        "id": 33,
+        "name": "Personal Galactus Energy Pack",
+        "description": "Recharges all energy. Personal use only. This pack was made available with the Galactus CP.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/7/73/PersonalGalactusEnergyPack.jpg"
+    },
+    {
+        "id": 34,
+        "name": "Personal Galactus Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available with the Galactus CP.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/bd/PersonalGalactusPowerPack.jpg"
+    },
+    {
+        "id": 35,
+        "name": "Personal Venom Energy Pack",
+        "description": "Recharges all energy. Personal use only. This pack was made available with the Toxin CP.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/5/55/PersonalVenomEnergyPack.jpg"
+    },
+    {
+        "id": 36,
+        "name": "Personal Venom Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available with the Toxin CP.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/b/b1/PersonalVenomPowerPack.jpg"
+    },
+    {
+        "id": 37,
+        "name": "Personal Hawkeye Energy Pack",
+        "description": "Recharges all energy. Personal use only. This pack was made available with the Fluctuator Ranking CP.",
+        "type": "EnergyRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/1/16/PersonalHawkeyeEnergyPack.jpg"
+    },
+    {
+        "id": 38,
+        "name": "Personal Hawkeye Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available with the Fluctuator Ranking CP.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/d/db/PersonalHawkeyePowerPack.jpg"
+    },
+    {
+        "id": 39,
+        "name": "1st Anniversary Personal Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available as part of the 1st Anniversary Celebration.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/e/e4/1stAnniversaryPersonalPowerPack.jpg"
+    },
+    {
+        "id": 40,
+        "name": "1st Anniversary Power Pack",
+        "description": "Recharges all attack/defense power and RDS. This pack was made available as part of the 1st Anniversary Celebration.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/6/64/1stAnniversaryPowerPack.jpg"
+    },
+    {
+        "id": 41,
+        "name": "2nd Anniversary Personal Power Pack",
+        "description": "Recharges all attack/defense power and RDS. Personal use only. This pack was made available as part of the 2nd Anniversary Celebration.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/f/f4/2ndAnniversaryPersonalPowerPack.jpg"
+    },
+    {
+        "id": 42,
+        "name": "2nd Anniversary Power Pack",
+        "description": "Recharges all attack/defense power and RDS. This pack was made available as part of the 2nd Anniversary Celebration.",
+        "type": "AttackPowerRestorative",
+        "effect_value": 100,
+        "image_url": "https://static.wikia.nocookie.net/marvel-war-of-heroes/images/9/93/2ndAnniversaryPowerPack.jpg"
+    }
+]

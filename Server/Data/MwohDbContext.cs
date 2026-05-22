@@ -9,6 +9,8 @@ namespace MwohServer.Data
         public DbSet<PlayerProfile> Profiles => Set<PlayerProfile>();
         public DbSet<CardTemplate> CardTemplates => Set<CardTemplate>();
         public DbSet<PlayerCard> PlayerCards => Set<PlayerCard>();
+        public DbSet<ItemTemplate> ItemTemplates => Set<ItemTemplate>();
+        public DbSet<PlayerInventoryItem> PlayerInventoryItems => Set<PlayerInventoryItem>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -37,6 +39,20 @@ namespace MwohServer.Data
                 .HasOne(pc => pc.CardTemplate)
                 .WithMany()
                 .HasForeignKey(pc => pc.CardTemplateId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure relationship between PlayerProfile and PlayerInventoryItem
+            modelBuilder.Entity<PlayerInventoryItem>()
+                .HasOne(pi => pi.PlayerProfile)
+                .WithMany(p => p.InventoryItems)
+                .HasForeignKey(pi => pi.PlayerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure relationship between PlayerInventoryItem and ItemTemplate
+            modelBuilder.Entity<PlayerInventoryItem>()
+                .HasOne(pi => pi.ItemTemplate)
+                .WithMany()
+                .HasForeignKey(pi => pi.ItemTemplateId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // Seed default test account

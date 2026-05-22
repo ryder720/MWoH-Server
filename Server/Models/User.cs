@@ -55,6 +55,7 @@ namespace MwohServer.Models
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
         public System.Collections.Generic.ICollection<PlayerCard> Cards { get; set; } = new System.Collections.Generic.List<PlayerCard>();
+        public System.Collections.Generic.ICollection<PlayerInventoryItem> InventoryItems { get; set; } = new System.Collections.Generic.List<PlayerInventoryItem>();
     }
 
     // Static card metadata parsed from Wiki scraping JSON
@@ -113,5 +114,39 @@ namespace MwohServer.Models
         // Navigation properties
         public PlayerProfile? PlayerProfile { get; set; }
         public CardTemplate? CardTemplate { get; set; }
+    }
+
+    // Static item metadata parsed from Wiki listings or preloaded catalog
+    public class ItemTemplate
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        public string Name { get; set; } = string.Empty;
+        
+        [Required]
+        public string Description { get; set; } = string.Empty;
+        
+        [Required]
+        public string Type { get; set; } = string.Empty; // "EnergyRestorative", "AttackPowerRestorative", "DefensePowerRestorative", "MasteryIso8", "GachaTicket"
+        
+        public int EffectValue { get; set; } // Refill percentage (e.g. 50 or 100) or mastery value
+        public string ImageFileName { get; set; } = string.Empty;
+    }
+
+    // Dynamic instance of an item owned by a specific player profile
+    public class PlayerInventoryItem
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int PlayerProfileId { get; set; }
+        public int ItemTemplateId { get; set; }
+        public int Quantity { get; set; } = 0;
+        
+        // Navigation properties
+        public PlayerProfile? PlayerProfile { get; set; }
+        public ItemTemplate? ItemTemplate { get; set; }
     }
 }

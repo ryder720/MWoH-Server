@@ -183,5 +183,133 @@ namespace MwohServer.Data
                 logger.LogInformation($"[Seeder] Seeded starter cards for default profile '{profile.Nickname}'.");
             }
         }
+
+        public static void SeedItems(MwohDbContext context, ILogger logger)
+        {
+            if (context.ItemTemplates.Any())
+            {
+                logger.LogInformation("[Seeder] Item templates already seeded. Skipping seeder.");
+                return;
+            }
+
+            string jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tools", "Scraper", "items_db.json");
+            
+            if (!File.Exists(jsonPath))
+            {
+                jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Tools", "Scraper", "items_db.json");
+            }
+
+            if (!File.Exists(jsonPath))
+            {
+                logger.LogWarning($"[Seeder] JSON items database not found at '{jsonPath}'. Seeding default fallback items.");
+                SeedDefaultFallbackItems(context);
+                return;
+            }
+
+            try
+            {
+                string jsonText = File.ReadAllText(jsonPath);
+                using (JsonDocument doc = JsonDocument.Parse(jsonText))
+                {
+                    int addedCount = 0;
+                    var profile = context.Profiles.FirstOrDefault(p => p.Id == 1);
+
+                    foreach (var itemElement in doc.RootElement.EnumerateArray())
+                    {
+                        string name = itemElement.GetProperty("name").GetString() ?? "";
+                        string description = itemElement.GetProperty("description").GetString() ?? "";
+                        string type = itemElement.GetProperty("type").GetString() ?? "General";
+                        int effectValue = itemElement.GetProperty("effect_value").GetInt32();
+                        string imageUrl = itemElement.GetProperty("image_url").GetString() ?? "";
+                        
+                        string imageFileName = "";
+                        if (!string.IsNullOrEmpty(imageUrl))
+                        {
+                            try
+                            {
+                                Uri uri = new Uri(imageUrl);
+                                imageFileName = Path.GetFileName(uri.LocalPath);
+                            }
+                            catch
+                            {
+                                imageFileName = $"{name.Replace(" ", "_")}.jpg";
+                            }
+                        }
+
+                        var itemTemplate = new ItemTemplate
+                        {
+                            Name = name,
+                            Description = description,
+                            Type = type,
+                            EffectValue = effectValue,
+                            ImageFileName = imageFileName
+                        };
+
+                        context.ItemTemplates.Add(itemTemplate);
+                        addedCount++;
+                    }
+
+                    context.SaveChanges();
+                    logger.LogInformation($"[Seeder] Successfully imported {addedCount} Item templates into SQLite database from '{jsonPath}'.");
+
+                    // Give default profile (Id = 1) some quantities of all items
+                    if (profile != null && !context.PlayerInventoryItems.Any(pi => pi.PlayerProfileId == profile.Id))
+                    {
+                        var items = context.ItemTemplates.ToList();
+                        foreach (var item in items)
+                        {
+                            context.PlayerInventoryItems.Add(new PlayerInventoryItem
+                            {
+                                PlayerProfileId = profile.Id,
+                                ItemTemplateId = item.Id,
+                                Quantity = 50
+                            });
+                        }
+                        context.SaveChanges();
+                        logger.LogInformation($"[Seeder] Linked default inventory (50x of each item) to profile '{profile.Nickname}'.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"[Seeder] Failed to seed items from JSON: {ex.Message}");
+                SeedDefaultFallbackItems(context);
+            }
+        }
+
+        private static void SeedDefaultFallbackItems(MwohDbContext context)
+        {
+            var defaultItems = new[]
+            {
+                new ItemTemplate { Name = "Energy Iso-8", Description = "Fully restores Energy.", Type = "EnergyRestorative", EffectValue = 100, ImageFileName = "item_energy_full.png" },
+                new ItemTemplate { Name = "Energy Iso-8 (Half)", Description = "Restores 50% Energy.", Type = "EnergyRestorative", EffectValue = 50, ImageFileName = "item_energy_half.png" },
+                new ItemTemplate { Name = "Attack Iso-8", Description = "Fully restores Attack Power.", Type = "AttackPowerRestorative", EffectValue = 100, ImageFileName = "item_attack_full.png" },
+                new ItemTemplate { Name = "Attack Iso-8 (Half)", Description = "Restores 50% Attack Power.", Type = "AttackPowerRestorative", EffectValue = 50, ImageFileName = "item_attack_half.png" },
+                new ItemTemplate { Name = "Defense Iso-8", Description = "Fully restores Defense Power.", Type = "DefensePowerRestorative", EffectValue = 100, ImageFileName = "item_defense_full.png" },
+                new ItemTemplate { Name = "Defense Iso-8 (Half)", Description = "Restores 50% Defense Power.", Type = "DefensePowerRestorative", EffectValue = 50, ImageFileName = "item_defense_half.png" },
+                new ItemTemplate { Name = "Mastery Iso-8", Description = "Increases card mastery by 10 points.", Type = "MasteryIso8", EffectValue = 10, ImageFileName = "item_mastery.png" }
+            };
+
+            foreach (var item in defaultItems)
+            {
+                context.ItemTemplates.Add(item);
+            }
+            context.SaveChanges();
+
+            var profile = context.Profiles.FirstOrDefault(p => p.Id == 1);
+            if (profile != null)
+            {
+                foreach (var item in context.ItemTemplates.ToList())
+                {
+                    context.PlayerInventoryItems.Add(new PlayerInventoryItem
+                    {
+                        PlayerProfileId = profile.Id,
+                        ItemTemplateId = item.Id,
+                        Quantity = 50
+                    });
+                }
+                context.SaveChanges();
+            }
+        }
     }
 }
