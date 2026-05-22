@@ -25,7 +25,9 @@ MWoH Server/
 ```
 
 > [!NOTE]
-> All heavy binaries (`.apk` files), decompiled intermediates, downloaded artwork, local SQLite databases (`mwoh.db`), and logs are strictly ignored in Git via the root `.gitignore`. This keeps the repository extremely lean (just a few kilobytes of code text files) and legally clear, while preserving all files locally in your workspace.
+> The entire `/APK/` folder (including original and patched clients), decompiled intermediates, downloaded artwork, local SQLite databases (`mwoh.db`), and logs are strictly ignored in Git via the root `.gitignore` to prevent any distribution of copyrighted assets. This keeps the repository extremely lean and legally clear.
+> 
+> **Getting Started Setup**: When first cloning this repository, you should create a folder named `APK/Base/` at the root and place your untouched game APK there. The automated patcher script will dynamically generate the `APK/Modified/` output directory for you during execution.
 
 ---
 
