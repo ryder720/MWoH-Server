@@ -314,6 +314,11 @@ def sign_apk(output_path):
             # Clean up destination if it exists
             if os.path.exists(output_path):
                 os.remove(output_path)
+            
+            # Create destination parent directory dynamically if it doesn't exist
+            output_dir = os.path.dirname(os.path.abspath(output_path))
+            if output_dir:
+                os.makedirs(output_dir, exist_ok=True)
                 
             shutil.move(expected_output, output_path)
             print(f"[+] Premium patch process COMPLETE!")

@@ -20,7 +20,8 @@ Server/mwoh.db-journal
 *.userosscache
 *.sln.docstates
 
-# Android APK binaries and signatures
+# Android APK directories, binaries and signatures
+/APK/
 *.apk
 *.idsig
 
