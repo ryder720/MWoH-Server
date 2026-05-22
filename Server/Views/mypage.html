@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Agent dossier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1>AGENT DOSSIER</h1>
+        <div style="width: 50px;"></div> <!-- Symmetrical balance spacer -->
+    </div>
+
+    <div class="container">
+        <!-- Agent Dossier Card -->
+        <div class="profile-panel">
+            <div class="profile-dossier-row">
+                <span class="agent-id-box">AGENT // COD-{{clearanceCode}}</span>
+                <span class="badge-lvl">LEVEL {{level}}</span>
+            </div>
+            <div class="agent-name">{{agentName}}</div>
+            
+            <!-- EXP Bar -->
+            <div class="progress-block">
+                <div class="progress-lbl">
+                    <span>CLEARANCE SYNC</span>
+                    <span>{{expCurrent}} / {{expNext}} EXP</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" style="background: var(--hud-blue); width: {{expPct}}%;"></div>
+                </div>
+            </div>
+
+            <!-- Energy Bar -->
+            <div class="progress-block">
+                <div class="progress-lbl">
+                    <span>ENERGY RESERVES</span>
+                    <span>{{energyCur}} / {{energyMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" style="background: var(--hud-green); width: {{energyPct}}%;"></div>
+                </div>
+            </div>
+
+            <!-- Currency grids -->
+            <div class="hud-balances">
+                <div class="balance-item">
+                    <span class="balance-icon">🪙</span>
+                    <div class="balance-content">
+                        <span class="bal-lbl">MOBACOINS</span>
+                        <span class="bal-val" style="color: var(--accent-gold);">{{mobacoin}}</span>
+                    </div>
+                </div>
+                <div class="balance-item">
+                    <span class="balance-icon">💎</span>
+                    <div class="balance-content">
+                        <span class="bal-lbl">SILVER</span>
+                        <span class="bal-val" style="color: #cbd5e1;">{{silver}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leader Card Showcase -->
+        <div class="leader-card-section">
+            <div class="section-hdr">// REPRESENTATIVE LEADER</div>
+            {{leaderHtml}}
+        </div>
+
+        <!-- Decks Summary -->
+        <div class="decks-panel">
+            <div class="section-hdr" style="margin-bottom: 12px;">// ACTIVE LINEUPS</div>
+            
+            <div class="deck-row">
+                <div class="deck-info">
+                    <span class="deck-title">ATTACK SQUAD</span>
+                    <span class="deck-slots">{{attackDeckCount}} / 5 Cards Assigned</span>
+                </div>
+                <div style="text-align: right;">
+                    <div class="deck-cost-lbl">POWER LOAD</div>
+                    <div class="deck-cost-val">{{attackDeckCost}} / {{attackPower}}</div>
+                </div>
+            </div>
+
+            <div class="deck-row">
+                <div class="deck-info">
+                    <span class="deck-title">DEFENSE SQUAD</span>
+                    <span class="deck-slots">{{defenseDeckCount}} / 5 Cards Assigned</span>
+                </div>
+                <div style="text-align: right;">
+                    <div class="deck-cost-lbl">POWER LOAD</div>
+                    <div class="deck-cost-val">{{defenseDeckCost}} / {{defensePower}}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Grid Menu -->
+        <div class="section-hdr">// COMMAND TERMINALS</div>
+        <div class="action-grid">
+            <a href="/ultimate/mypage/deck" class="action-card">
+                <span class="action-ico">🗂️</span>
+                <span class="action-title">DECK COMMAND</span>
+                <span class="action-desc">Edit Attack & Defense Squad lineups.</span>
+            </a>
+
+            <a href="/ultimate/mypage/enhance" class="action-card">
+                <span class="action-ico">🧪</span>
+                <span class="action-title">ISO-8 FORGE</span>
+                <span class="action-desc">Level up Hero stats with Serums & fusion.</span>
+            </a>
+
+            <a href="/ultimate/mypage/catalog" class="action-card">
+                <span class="action-ico">📂</span>
+                <span class="action-title">CARD CATALOG</span>
+                <span class="action-desc">Dossier folder of all recruited Heroes.</span>
+            </a>
+
+            <a href="/ultimate/item/index" class="action-card">
+                <span class="action-ico">🎒</span>
+                <span class="action-title">ITEMS DEPOT</span>
+                <span class="action-desc">Consume and deploy active restoratives.</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

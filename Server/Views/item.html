@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Items Depot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; BACK</a>
+        <h1>ITEMS DEPOT</h1>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud">
+        <div class="status-row">
+            <span class="hud-lbl">ENERGY SYNC</span>
+            <span class="hud-val" id="energy-val">{{energyCur}} / {{energyMax}}</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="energy-bar" style="width: {{energyPct}}%;"></div>
+        </div>
+    </div>
+
+    <!-- Scrollable inventory items list -->
+    <div class="items-list">
+        {{itemsHtml}}
+    </div>
+
+    <div class="toast" id="refill-toast">ISO-8 CONSUMED: Status secured</div>
+
+    <script>
+        function showToast(message) {
+            const toast = document.getElementById('refill-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function useItem(itemId, btn) {
+            btn.disabled = true;
+            btn.textContent = "...";
+
+            fetch('/ultimate/item/use_item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'item_id=' + itemId
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update item stock count in UI
+                    const qtyEl = document.getElementById('item-qty-' + itemId);
+                    qtyEl.textContent = 'x' + data.remaining_quantity;
+                    
+                    if (data.remaining_quantity <= 0) {
+                        btn.style.display = 'none';
+                        qtyEl.style.color = '#475569';
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = 'USE';
+                    }
+
+                    // Dynamically update energy bar if applicable
+                    if (data.player_status) {
+                        const status = data.player_status;
+                        const energyStr = status.energy_current + ' / ' + status.energy_max;
+                        document.getElementById('energy-val').textContent = energyStr;
+                        
+                        const pct = (status.energy_current * 100) / status.energy_max;
+                        document.getElementById('energy-bar').style.width = pct + '%';
+                    }
+
+                    showToast(data.message || 'ISO-8 secured and applied successfully!');
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'USE';
+                    alert(data.message || 'Consumption failed.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'USE';
+                console.error(err);
+                alert('Connection failure to secure terminal node.');
+            });
+        }
+    </script>
+</body>
+</html>

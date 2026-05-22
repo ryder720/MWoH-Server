@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Card Catalog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
+        <h1>CARD CATALOG</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container">
+        <!-- Filter Tabs -->
+        <div class="filter-bar">
+            <button class="filter-btn active" id="f-all" onclick="filterCards('All')">ALL</button>
+            <button class="filter-btn" id="f-speed" onclick="filterCards('Speed')" style="border-bottom: 2px solid #00f0ff;">SPEED</button>
+            <button class="filter-btn" id="f-bruiser" onclick="filterCards('Bruiser')" style="border-bottom: 2px solid #ef4444;">BRUISER</button>
+            <button class="filter-btn" id="f-tactics" onclick="filterCards('Tactics')" style="border-bottom: 2px solid #f59e0b;">TACTICS</button>
+        </div>
+
+        <!-- Cards grid dossier -->
+        <div class="section-hdr">// DECRYPTED AGENT ROSTER</div>
+        <div class="catalog-grid" id="catalog-card-grid">
+            <!-- Loaded dynamically by JS -->
+        </div>
+    </div>
+
+    <!-- Details overlay modal -->
+    <div class="modal" id="details-modal" onclick="closeDetails(event)">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <button class="close-btn" onclick="closeDetailsModal()">X</button>
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <span class="modal-lbl" id="modal-codename">CODENAME // SPEED</span>
+                    <h2 class="modal-val-lg" id="modal-name">SPIDER-MAN</h2>
+                </div>
+                <div class="badge-lvl" id="modal-rarity" style="color: var(--accent-gold); border-color: var(--accent-gold);">RARE</div>
+            </div>
+
+            <div class="card-thumb-placeholder" id="modal-artwork-thumb">🛡️</div>
+
+            <!-- Stats grid -->
+            <div class="card-stats-row">
+                <div class="card-stat">
+                    <span class="stat-lbl">LEVEL</span>
+                    <span class="stat-val" id="modal-level">1</span>
+                </div>
+                <div class="card-stat">
+                    <span class="stat-lbl">POWER COST</span>
+                    <span class="stat-val" id="modal-cost">12</span>
+                </div>
+                <div class="card-stat">
+                    <span class="stat-lbl">ATK</span>
+                    <span class="stat-val" id="modal-atk" style="color: #ef4444;">2000</span>
+                </div>
+                <div class="card-stat">
+                    <span class="stat-lbl">DEF</span>
+                    <span class="stat-val" id="modal-def" style="color: #10b981;">1800</span>
+                </div>
+            </div>
+
+            <!-- Ability Panel -->
+            <div class="modal-ability-panel">
+                <span class="modal-lbl">ACTIVE SYNC ABILITY</span>
+                <div class="ability-title" id="modal-ability-title">WEB-SLINGER</div>
+                <div class="ability-desc" id="modal-ability-desc">Strengthen Speed ATK lineup.</div>
+            </div>
+
+            <div class="card-footer-quote" id="modal-quote">
+                "With great power comes great responsibility!"
+            </div>
+
+            <!-- Set Representative Leader -->
+            <button class="set-leader-btn" id="leader-action-btn" onclick="setAsLeader()">SET AS ACTIVE LEADER</button>
+        </div>
+    </div>
+
+    <div class="toast" id="leader-toast">ACTIVE LEADER SET SUCCESSFULLY</div>
+
+    <script>
+        const cards = {{cardsJson}};
+        let currentFilter = 'All';
+        let activeSelectedCard = null;
+
+        function filterCards(align) {
+            currentFilter = align;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (align === 'All') document.getElementById('f-all').classList.add('active');
+            else if (align === 'Speed') document.getElementById('f-speed').classList.add('active');
+            else if (align === 'Bruiser') document.getElementById('f-bruiser').classList.add('active');
+            else if (align === 'Tactics') document.getElementById('f-tactics').classList.add('active');
+
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('catalog-card-grid');
+            grid.innerHTML = '';
+
+            const filtered = (currentFilter === 'All') ? cards : cards.filter(c => c.alignment === currentFilter);
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px 0;">No active files under this alignment node.</div>';
+                return;
+            }
+
+            filtered.forEach(c => {
+                const alignColor = c.alignment === 'Speed' ? '#00f0ff' : (c.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+                
+                const cardEl = document.createElement('div');
+                cardEl.className = 'catalog-card' + (c.isLeader ? ' is-leader-card' : '');
+                cardEl.onclick = () => openDetails(c);
+
+                cardEl.innerHTML = `
+                    <div class="mini-alignment-dot" style="background-color: ${alignColor}; box-shadow: 0 0 6px ${alignColor};"></div>
+                    ${c.isLeader ? '<span class="mini-badge" style="color: var(--accent-gold); border-color: var(--accent-gold);">LEADER</span>' : ''}
+                    ${(!c.isLeader && (c.inAtk || c.inDef)) ? '<span class="mini-badge" style="color: var(--hud-blue); border-color: var(--hud-blue);">DECKED</span>' : ''}
+                    
+                    <div class="card-thumb-placeholder">🛡️</div>
+                    <div class="thumb-name">${c.title}</div>
+                    <span class="thumb-sub">LVL ${c.level} // PWR ${c.cost}</span>
+                `;
+                grid.appendChild(cardEl);
+            });
+        }
+
+        function openDetails(card) {
+            activeSelectedCard = card;
+            
+            document.getElementById('modal-codename').textContent = `CODENAME // ${card.alignment.toUpperCase()}`;
+            document.getElementById('modal-name').textContent = card.title;
+            document.getElementById('modal-rarity').textContent = card.rarity.toUpperCase();
+            document.getElementById('modal-level').textContent = card.level;
+            document.getElementById('modal-cost').textContent = card.cost;
+            document.getElementById('modal-atk').textContent = card.atk;
+            document.getElementById('modal-def').textContent = card.def;
+            document.getElementById('modal-ability-title').textContent = card.abilityName.toUpperCase();
+            document.getElementById('modal-ability-desc').textContent = card.abilityEffect;
+            document.getElementById('modal-quote').textContent = `"${card.quote}"`;
+
+            const btn = document.getElementById('leader-action-btn');
+            if (card.isLeader) {
+                btn.disabled = true;
+                btn.textContent = 'ACTIVE REPRESENTATIVE';
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'SET AS ACTIVE LEADER';
+            }
+
+            // Coordination colors
+            const glowColor = card.alignment === 'Speed' ? 'rgba(0, 240, 255, 0.4)' : (card.alignment === 'Bruiser' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)');
+            const neonColor = card.alignment === 'Speed' ? '#00f0ff' : (card.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+            
+            const modalBox = document.querySelector('.modal-card');
+            modalBox.style.borderColor = neonColor;
+            modalBox.style.boxShadow = `0 0 25px ${glowColor}`;
+
+            document.getElementById('details-modal').classList.add('open');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('details-modal').classList.remove('open');
+            activeSelectedCard = null;
+        }
+
+        function closeDetails(e) {
+            closeDetailsModal();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('leader-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function setAsLeader() {
+            if (!activeSelectedCard) return;
+            const btn = document.getElementById('leader-action-btn');
+            btn.disabled = true;
+            btn.textContent = 'TRANSMITTING...';
+
+            fetch('/ultimate/mypage/set_leader', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `card_id=${activeSelectedCard.id}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Leader representative successfully secured!');
+                    closeDetailsModal();
+                    
+                    // Update client memory
+                    cards.forEach(c => {
+                        c.isLeader = (c.id === activeSelectedCard.id);
+                    });
+                    
+                    renderGrid();
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'SET AS ACTIVE LEADER';
+                    alert(data.message || 'Transmission failed.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'SET AS ACTIVE LEADER';
+                console.error(err);
+                alert('Connection failure to secure terminal node.');
+            });
+        }
+
+        // Initialize Grid
+        renderGrid();
+    </script>
+</body>
+</html>

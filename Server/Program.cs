@@ -55,6 +55,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+app.UseStaticFiles();
 
 // Custom Request Logger Middleware
 app.Use(async (context, next) =>

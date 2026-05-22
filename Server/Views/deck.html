@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Deck Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
+        <h1>DECK COMMAND</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container">
+        <!-- Mode Tabs -->
+        <div class="tab-bar">
+            <button class="tab-btn active" id="tab-attack" onclick="setMode('attack')">ATTACK SQUAD</button>
+            <button class="tab-btn" id="tab-defense" onclick="setMode('defense')">DEFENSE SQUAD</button>
+        </div>
+
+        <!-- HUD Summary -->
+        <div class="deck-hud-card">
+            <div class="hud-row">
+                <div>
+                    <span class="hud-lbl">SQUAD ASSIGNMENT</span>
+                    <div class="hud-val-large" id="slot-counter">0 / 5</div>
+                </div>
+                <div style="text-align: right;">
+                    <span class="hud-lbl">POWER CAPACITY LIMIT</span>
+                    <div class="hud-val-large" id="power-counter">0 / {{attackCapacity}}</div>
+                </div>
+            </div>
+            
+            <div class="bar-outer">
+                <div class="bar-inner" id="power-bar" style="background: var(--hud-blue); width: 0%;"></div>
+            </div>
+            <div class="hud-lbl" id="error-msg" style="color: var(--accent-red); font-size: 10px; display: none;">WARNING: Power requirement exceeds available clearance capacity!</div>
+        </div>
+
+        <!-- Selectable cards list -->
+        <div class="section-hdr">// RECRUITED SUPER HERO STOCK</div>
+        <div class="selection-list" id="card-selection-grid">
+            <!-- Rendered dynamically by JS -->
+        </div>
+    </div>
+
+    <div class="footer-action">
+        <button class="submit-btn" id="save-deck-btn" onclick="saveLineup()">SAVE LINEUP CONFIG</button>
+    </div>
+
+    <div class="toast" id="save-toast">LINEUP COMMITTED TO SECURE DB</div>
+
+    <script>
+        const cards = {{cardsJson}};
+        const atkCapacity = {{attackCapacity}};
+        const defCapacity = {{defenseCapacity}};
+        
+        let currentMode = 'attack'; // or 'defense'
+        let selectedAttack = cards.filter(c => c.in_atk).map(c => c.id);
+        let selectedDefense = cards.filter(c => c.in_def).map(c => c.id);
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('tab-attack').classList.toggle('active', mode === 'attack');
+            document.getElementById('tab-defense').classList.toggle('active', mode === 'defense');
+            
+            const cap = (mode === 'attack') ? atkCapacity : defCapacity;
+            document.getElementById('power-counter').textContent = '0 / ' + cap;
+            
+            renderCards();
+            updateHUD();
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('card-selection-grid');
+            grid.innerHTML = '';
+            
+            const activeList = (currentMode === 'attack') ? selectedAttack : selectedDefense;
+
+            cards.forEach(c => {
+                const isSelected = activeList.includes(c.id);
+                const alignColor = c.alignment === 'Speed' ? '#00f0ff' : (c.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+
+                const cardEl = document.createElement('div');
+                cardEl.className = 'selectable-card' + (isSelected ? ' selected' : '');
+                cardEl.onclick = () => toggleCard(c.id);
+
+                cardEl.innerHTML = `
+                    <div class="card-meta">
+                        <div class="alignment-indicator" style="background-color: ${alignColor}; box-shadow: 0 0 8px ${alignColor};"></div>
+                        <div class="card-details">
+                            <span class="card-name-line">${c.title}</span>
+                            <span class="card-subtext">${c.rarity.toUpperCase()} // LVL ${c.level} // ATK ${c.atk} // DEF ${c.def}</span>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span class="card-subtext" style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: #ffffff;">PWR: ${c.cost}</span>
+                        <div class="checkbox-hud">${isSelected ? '✓' : ''}</div>
+                    </div>
+                `;
+                grid.appendChild(cardEl);
+            });
+        }
+
+        function toggleCard(cardId) {
+            let activeList = (currentMode === 'attack') ? selectedAttack : selectedDefense;
+            const idx = activeList.indexOf(cardId);
+            
+            if (idx > -1) {
+                activeList.splice(idx, 1);
+            } else {
+                // Enforce 5 card limits
+                if (activeList.length >= 5) {
+                    alert('Squad reaches maximum capacity. Relegate an agent first.');
+                    return;
+                }
+                activeList.push(cardId);
+            }
+            
+            renderCards();
+            updateHUD();
+        }
+
+        function updateHUD() {
+            const activeList = (currentMode === 'attack') ? selectedAttack : selectedDefense;
+            const cap = (currentMode === 'attack') ? atkCapacity : defCapacity;
+            
+            // Calculate total power requirements
+            let totalCost = 0;
+            activeList.forEach(id => {
+                const card = cards.find(c => c.id === id);
+                if (card) totalCost += card.cost;
+            });
+
+            document.getElementById('slot-counter').textContent = activeList.length + ' / 5';
+            document.getElementById('power-counter').textContent = totalCost + ' / ' + cap;
+            
+            const pct = Math.min(100, (totalCost * 100) / cap);
+            const bar = document.getElementById('power-bar');
+            bar.style.width = pct + '%';
+            
+            const errorEl = document.getElementById('error-msg');
+            const saveBtn = document.getElementById('save-deck-btn');
+            
+            if (totalCost > cap) {
+                bar.style.backgroundColor = 'var(--accent-red)';
+                errorEl.style.display = 'block';
+                saveBtn.disabled = true;
+            } else {
+                bar.style.backgroundColor = 'var(--hud-blue)';
+                errorEl.style.display = 'none';
+                saveBtn.disabled = false;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('save-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function saveLineup() {
+            const saveBtn = document.getElementById('save-deck-btn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'TRANSMITTING...';
+
+            const activeList = (currentMode === 'attack') ? selectedAttack : selectedDefense;
+
+            fetch('/ultimate/mypage/update_deck', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `mode=${currentMode}&card_ids=${activeList.join(',')}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'SAVE LINEUP CONFIG';
+                if (data.success) {
+                    showToast(data.message || 'Squad settings successfully secured!');
+                } else {
+                    alert(data.message || 'Transmission failed.');
+                }
+            })
+            .catch(err => {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'SAVE LINEUP CONFIG';
+                console.error(err);
+                alert('Connection failure to secure terminal node.');
+            });
+        }
+
+        // Initialize HUD
+        setMode('attack');
+    </script>
+</body>
+</html>

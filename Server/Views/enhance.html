@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. ISO-8 Forge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
+        <h1>ISO-8 FORGE</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container">
+        <!-- Silver balance panel -->
+        <div class="silver-panel">
+            <span class="hud-lbl" style="font-size: 10px;">AUTHORIZED SILVER BUDGET</span>
+            <span style="font-weight: 700; color: #cbd5e1; font-size: 14px;" id="hud-silver-val">💎 {{silverFormatted}}</span>
+        </div>
+
+        <!-- Step 1: Base card selection -->
+        <div class="step-box">
+            <span class="hud-lbl">// STEP 1: SELECT CORE TARGET CARD</span>
+            <select class="select-card-picker" id="target-card-select" onchange="onTargetCardChange()">
+                <option value="">-- CHOOSE SQUAD MEMBER --</option>
+                <!-- Rendered dynamically -->
+            </select>
+        </div>
+
+        <!-- Stat projection HUD panel -->
+        <div class="step-box" id="hud-projection-box" style="display: none;">
+            <span class="hud-lbl">// TACTICAL STAT PROJECTOR</span>
+            <div class="forge-hud-panel">
+                <div>
+                    <div class="forge-hud-lbl">CLEARANCE LVL</div>
+                    <div class="stat-projection-row">
+                        <span class="forge-hud-val" id="hud-lvl-cur">1</span>
+                        <span class="proj-arrow">→</span>
+                        <span class="forge-hud-val proj-new" id="hud-lvl-proj">1</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="forge-hud-lbl">ATTACK POWER</div>
+                    <div class="stat-projection-row">
+                        <span class="forge-hud-val" id="hud-atk-cur">1000</span>
+                        <span class="proj-arrow">→</span>
+                        <span class="forge-hud-val proj-new" id="hud-atk-proj" style="color: var(--accent-red);">1000</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="forge-hud-lbl">DEFENSE SHIELD</div>
+                    <div class="stat-projection-row">
+                        <span class="forge-hud-val" id="hud-def-cur">1000</span>
+                        <span class="proj-arrow">→</span>
+                        <span class="forge-hud-val proj-new" id="hud-def-proj" style="color: var(--hud-green);">1000</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-lbl" style="display: flex; justify-content: space-between; font-size: 10px;">
+                <span>SILVER DECTION REQUIREMENT</span>
+                <span id="silver-cost-box" style="color: #ffffff; font-weight: 700;">💎 0</span>
+            </div>
+        </div>
+
+        <!-- Step 2: Consumables and sacrificed cards selection -->
+        <div class="step-box" id="materials-box" style="display: none;">
+            <span class="hud-lbl">// STEP 2: CHOOSE ISO-8 SERUM MATERIAL</span>
+            <div class="selection-list" id="materials-list-container" style="max-height: 250px;">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Execute forge action -->
+        <button class="forge-action-btn" id="execute-forge-btn" disabled onclick="executeForge()">FORGE UPGRADE</button>
+    </div>
+
+    <div class="toast" id="forge-toast">FORGE COMPLETED: Hero stats upgraded!</div>
+
+    <script>
+        const cards = {{cardsJson}};
+        const serums = {{serumsJson}};
+        let userSilver = {{silver}};
+
+        let selectedCardId = null;
+        let selectedCardMaterialType = null; // C# replacement workaround conflict variable renamed to match logic safely
+        let selectedMaterialType = null; // 'serum' or 'card'
+        let selectedMaterialId = null;   // serumTemplateId or cardInstanceId
+
+        // Initialize selectors
+        const picker = document.getElementById('target-card-select');
+        cards.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = `${c.title} (LVL ${c.level} / ${c.rarity})`;
+            picker.appendChild(opt);
+        });
+
+        function onTargetCardChange() {
+            const val = picker.value;
+            if (!val) {
+                selectedCardId = null;
+                document.getElementById('hud-projection-box').style.display = 'none';
+                document.getElementById('materials-box').style.display = 'none';
+                document.getElementById('execute-forge-btn').disabled = true;
+                return;
+            }
+
+            selectedCardId = parseInt(val);
+            selectedMaterialType = null;
+            selectedMaterialId = null;
+
+            document.getElementById('hud-projection-box').style.display = 'block';
+            document.getElementById('materials-box').style.display = 'block';
+
+            populateMaterials();
+            updateProjection();
+        }
+
+        function populateMaterials() {
+            const container = document.getElementById('materials-list-container');
+            container.innerHTML = '';
+
+            const targetCard = cards.find(c => c.id === selectedCardId);
+            if (!targetCard) return;
+
+            // 1. Add Serums
+            serums.forEach(s => {
+                if (s.count <= 0) return;
+                
+                const itemEl = document.createElement('div');
+                itemEl.className = 'material-item';
+                itemEl.id = `material-serum-${s.id}`;
+                itemEl.onclick = () => selectMaterial('serum', s.id);
+
+                itemEl.innerHTML = `
+                    <div>
+                        <div class="material-lbl">${s.name}</div>
+                        <div class="material-sub">+${s.exp_val} EXP // ${s.count} canisters in depot</div>
+                    </div>
+                    <button class="material-selector-btn">USE</button>
+                `;
+                container.appendChild(itemEl);
+            });
+
+            // 2. Add sacrifice candidate cards (excluding self, active leader, and cards in deck)
+            cards.forEach(c => {
+                if (c.id === selectedCardId) return;
+                if (c.isLeader || c.inUse) return; // Prevent sacrificing active leader or cards in decks
+
+                const itemEl = document.createElement('div');
+                itemEl.className = 'material-item';
+                itemEl.id = `material-card-${c.id}`;
+                itemEl.onclick = () => selectMaterial('card', c.id);
+
+                itemEl.innerHTML = `
+                    <div>
+                        <div class="material-lbl">${c.title}</div>
+                        <div class="material-sub">+${c.level * 200} EXP // SACRIFICE DEPLOYMENT</div>
+                    </div>
+                    <button class="material-selector-btn">SACRIFICE</button>
+                `;
+                container.appendChild(itemEl);
+            });
+            
+            if (container.children.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 11px; padding: 20px 0;">No suitable upgrading materials or spare cards found.</div>';
+            }
+        }
+
+        function selectMaterial(type, id) {
+            // Deselect old
+            if (selectedMaterialType && selectedMaterialId) {
+                const oldEl = document.getElementById(`material-${selectedMaterialType}-${selectedMaterialId}`);
+                if (oldEl) oldEl.classList.remove('selected');
+            }
+
+            selectedMaterialType = type;
+            selectedMaterialId = id;
+
+            const newEl = document.getElementById(`material-${type}-${id}`);
+            if (newEl) newEl.classList.add('selected');
+
+            updateProjection();
+        }
+
+        function calculateStatsForLevel(c, level) {
+            if (level >= c.maxLevel) {
+                return { atk: c.maxAtk, def: c.maxDef };
+            }
+            const progress = (level - 1) / (c.maxLevel - 1);
+            const atk = Math.round(c.baseAtk + (c.maxAtk - c.baseAtk) * progress);
+            const def = Math.round(c.baseDef + (c.maxDef - c.baseDef) * progress);
+            return { atk, def };
+        }
+
+        function updateProjection() {
+            const targetCard = cards.find(c => c.id === selectedCardId);
+            if (!targetCard) return;
+
+            document.getElementById('hud-lvl-cur').textContent = targetCard.level;
+            document.getElementById('hud-atk-cur').textContent = targetCard.atk;
+            document.getElementById('hud-def-cur').textContent = targetCard.def;
+
+            let projectedLvl = targetCard.level;
+            let silverCost = 0;
+
+            if (selectedMaterialType && selectedMaterialId) {
+                let expGain = 0;
+                if (selectedMaterialType === 'serum') {
+                    const serum = serums.find(s => s.id === selectedMaterialId);
+                    if (serum) expGain = serum.exp_val;
+                } else {
+                    const matCard = cards.find(c => c.id === selectedMaterialId);
+                    if (matCard) expGain = matCard.level * 200;
+                }
+
+                // Simple level up calculation: every +1000 exp is a level, up to max limit
+                const levelsGained = Math.max(1, Math.floor(expGain / 1000));
+                projectedLvl = Math.min(targetCard.maxLevel, targetCard.level + levelsGained);
+                silverCost = levelsGained * 1500;
+            }
+
+            document.getElementById('hud-lvl-proj').textContent = projectedLvl;
+            
+            const projectedStats = calculateStatsForLevel(targetCard, projectedLvl);
+            document.getElementById('hud-atk-proj').textContent = projectedStats.atk;
+            document.getElementById('hud-def-proj').textContent = projectedStats.def;
+
+            const costBox = document.getElementById('silver-cost-box');
+            costBox.textContent = `💎 ${silverCost.toLocaleString()}`;
+            
+            const forgeBtn = document.getElementById('execute-forge-btn');
+            
+            if (selectedMaterialType && selectedMaterialId) {
+                if (userSilver < silverCost) {
+                    costBox.style.color = 'var(--accent-red)';
+                    forgeBtn.disabled = true;
+                } else {
+                    costBox.style.color = '#ffffff';
+                    forgeBtn.disabled = false;
+                }
+            } else {
+                forgeBtn.disabled = true;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('forge-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function executeForge() {
+            if (!selectedCardId || !selectedMaterialType || !selectedMaterialId) return;
+
+            const btn = document.getElementById('execute-forge-btn');
+            btn.disabled = true;
+            btn.textContent = 'COMMENCING FORGE...';
+
+            fetch('/ultimate/mypage/enhance_card', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `target_card_id=${selectedCardId}&material_type=${selectedMaterialType}&material_id=${selectedMaterialId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Forge committed successfully!');
+                    
+                    // Deduct silver locally
+                    userSilver = data.remaining_silver;
+                    document.getElementById('hud-silver-val').textContent = `💎 ${userSilver.toLocaleString()}`;
+
+                    // Refresh page after a brief delay to re-seed UI
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'FORGE UPGRADE';
+                    alert(data.message || 'Forge integration failed.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'FORGE UPGRADE';
+                console.error(err);
+                alert('Connection failure to secure terminal node.');
+            });
+        }
+    </script>
+</body>
+</html>

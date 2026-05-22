@@ -157,6 +157,101 @@ namespace MwohServer.Data
                 ImageFileName = "SpiderMan_1.jpg",
                 VariantName = "Base"
             });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Iron Man",
+                VisualTitle = "[Arc Reactor] Iron Man",
+                Alignment = "Tactics",
+                Rarity = "Super Rare",
+                Faction = "Super Hero",
+                Gender = "Male",
+                PowerRequirement = 14,
+                BaseAtk = 2500,
+                BaseDef = 2400,
+                MaxAtk = 6000,
+                MaxDef = 5800,
+                AbilityName = "Uni-Beam",
+                AbilityEffect = "Strengthen Tactics ATK.",
+                Quote = "I am Iron Man.",
+                ImageFileName = "IronMan_1.jpg",
+                VariantName = "Base"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Captain America",
+                VisualTitle = "[Sentinel of Liberty] Captain America",
+                Alignment = "Bruiser",
+                Rarity = "Rare",
+                Faction = "Super Hero",
+                Gender = "Male",
+                PowerRequirement = 13,
+                BaseAtk = 2200,
+                BaseDef = 2600,
+                MaxAtk = 5200,
+                MaxDef = 6200,
+                AbilityName = "Shield Toss",
+                AbilityEffect = "Strengthen Bruiser DEF.",
+                Quote = "I can do this all day.",
+                ImageFileName = "CaptainAmerica_1.jpg",
+                VariantName = "Base"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Black Widow",
+                VisualTitle = "[Covert Operative] Black Widow",
+                Alignment = "Speed",
+                Rarity = "Normal",
+                Faction = "Super Hero",
+                Gender = "Female",
+                PowerRequirement = 8,
+                BaseAtk = 1200,
+                BaseDef = 1100,
+                MaxAtk = 3200,
+                MaxDef = 3000,
+                AbilityName = "Stinger Blast",
+                AbilityEffect = "Slightly Strengthen Speed ATK.",
+                Quote = "Nothing lasts forever.",
+                ImageFileName = "BlackWidow_1.jpg",
+                VariantName = "Base"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Hulk",
+                VisualTitle = "[Smash Protocol] Hulk",
+                Alignment = "Bruiser",
+                Rarity = "Legendary",
+                Faction = "Super Hero",
+                Gender = "Male",
+                PowerRequirement = 18,
+                BaseAtk = 3500,
+                BaseDef = 2800,
+                MaxAtk = 8500,
+                MaxDef = 6800,
+                AbilityName = "Gamma Slam",
+                AbilityEffect = "Massively Strengthen Bruiser ATK.",
+                Quote = "HULK SMASH!",
+                ImageFileName = "Hulk_1.jpg",
+                VariantName = "Base"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Thor",
+                VisualTitle = "[God of Thunder] Thor",
+                Alignment = "Tactics",
+                Rarity = "Legendary",
+                Faction = "Super Hero",
+                Gender = "Male",
+                PowerRequirement = 17,
+                BaseAtk = 3400,
+                BaseDef = 3000,
+                MaxAtk = 8200,
+                MaxDef = 7200,
+                AbilityName = "Lightning Strike",
+                AbilityEffect = "Massively Strengthen Tactics ATK.",
+                Quote = "Bring me Thanos!",
+                ImageFileName = "Thor_1.jpg",
+                VariantName = "Base"
+            });
             context.SaveChanges();
         }
 
@@ -165,10 +260,14 @@ namespace MwohServer.Data
             var profile = context.Profiles.FirstOrDefault(p => p.Id == 1);
             if (profile != null && !context.PlayerCards.Any(pc => pc.PlayerProfileId == profile.Id))
             {
-                // Assign first 2 templates as owned starter cards
-                var templates = context.CardTemplates.Take(2).ToList();
+                // Assign first 6 templates as owned starter cards
+                var templates = context.CardTemplates.Take(6).ToList();
+                int index = 0;
                 foreach (var temp in templates)
                 {
+                    bool isLeader = (index == 0);
+                    bool inDecks = (index < 5); // Max 5 cards in deck
+
                     context.PlayerCards.Add(new PlayerCard
                     {
                         PlayerProfileId = profile.Id,
@@ -176,11 +275,15 @@ namespace MwohServer.Data
                         CurrentLevel = 1,
                         CurrentMastery = 0,
                         CurrentAtk = temp.BaseAtk,
-                        CurrentDef = temp.BaseDef
+                        CurrentDef = temp.BaseDef,
+                        IsLeader = isLeader,
+                        IsInAttackDeck = inDecks,
+                        IsInDefenseDeck = inDecks
                     });
+                    index++;
                 }
                 context.SaveChanges();
-                logger.LogInformation($"[Seeder] Seeded starter cards for default profile '{profile.Nickname}'.");
+                logger.LogInformation($"[Seeder] Seeded 6 starter cards (5 in active decks, 1 leader) for default profile '{profile.Nickname}'.");
             }
         }
 

@@ -111,6 +111,11 @@ namespace MwohServer.Models
         public int CurrentAtk { get; set; }
         public int CurrentDef { get; set; }
         
+        // Deck and Leader representative flags
+        public bool IsLeader { get; set; } = false;
+        public bool IsInAttackDeck { get; set; } = false;
+        public bool IsInDefenseDeck { get; set; } = false;
+        
         // Navigation properties
         public PlayerProfile? PlayerProfile { get; set; }
         public CardTemplate? CardTemplate { get; set; }
