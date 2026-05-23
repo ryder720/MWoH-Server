@@ -153,7 +153,7 @@
         <div style="width: 50px;"></div>
     </div>
 
-    <div class="container">
+    <div class="container" style="padding-bottom: 80px;">
         <!-- Silver balance panel -->
         <div class="silver-panel">
             <span class="hud-lbl" style="font-size: 10px;">AUTHORIZED SILVER BUDGET</span>
@@ -216,7 +216,29 @@
                 </div>
             </div>
 
-            <div class="hud-lbl" style="display: flex; justify-content: space-between; font-size: 10px;">
+            <!-- Active Sync Ability Projection Box -->
+            <div id="hud-ability-projection-box" style="margin-top: 15px; background: rgba(0, 0, 0, 0.45); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 8px; padding: 12px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div class="forge-hud-lbl" style="text-align: left; color: var(--accent-gold); font-size: 8px; letter-spacing: 0.5px;">ACTIVE SYNC ABILITY</div>
+                        <div class="forge-hud-val" id="hud-ability-name" style="font-size: 13px; text-align: left; font-weight: 700; color: #f8fafc; margin-top: 2px;">-</div>
+                        <div id="hud-ability-effect" style="font-family: 'Outfit', sans-serif; font-size: 10px; color: var(--text-muted); text-align: left; margin-top: 4px; line-height: 1.3;">-</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink: 0; padding-left: 15px;">
+                        <div class="forge-hud-lbl" style="text-align: right; font-size: 8px;">SYNC LEVEL</div>
+                        <div class="stat-projection-row" style="margin-top: 2px;">
+                            <span class="forge-hud-val" id="hud-ability-lvl-cur" style="color: #f8fafc;">1</span>
+                            <span class="proj-arrow" style="color: var(--accent-gold);">→</span>
+                            <span class="forge-hud-val proj-new" id="hud-ability-lvl-proj" style="color: var(--accent-gold); font-weight: 700;">1</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="hud-ability-chance-row" style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--text-muted); margin-top: 8px; text-align: right; border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 6px;">
+                    LEVEL UP CHANCE: <span id="hud-ability-chance-val" style="color: var(--hud-green); font-weight: 700; font-size: 11px;">0%</span>
+                </div>
+            </div>
+
+            <div class="hud-lbl" style="display: flex; justify-content: space-between; font-size: 10px; margin-top: 12px;">
                 <span>SILVER DECTION REQUIREMENT</span>
                 <span id="silver-cost-box" style="color: #ffffff; font-weight: 700;">💎 0</span>
             </div>
@@ -231,7 +253,7 @@
         </div>
 
         <!-- Execute forge action -->
-        <button class="forge-action-btn" id="execute-forge-btn" disabled onclick="executeForge()">FORGE UPGRADE</button>
+        <button class="forge-action-btn" id="execute-forge-btn" disabled onclick="executeForge()" style="margin-bottom: 40px;">FORGE UPGRADE</button>
     </div>
 
     <div class="toast" id="forge-toast">FORGE COMPLETED: Hero stats upgraded!</div>
@@ -416,29 +438,33 @@
             const targetCard = cards.find(c => c.id === selectedCardId);
             if (!targetCard) return;
 
-            // 1. Add Serums
-            serums.forEach(s => {
-                if (s.count <= 0) return;
-                
-                const itemEl = document.createElement('div');
-                itemEl.className = 'material-item';
-                itemEl.id = `material-serum-${s.id}`;
-                itemEl.onclick = () => selectMaterial('serum', s.id);
+            // 1. Add Serums (only if base card is not already at max level)
+            const isTargetMaxLvl = targetCard.level >= targetCard.maxLevel;
+            if (!isTargetMaxLvl) {
+                serums.forEach(s => {
+                    if (s.count <= 0) return;
+                    
+                    const itemEl = document.createElement('div');
+                    itemEl.className = 'material-item';
+                    itemEl.id = `material-serum-${s.id}`;
+                    itemEl.onclick = () => selectMaterial('serum', s.id);
 
-                itemEl.innerHTML = `
-                    <div>
-                        <div class="material-lbl">${s.name}</div>
-                        <div class="material-sub">+${s.exp_val} EXP // ${s.count} canisters in depot</div>
-                    </div>
-                    <button class="material-selector-btn">USE</button>
-                `;
-                container.appendChild(itemEl);
-            });
+                    itemEl.innerHTML = `
+                        <div>
+                            <div class="material-lbl">${s.name}</div>
+                            <div class="material-sub">+${s.exp_val} EXP // ${s.count} canisters in depot</div>
+                        </div>
+                        <button class="material-selector-btn">USE</button>
+                    `;
+                    container.appendChild(itemEl);
+                });
+            }
 
             // 2. Add sacrifice candidate cards (excluding self, active leader, and cards in deck)
             cards.forEach(c => {
                 if (c.id === selectedCardId) return;
                 if (c.isLeader || c.inUse) return; // Prevent sacrificing active leader or cards in decks
+                if (isTargetMaxLvl && c.abilityLevel === 0) return; // Skip cards without abilities if target is max level
 
                 const itemEl = document.createElement('div');
                 itemEl.className = 'material-item';
@@ -451,12 +477,18 @@
                 const levelFactor = (c.level - 1) * 20;
                 const totalXp = baseRarityXp + alignmentBonus + levelFactor;
 
+                const hasAbility = c.abilityLevel > 0;
+                const isDupe = c.cardTemplateId === targetCard.cardTemplateId;
+                const abilityBadge = isDupe 
+                    ? ` <span style="color: var(--hud-green); font-weight: 700; text-shadow: 0 0 4px rgba(16,185,129,0.3);">[🔥 DUP - 100% CHANCE]</span>` 
+                    : (hasAbility ? ` <span style="color: var(--accent-gold); font-weight: 700; text-shadow: 0 0 4px rgba(245,158,11,0.3);">[⚡ ${c.abilityName}]</span>` : '');
+
                 itemEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <div class="enhance-thumbnail" style="background-image: url('/images/cards/${c.imageFile}');">${c.imageFile ? '' : '🛡️'}</div>
                         <div>
                             <div class="material-lbl">${c.title}</div>
-                            <div class="material-sub">+${totalXp.toLocaleString()} EXP ${isSameAlignment ? '🔥 Alignment Match!' : ''} // SACRIFICE DEPLOYMENT</div>
+                            <div class="material-sub">+${totalXp.toLocaleString()} EXP ${isSameAlignment ? '🔥 Match!' : ''}${abilityBadge} // SACRIFICE</div>
                         </div>
                     </div>
                     <button class="material-selector-btn">SELECT</button>
@@ -521,12 +553,13 @@
             const targetCard = cards.find(c => c.id === selectedCardId);
             if (!targetCard) return;
 
-            document.getElementById('hud-lvl-cur').textContent = targetCard.level;
+            document.getElementById('hud-lvl-cur').textContent = `${targetCard.level} / ${targetCard.maxLevel}`;
             document.getElementById('hud-atk-cur').textContent = targetCard.atk;
             document.getElementById('hud-def-cur').textContent = targetCard.def;
 
             let projectedLvl = targetCard.level;
             let silverCost = 0;
+            let totalAbilityChance = 0;
 
             if (selectedMaterialType && selectedMaterialIds.length > 0) {
                 let expGain = 0;
@@ -549,6 +582,40 @@
                             const baseCost = getBaseCardSilverCost(targetCard.level);
                             const boosterModifier = getBoosterLevelModifier(targetCard.level);
                             silverCost += baseCost + Math.max(0, matCard.level - 1) * boosterModifier;
+                            
+                            // Ability chance contribution calculation
+                            if (matCard.abilityLevel > 0) {
+                                if (matCard.cardTemplateId === targetCard.cardTemplateId) {
+                                    totalAbilityChance += 100; // Duplicate card guarantees 100% chance
+                                } else {
+                                    switch (matCard.rarity) {
+                                        case "Common":
+                                        case "Normal":
+                                        case "High Normal":
+                                        case "Uncommon":
+                                            totalAbilityChance += 20;
+                                            break;
+                                        case "Rare":
+                                            totalAbilityChance += 40;
+                                            break;
+                                        case "High Rare":
+                                            totalAbilityChance += 60;
+                                            break;
+                                        case "Super Rare":
+                                            totalAbilityChance += 80;
+                                            break;
+                                        case "Ultra Rare":
+                                        case "Legend":
+                                        case "Legendary":
+                                        case "Special Legend":
+                                            totalAbilityChance += 100;
+                                            break;
+                                        default:
+                                            totalAbilityChance += 20;
+                                            break;
+                                    }
+                                }
+                            }
                         }
                     });
                 }
@@ -557,7 +624,48 @@
                 projectedLvl = Math.min(targetCard.maxLevel, targetCard.level + levelsGained);
             }
 
-            document.getElementById('hud-lvl-proj').textContent = projectedLvl;
+            document.getElementById('hud-lvl-proj').textContent = `${projectedLvl} / ${targetCard.maxLevel}`;
+            
+            // Ability Sync Projection HUD
+            const abProjBox = document.getElementById('hud-ability-projection-box');
+            if (targetCard.abilityLevel > 0) {
+                abProjBox.style.display = 'block';
+                document.getElementById('hud-ability-name').textContent = targetCard.abilityName;
+                document.getElementById('hud-ability-effect').textContent = targetCard.abilityEffect;
+                document.getElementById('hud-ability-lvl-cur').textContent = `Lvl ${targetCard.abilityLevel}`;
+                
+                const chanceValSpan = document.getElementById('hud-ability-chance-val');
+                const chanceRow = document.getElementById('hud-ability-chance-row');
+                const lvlProjSpan = document.getElementById('hud-ability-lvl-proj');
+
+                if (targetCard.abilityLevel >= 10) {
+                    lvlProjSpan.textContent = `Lvl 10 (MAX)`;
+                    lvlProjSpan.style.color = 'var(--accent-gold)';
+                    chanceRow.style.display = 'none';
+                } else if (totalAbilityChance > 0) {
+                    const finalChance = Math.min(100, totalAbilityChance);
+                    chanceRow.style.display = 'block';
+                    chanceValSpan.textContent = `${finalChance}%`;
+                    
+                    if (finalChance >= 100) {
+                        lvlProjSpan.textContent = `Lvl ${targetCard.abilityLevel + 1}`;
+                        lvlProjSpan.style.color = 'var(--hud-green)';
+                        chanceValSpan.style.color = 'var(--hud-green)';
+                    } else {
+                        lvlProjSpan.textContent = `Lvl ${targetCard.abilityLevel + 1} (EST.)`;
+                        lvlProjSpan.style.color = 'var(--accent-gold)';
+                        chanceValSpan.style.color = 'var(--hud-blue)';
+                    }
+                } else {
+                    lvlProjSpan.textContent = `Lvl ${targetCard.abilityLevel}`;
+                    lvlProjSpan.style.color = '#ffffff';
+                    chanceRow.style.display = 'block';
+                    chanceValSpan.textContent = '0%';
+                    chanceValSpan.style.color = 'var(--text-muted)';
+                }
+            } else {
+                abProjBox.style.display = 'none';
+            }
             
             const projectedStats = calculateStatsForLevel(targetCard, projectedLvl);
             document.getElementById('hud-atk-proj').textContent = projectedStats.atk;

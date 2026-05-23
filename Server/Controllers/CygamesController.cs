@@ -710,6 +710,7 @@ namespace MwohServer.Controllers
             var ownedCards = profile.Cards.Select(c => new
             {
                 id = c.Id,
+                cardTemplateId = c.CardTemplateId,
                 title = c.CardTemplate?.Title ?? "Unknown Hero",
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
@@ -724,7 +725,10 @@ namespace MwohServer.Controllers
                 def = c.CurrentDef,
                 isLeader = c.IsLeader,
                 inUse = c.IsInAttackDeck || c.IsInDefenseDeck,
-                imageFile = c.CardTemplate?.ImageFileName ?? ""
+                imageFile = c.CardTemplate?.ImageFileName ?? "",
+                abilityLevel = string.IsNullOrEmpty(c.CardTemplate?.AbilityName) ? 0 : c.AbilityLevel,
+                abilityName = c.CardTemplate?.AbilityName ?? "",
+                abilityEffect = c.CardTemplate?.AbilityEffect ?? ""
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -975,9 +979,15 @@ namespace MwohServer.Controllers
             var rarity = targetCard.CardTemplate?.Rarity ?? "Normal";
             var maxLevel = GetMaxLevelByRarity(rarity);
 
+            bool targetHasAbility = !string.IsNullOrEmpty(targetCard.CardTemplate?.AbilityName);
+            bool canUpgradeAbility = targetHasAbility && targetCard.AbilityLevel < 10;
+
             if (targetCard.CurrentLevel >= maxLevel)
             {
-                return Ok(new { success = false, message = "Target Hero is already at maximum clearance capacity!" });
+                if (!canUpgradeAbility || materialType == "serum")
+                {
+                    return Ok(new { success = false, message = "Target Hero is already at maximum clearance capacity!" });
+                }
             }
 
             if (profile.SilverBalance < silverCost)
@@ -999,6 +1009,56 @@ namespace MwohServer.Controllers
             targetCard.CurrentAtk = (int)Math.Round(baseAtk + (maxAtk - baseAtk) * progress);
             targetCard.CurrentDef = (int)Math.Round(baseDef + (maxDef - baseDef) * progress);
 
+            // Calculate Ability Level-Up Chance
+            int abilityLevelUpChance = 0;
+            bool abilityLeveledUp = false;
+
+            if (targetHasAbility && targetCard.AbilityLevel < 10)
+            {
+                if (materialType == "card" && materialCardsList != null)
+                {
+                    foreach (var matCard in materialCardsList)
+                    {
+                        if (!string.IsNullOrEmpty(matCard.CardTemplate?.AbilityName))
+                        {
+                            int chanceForMat = 20;
+                            if (matCard.CardTemplateId == targetCard.CardTemplateId)
+                            {
+                                chanceForMat = 100; // Duplicate card guarantees 100% chance
+                            }
+                            else
+                            {
+                                var matRarity = matCard.CardTemplate?.Rarity ?? "Normal";
+                                chanceForMat = matRarity switch
+                                {
+                                    "Common" or "Normal" => 20,
+                                    "High Normal" or "Uncommon" => 20,
+                                    "Rare" => 40,
+                                    "High Rare" => 60,
+                                    "Super Rare" => 80,
+                                    "Ultra Rare" or "Legend" or "Legendary" or "Special Legend" => 100,
+                                    _ => 20
+                                };
+                            }
+                            abilityLevelUpChance += chanceForMat;
+                        }
+                    }
+                }
+            }
+
+            abilityLevelUpChance = Math.Min(100, abilityLevelUpChance);
+
+            if (abilityLevelUpChance > 0)
+            {
+                var rand = new Random();
+                var roll = rand.Next(1, 101);
+                if (roll <= abilityLevelUpChance)
+                {
+                    targetCard.AbilityLevel = Math.Min(10, targetCard.AbilityLevel + 1);
+                    abilityLeveledUp = true;
+                }
+            }
+
             // Deduct cost and consume material
             profile.SilverBalance -= silverCost;
 
@@ -1016,11 +1076,19 @@ namespace MwohServer.Controllers
 
             _dbContext.SaveChanges();
 
+            string forgeMessage = $"Forge committed! {targetCard.CardTemplate?.Title} upgraded to level {newLevel}!";
+            if (abilityLeveledUp)
+            {
+                forgeMessage += $" Sync Ability [ {targetCard.CardTemplate?.AbilityName} ] upgraded to Level {targetCard.AbilityLevel}!";
+            }
+
             return Ok(new
             {
                 success = true,
-                message = $"Forge committed! {targetCard.CardTemplate?.Title} upgraded to level {newLevel}!",
-                remaining_silver = profile.SilverBalance
+                message = forgeMessage,
+                remaining_silver = profile.SilverBalance,
+                ability_leveled_up = abilityLeveledUp,
+                new_ability_level = targetCard.AbilityLevel
             });
         }
 

@@ -113,6 +113,7 @@ namespace MwohServer.Models
         public int CurrentMastery { get; set; } = 0;
         public int CurrentAtk { get; set; }
         public int CurrentDef { get; set; }
+        public int AbilityLevel { get; set; } = 1;
         
         // Deck and Leader representative flags
         public bool IsLeader { get; set; } = false;

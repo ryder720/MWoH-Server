@@ -44,6 +44,16 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
     
     dbContext.Database.EnsureCreated();
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN AbilityLevel INTEGER NOT NULL DEFAULT 1;");
+        logger.LogInformation("Database migration: Added AbilityLevel column to PlayerCards.");
+    }
+    catch (Exception ex)
+    {
+        // Column already exists
+        logger.LogInformation($"Database migration check finished: {ex.Message}");
+    }
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
     
