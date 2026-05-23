@@ -680,6 +680,13 @@ namespace MwohServer.Controllers
             return Content(RenderTemplate("catalog.html", replacements), "text/html");
         }
 
+        [HttpGet("card_str")]
+        public IActionResult ServeCardStrRedirect()
+        {
+            _logger.LogInformation("[Cygames] Native card_str requested. Redirecting to ISO-8 Forge.");
+            return RedirectToAction("ServeEnhancementForgePage");
+        }
+
         [HttpGet("mypage/enhance")]
         public IActionResult ServeEnhancementForgePage()
         {
