@@ -10,5 +10,7 @@ namespace MwohServer.Services
         string GenerateToken(UserAccount account);
         string GenerateSession(UserAccount account);
         UserAccount RegisterUser(string username, string password);
+        void MapTemporaryToken(string tempToken, string username);
+        UserAccount? GetAndConsumeUserByTemporaryToken(string tempToken);
     }
 }

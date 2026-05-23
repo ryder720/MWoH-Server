@@ -66,10 +66,13 @@ namespace MwohServer.Controllers
         {
             _logger.LogInformation("[Cygames] RequestTemporaryCredential called.");
             
+            string tempToken = "temp_" + Guid.NewGuid().ToString("N");
+            _logger.LogInformation($"[Cygames] Generated temporary token: {tempToken}");
+
             // Return JSON containing temporary oauth token as expected by Smali
             var response = new
             {
-                oauth_token = "temp_oauth_token_98765",
+                oauth_token = tempToken,
                 oauth_token_secret = "temp_oauth_secret_abcde",
                 oauth_callback_confirmed = true
             };
@@ -94,11 +97,18 @@ namespace MwohServer.Controllers
             
             _logger.LogInformation($"[Cygames] RequestTokenCredential Token: {oauthToken}, Verifier: {verifier}");
 
-            // Find user by token
-            var user = _authService.GetUserByToken(oauthToken);
+            // 1. First attempt to find the user via dynamic temporary token mapping
+            var user = _authService.GetAndConsumeUserByTemporaryToken(oauthToken);
+            
+            // 2. Fallback to direct active token database search (compatibility fallback)
             if (user == null)
             {
-                // Fallback to testuser if active session lookup fails in development
+                user = _authService.GetUserByToken(oauthToken);
+            }
+            
+            // 3. Last fallback: testuser (development failsafe)
+            if (user == null)
+            {
                 _logger.LogWarning("[Cygames] Active token lookup failed. Falling back to testuser.");
                 user = _authService.ValidateUser("testuser", "password");
             }

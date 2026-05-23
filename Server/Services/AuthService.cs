@@ -113,5 +113,23 @@ namespace MwohServer.Services
 
             return newUser;
         }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string> _temporaryTokenMap = new();
+
+        public void MapTemporaryToken(string tempToken, string username)
+        {
+            _temporaryTokenMap[tempToken] = username;
+        }
+
+        public UserAccount? GetAndConsumeUserByTemporaryToken(string tempToken)
+        {
+            if (_temporaryTokenMap.TryRemove(tempToken, out var username))
+            {
+                return _dbContext.Users
+                    .Include(u => u.Profile)
+                    .FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
+            }
+            return null;
+        }
     }
 }

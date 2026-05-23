@@ -611,6 +611,13 @@ namespace MwohServer.Controllers
         {
             _logger.LogInformation($"[Mobage] AuthorizeToken called. AppKey: {appKey}, Token: {oauth_token}, Authorize: {authorize}");
 
+            var user = ResolveMobageUser();
+            if (user != null)
+            {
+                _authService.MapTemporaryToken(oauth_token, user.Username);
+                _logger.LogInformation($"[Mobage] Mapped temporary token '{oauth_token}' to user '{user.Username}'");
+            }
+
             var response = new
             {
                 success = true,
@@ -627,15 +634,17 @@ namespace MwohServer.Controllers
         {
             _logger.LogInformation($"[Mobage] GetOpenSocialPerson called. AppKey: {appKey}, userId: {userId ?? "@me"}");
 
+            var user = ResolveMobageUser();
+
             var response = new
             {
                 entry = new
                 {
-                    id = userId ?? "123456",
-                    user_id = userId ?? "123456",
-                    userId = userId ?? "123456",
-                    displayName = "testuser",
-                    nickname = "testuser",
+                    id = user.Profile?.PlayerIdString ?? "123456",
+                    user_id = user.Profile?.PlayerIdString ?? "123456",
+                    userId = user.Profile?.PlayerIdString ?? "123456",
+                    displayName = user.Profile?.Nickname ?? user.Username,
+                    nickname = user.Profile?.Nickname ?? user.Username,
                     aboutMe = "Marvel: War of Heroes Private Server Agent",
                     age = 25,
                     gender = "male",
@@ -647,11 +656,67 @@ namespace MwohServer.Controllers
                     pendingFriendRequests = "",
                     addresses = "",
                     birthday = "",
-                    gamertag = ""
+                    gamertag = user.Username
                 }
             };
 
             return Ok(response);
+        }
+
+        private string? ParseMobageOAuthToken()
+        {
+            if (Request.Headers.TryGetValue("Authorization", out var authHeaderValues))
+            {
+                var header = authHeaderValues.ToString();
+                if (header.StartsWith("OAuth ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var parts = header.Substring(6).Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var part in parts)
+                    {
+                        var kv = part.Split(new[] { '=' }, 2);
+                        if (kv.Length == 2)
+                        {
+                            var key = kv[0].Trim();
+                            var val = kv[1].Trim().Trim('"');
+                            if (key == "oauth_token")
+                            {
+                                return val;
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        private UserAccount ResolveMobageUser()
+        {
+            var user = (UserAccount?)null;
+            
+            // 1. Try OAuth Token from Authorization Header
+            var oauthToken = ParseMobageOAuthToken();
+            if (!string.IsNullOrEmpty(oauthToken))
+            {
+                user = _authService.GetUserByToken(oauthToken);
+            }
+            
+            // 2. Try Session Cookie
+            if (user == null)
+            {
+                var sessionId = Request.Cookies["sid"];
+                if (!string.IsNullOrEmpty(sessionId))
+                {
+                    user = _authService.GetUserBySessionId(sessionId);
+                }
+            }
+            
+            // 3. Fallback
+            if (user == null)
+            {
+                user = _authService.ValidateUser("testuser", "password");
+            }
+            
+            return user!;
         }
 
         // 10. OpenSocial endpoint for AppData stubs (arbitrary client-side storage)
