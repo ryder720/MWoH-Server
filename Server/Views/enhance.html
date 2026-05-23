@@ -21,6 +21,129 @@
             font-size: 13px;
             flex-shrink: 0;
         }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .catalog-card {
+            background-color: rgba(3, 7, 18, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            aspect-ratio: 2/3;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            display: block;
+            padding: 0;
+        }
+
+        .catalog-card.is-leader-card {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .catalog-card.target-selected {
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 20px var(--hud-blue-glow);
+            transform: scale(1.05);
+            z-index: 5;
+        }
+
+        .catalog-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0, 240, 255, 0.2);
+            z-index: 5;
+        }
+
+        .catalog-card .mini-alignment-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .catalog-card .mini-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            letter-spacing: 0.5px;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+
+        .page-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 8px var(--hud-blue-glow);
+        }
+
+        .page-btn.active {
+            background: var(--hud-blue);
+            color: #000;
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            color: var(--text-muted);
+            border-color: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .limit-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -39,11 +162,28 @@
 
         <!-- Step 1: Base card selection -->
         <div class="step-box">
-            <span class="hud-lbl">// STEP 1: SELECT CORE TARGET CARD</span>
-            <select class="select-card-picker" id="target-card-select" onchange="onTargetCardChange()">
-                <option value="">-- CHOOSE SQUAD MEMBER --</option>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="hud-lbl">// STEP 1: SELECT CORE TARGET CARD</span>
+                <div class="limit-lbl" id="target-count-indicator">0 / 250</div>
+            </div>
+            
+            <!-- Alignment Node Filtration Tabs -->
+            <div class="filter-tabs" style="margin-bottom: 12px;">
+                <button class="filter-btn active" id="f-all" onclick="filterTargetCards('All')">ALL</button>
+                <button class="filter-btn" id="f-speed" onclick="filterTargetCards('Speed')" style="border-bottom: 2px solid #00f0ff;">SPEED</button>
+                <button class="filter-btn" id="f-bruiser" onclick="filterTargetCards('Bruiser')" style="border-bottom: 2px solid #ef4444;">BRUISER</button>
+                <button class="filter-btn" id="f-tactics" onclick="filterTargetCards('Tactics')" style="border-bottom: 2px solid #f59e0b;">TACTICS</button>
+            </div>
+
+            <!-- 4x5 Binder Grid -->
+            <div class="catalog-grid" id="target-card-grid">
                 <!-- Rendered dynamically -->
-            </select>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="pagination-controls">
+                <!-- Rendered dynamically -->
+            </div>
         </div>
 
         <!-- Stat projection HUD panel -->
@@ -106,35 +246,119 @@
         let selectedMaterialType = null; // 'serum' or 'card'
         let selectedMaterialId = null;   // serumTemplateId or cardInstanceId
 
-        // Initialize selectors
-        const picker = document.getElementById('target-card-select');
-        cards.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = `${c.title} (LVL ${c.level} / ${c.rarity})`;
-            picker.appendChild(opt);
-        });
+        let currentFilter = 'All';
+        let currentPage = 1;
+        const PAGE_SIZE = 8; // 2 rows of 4 columns is compact and perfect for the forge screen!
 
-        function onTargetCardChange() {
-            const val = picker.value;
-            if (!val) {
-                selectedCardId = null;
-                document.getElementById('hud-projection-box').style.display = 'none';
-                document.getElementById('materials-box').style.display = 'none';
-                document.getElementById('execute-forge-btn').disabled = true;
+        function filterTargetCards(align) {
+            currentFilter = align;
+            currentPage = 1; // Reset to page 1 on filter swap
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (align === 'All') document.getElementById('f-all').classList.add('active');
+            else if (align === 'Speed') document.getElementById('f-speed').classList.add('active');
+            else if (align === 'Bruiser') document.getElementById('f-bruiser').classList.add('active');
+            else if (align === 'Tactics') document.getElementById('f-tactics').classList.add('active');
+
+            renderTargetGrid();
+        }
+
+        function renderTargetGrid() {
+            const grid = document.getElementById('target-card-grid');
+            grid.innerHTML = '';
+
+            const filtered = (currentFilter === 'All') ? cards : cards.filter(c => c.alignment === currentFilter);
+
+            document.getElementById('target-count-indicator').textContent = `${cards.length} / 250`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-muted); font-size: 11px; padding: 30px 0;">No active files under this alignment node.</div>';
+                document.getElementById('pagination-controls').innerHTML = '';
                 return;
             }
 
-            selectedCardId = parseInt(val);
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const endIndex = startIndex + PAGE_SIZE;
+            const pageCards = filtered.slice(startIndex, endIndex);
+
+            pageCards.forEach(c => {
+                const alignColor = c.alignment === 'Speed' ? '#00f0ff' : (c.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+                
+                const cardEl = document.createElement('div');
+                cardEl.className = 'catalog-card';
+                if (c.isLeader) cardEl.classList.add('is-leader-card');
+                if (c.id === selectedCardId) cardEl.classList.add('target-selected');
+                
+                cardEl.onclick = () => selectTargetCard(c.id);
+                cardEl.style.backgroundImage = `url('/images/cards/${c.imageFile}')`;
+
+                cardEl.innerHTML = `
+                    <div class="mini-alignment-dot" style="background-color: ${alignColor}; box-shadow: 0 0 6px ${alignColor};"></div>
+                    ${c.isLeader ? '<span class="mini-badge" style="color: var(--accent-gold); border-color: var(--accent-gold);">LEADER</span>' : ''}
+                    ${(!c.isLeader && c.inUse) ? '<span class="mini-badge" style="color: var(--hud-blue); border-color: var(--hud-blue);">DECKED</span>' : ''}
+                `;
+                grid.appendChild(cardEl);
+            });
+
+            renderPaginationControls(totalPages);
+        }
+
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('pagination-controls');
+            container.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.innerHTML = '◀';
+            prevBtn.disabled = (currentPage === 1);
+            prevBtn.onclick = () => {
+                currentPage--;
+                renderTargetGrid();
+            };
+            container.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderTargetGrid();
+                };
+                container.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.innerHTML = '▶';
+            nextBtn.disabled = (currentPage === totalPages);
+            nextBtn.onclick = () => {
+                currentPage++;
+                renderTargetGrid();
+            };
+            container.appendChild(nextBtn);
+        }
+
+        function selectTargetCard(cardId) {
+            selectedCardId = cardId;
             selectedMaterialType = null;
             selectedMaterialId = null;
 
             document.getElementById('hud-projection-box').style.display = 'block';
             document.getElementById('materials-box').style.display = 'block';
 
+            renderTargetGrid();
             populateMaterials();
             updateProjection();
         }
+
+        // Initialize target grid
+        renderTargetGrid();
 
         function getBoosterBaseXP(rarity) {
             switch (rarity) {
