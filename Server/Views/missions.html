@@ -186,6 +186,134 @@
             border-radius: 8px;
             backdrop-filter: blur(8px);
         }
+        .mission-item {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+        .mission-item:last-child {
+            margin-bottom: 0;
+        }
+        .mission-item:hover:not(.locked) {
+            border-color: rgba(0, 240, 255, 0.15);
+            background: rgba(0, 240, 255, 0.01);
+        }
+        .mission-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        .mission-row:active:not(.locked) {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .mission-meta-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dropdown-chevron {
+            font-size: 10px;
+            color: var(--hud-blue);
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+            display: inline-block;
+        }
+        .mission-dropdown-panel {
+            background: rgba(0, 0, 0, 0.35);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            animation: slideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .mission-details-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .detail-stat {
+            background: rgba(3, 7, 18, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            padding: 8px;
+            text-align: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+        .detail-stat span {
+            font-weight: 700;
+            display: block;
+            font-size: 11px;
+            margin-top: 2px;
+        }
+        .drop-info-container {
+            background: rgba(245, 158, 11, 0.02);
+            border: 1px dashed rgba(245, 158, 11, 0.12);
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .drop-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .drop-badges-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .drop-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        .mission-start-btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            text-decoration: none;
+            background: linear-gradient(135deg, var(--hud-blue), #00a8cc);
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 12px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 15px var(--hud-blue-glow);
+            transition: all 0.2s ease;
+        }
+        .mission-start-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.4);
+        }
+        .mission-start-btn:active {
+            transform: translateY(0);
+            background: var(--hud-blue);
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -216,5 +344,36 @@
             {{operationsHtml}}
         </div>
     </div>
+    <script>
+        function toggleMissionDropdown(rowEl) {
+            const parent = rowEl.closest('.mission-item');
+            const panel = parent.querySelector('.mission-dropdown-panel');
+            const chevron = rowEl.querySelector('.dropdown-chevron');
+            
+            const isOpen = panel.style.display !== 'none';
+            
+            // Close sibling accordion items under the current operations card
+            const siblingItems = parent.closest('.mission-selector').querySelectorAll('.mission-item');
+            siblingItems.forEach(item => {
+                if (item !== parent && !item.classList.contains('locked')) {
+                    const sibPanel = item.querySelector('.mission-dropdown-panel');
+                    if (sibPanel) sibPanel.style.display = 'none';
+                    const sibChevron = item.querySelector('.dropdown-chevron');
+                    if (sibChevron) sibChevron.style.transform = 'rotate(0deg)';
+                }
+            });
+
+            if (isOpen) {
+                panel.style.display = 'none';
+                chevron.style.transform = 'rotate(0deg)';
+            } else {
+                panel.style.display = 'block';
+                chevron.style.transform = 'rotate(180deg)';
+                setTimeout(() => {
+                    rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }, 100);
+            }
+        }
+    </script>
 </body>
 </html>

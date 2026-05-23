@@ -1036,21 +1036,64 @@ namespace MwohServer.Controllers
                             bool isCompleted = progressState.CompletedMissions.ContainsKey(mission.MissionCode);
                             var statusLbl = isCompleted ? "<span class=\"mission-play-btn completed\">CLEARED</span>" : "<span class=\"mission-play-btn\">ENGAGE</span>";
 
+                            // Build dynamic possible drops html roster
+                            var dropsHtml = "";
+                            if (mission.PossibleDrops != null && mission.PossibleDrops.Count > 0)
+                            {
+                                var badgeList = mission.PossibleDrops.Select(d => $"""
+                                    <span class="drop-badge">{d.ToUpper()}</span>
+                                """).ToList();
+                                dropsHtml = $"""
+                                <div class="drop-info-container">
+                                    <div class="drop-title">// ENEMY DATA INTEL DROPS</div>
+                                    <div class="drop-badges-list">
+                                        {string.Join("", badgeList)}
+                                    </div>
+                                </div>
+                                """;
+                            }
+                            else
+                            {
+                                dropsHtml = $"""
+                                <div class="drop-info-container">
+                                    <div class="drop-title" style="color: var(--text-muted);">// NO INTEL DROPS DETECTED</div>
+                                </div>
+                                """;
+                            }
+
                             missionListHtml.Add($"""
-                            <a href="/ultimate/mypage/missions/play/{mission.MissionCode}" class="mission-link">
-                                <span class="mission-code">{mission.MissionCode}</span>
-                                <span class="mission-name">{mission.Name}</span>
-                                {statusLbl}
-                            </a>
+                            <div class="mission-item">
+                                <div class="mission-row" onclick="toggleMissionDropdown(this)">
+                                    <span class="mission-code">{mission.MissionCode}</span>
+                                    <span class="mission-name">{mission.Name}</span>
+                                    <div class="mission-meta-right">
+                                        {statusLbl}
+                                        <span class="dropdown-chevron">▼</span>
+                                    </div>
+                                </div>
+                                <div class="mission-dropdown-panel" style="display: none;">
+                                    <div class="mission-details-grid">
+                                        <div class="detail-stat">🔋 ENERGY: <span>{mission.EnergyCost}</span></div>
+                                        <div class="detail-stat">⭐ REWARDS: <span>+{mission.XpReward} XP</span></div>
+                                        <div class="detail-stat">🪙 SILVER: <span>{mission.SilverMin}-{mission.SilverMax}</span></div>
+                                    </div>
+                                    {dropsHtml}
+                                    <a href="/ultimate/mypage/missions/play/{mission.MissionCode}" class="mission-start-btn">INITIALIZE BATTLE Sector</a>
+                                </div>
+                            </div>
                             """);
                         }
                         else
                         {
                             missionListHtml.Add($"""
-                            <div class="mission-link" style="opacity: 0.4; cursor: not-allowed;">
-                                <span class="mission-code" style="color: #6b7280;">{mission.MissionCode}</span>
-                                <span class="mission-name" style="color: #6b7280;">CLASSIFIED SECTOR</span>
-                                <span class="mission-play-btn completed" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">LOCKED</span>
+                            <div class="mission-item locked">
+                                <div class="mission-row" style="opacity: 0.4; cursor: not-allowed;">
+                                    <span class="mission-code" style="color: #6b7280;">{mission.MissionCode}</span>
+                                    <span class="mission-name" style="color: #6b7280;">CLASSIFIED SECTOR</span>
+                                    <div class="mission-meta-right">
+                                        <span class="mission-play-btn completed" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">LOCKED</span>
+                                    </div>
+                                </div>
                             </div>
                             """);
                         }
