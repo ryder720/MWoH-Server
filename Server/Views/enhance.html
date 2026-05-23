@@ -150,7 +150,7 @@
     <div class="header">
         <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
         <h1>ISO-8 FORGE</h1>
-        <div style="width: 50px;"></div>
+        <a href="/ultimate/card_union" class="back-btn" style="color: #c084fc; border-color: rgba(168,85,247,0.3); background: rgba(168,85,247,0.05);">🧬 FUSION</a>
     </div>
 
     <div class="container" style="padding-bottom: 80px;">
@@ -205,6 +205,7 @@
                         <span class="proj-arrow">→</span>
                         <span class="forge-hud-val proj-new" id="hud-atk-proj" style="color: var(--accent-red);">1000</span>
                     </div>
+                    <div style="font-size: 8px; color: var(--text-muted); text-align: center; margin-top: 4px; font-family: 'Space Mono', monospace;" id="hud-atk-breakdown">Base 1000 + Mastery 0</div>
                 </div>
                 <div>
                     <div class="forge-hud-lbl">DEFENSE SHIELD</div>
@@ -213,6 +214,18 @@
                         <span class="proj-arrow">→</span>
                         <span class="forge-hud-val proj-new" id="hud-def-proj" style="color: var(--hud-green);">1000</span>
                     </div>
+                    <div style="font-size: 8px; color: var(--text-muted); text-align: center; margin-top: 4px; font-family: 'Space Mono', monospace;" id="hud-def-breakdown">Base 1000 + Mastery 0</div>
+                </div>
+            </div>
+
+            <!-- Mastery HUD Display -->
+            <div id="hud-mastery-panel" style="margin-top: 15px; background: rgba(168, 85, 247, 0.05); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 8px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="forge-hud-lbl" style="text-align: left; color: #c084fc; font-size: 8px; letter-spacing: 0.5px;">HERO MASTERY</div>
+                    <span class="forge-hud-val" id="hud-mastery-val" style="color: #c084fc; font-size: 11px;">0 / 100 (0%)</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 3px; overflow: hidden; margin-top: 6px;">
+                    <div id="hud-mastery-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #a855f7, #c084fc); box-shadow: 0 0 8px rgba(168, 85, 247, 0.6); transition: width 0.4s ease;"></div>
                 </div>
             </div>
 
@@ -553,9 +566,26 @@
             const targetCard = cards.find(c => c.id === selectedCardId);
             if (!targetCard) return;
 
+            // Mastery calculations
+            const masteryCur = targetCard.masteryCur || 0;
+            const masteryMax = targetCard.masteryMax || 100;
+            const masteryBonusAtk = targetCard.masteryBonusAtk || 0;
+            const masteryBonusDef = targetCard.masteryBonusDef || 0;
+
+            const activeMasteryAtk = masteryMax > 0 ? Math.round((masteryBonusAtk * masteryCur) / masteryMax) : 0;
+            const activeMasteryDef = masteryMax > 0 ? Math.round((masteryBonusDef * masteryCur) / masteryMax) : 0;
+
+            const baseLevelAtk = targetCard.atk - activeMasteryAtk;
+            const baseLevelDef = targetCard.def - activeMasteryDef;
+
+            const masteryPct = masteryMax > 0 ? Math.round((masteryCur / masteryMax) * 100) : 0;
+
             document.getElementById('hud-lvl-cur').textContent = `${targetCard.level} / ${targetCard.maxLevel}`;
-            document.getElementById('hud-atk-cur').textContent = targetCard.atk;
-            document.getElementById('hud-def-cur').textContent = targetCard.def;
+            document.getElementById('hud-atk-cur').textContent = targetCard.atk.toLocaleString();
+            document.getElementById('hud-def-cur').textContent = targetCard.def.toLocaleString();
+
+            document.getElementById('hud-mastery-val').textContent = `${masteryCur} / ${masteryMax} (${masteryPct}%)`;
+            document.getElementById('hud-mastery-bar').style.width = `${masteryPct}%`;
 
             let projectedLvl = targetCard.level;
             let silverCost = 0;
@@ -668,8 +698,19 @@
             }
             
             const projectedStats = calculateStatsForLevel(targetCard, projectedLvl);
-            document.getElementById('hud-atk-proj').textContent = projectedStats.atk;
-            document.getElementById('hud-def-proj').textContent = projectedStats.def;
+            
+            // Projected stats must include active mastery so stats don't seem to drop
+            const projectedNetAtk = projectedStats.atk + activeMasteryAtk;
+            const projectedNetDef = projectedStats.def + activeMasteryDef;
+
+            document.getElementById('hud-atk-proj').textContent = projectedNetAtk.toLocaleString();
+            document.getElementById('hud-def-proj').textContent = projectedNetDef.toLocaleString();
+
+            // Populate breakdowns
+            document.getElementById('hud-atk-breakdown').innerHTML = 
+                `Base ${baseLevelAtk.toLocaleString()} + Mastery ${activeMasteryAtk.toLocaleString()} <span style="color: var(--hud-blue);">→</span> Base ${projectedStats.atk.toLocaleString()} + Mastery ${activeMasteryAtk.toLocaleString()}`;
+            document.getElementById('hud-def-breakdown').innerHTML = 
+                `Base ${baseLevelDef.toLocaleString()} + Mastery ${activeMasteryDef.toLocaleString()} <span style="color: var(--hud-blue);">→</span> Base ${projectedStats.def.toLocaleString()} + Mastery ${activeMasteryDef.toLocaleString()}`;
 
             const costBox = document.getElementById('silver-cost-box');
             costBox.textContent = `💎 ${silverCost.toLocaleString()}`;

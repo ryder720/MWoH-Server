@@ -127,6 +127,112 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (LastEnergyRecoveryTime): {ex.Message}");
     }
 
+    // 3. Migrate CardTemplates - Add MaxMastery column if missing
+    try
+    {
+        var hasMaxMastery = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(CardTemplates);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString() == "MaxMastery")
+                    {
+                        hasMaxMastery = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!hasMaxMastery)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE CardTemplates ADD COLUMN MaxMastery INTEGER NOT NULL DEFAULT 100;");
+            logger.LogInformation("Database migration: Added MaxMastery column to CardTemplates.");
+        }
+        else
+        {
+            logger.LogInformation("Database migration check finished (MaxMastery): Already exists.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (MaxMastery): {ex.Message}");
+    }
+
+    // 4. Migrate PlayerCards - Add FusionBonusAtk and FusionBonusDef columns if missing
+    try
+    {
+        var hasFusionBonusAtk = false;
+        var hasFusionBonusDef = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(PlayerCards);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var colName = reader["name"].ToString();
+                    if (colName == "FusionBonusAtk") hasFusionBonusAtk = true;
+                    if (colName == "FusionBonusDef") hasFusionBonusDef = true;
+                }
+            }
+        }
+
+        if (!hasFusionBonusAtk)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN FusionBonusAtk INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added FusionBonusAtk column to PlayerCards.");
+        }
+        if (!hasFusionBonusDef)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN FusionBonusDef INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added FusionBonusDef column to PlayerCards.");
+        }
+        
+        if (hasFusionBonusAtk && hasFusionBonusDef)
+        {
+            logger.LogInformation("Database migration check finished (FusionBonusAtk/Def): Already exists.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (FusionBonusAtk/Def): {ex.Message}");
+    }
+
+    // 5. Ensure healthy default Attack/Defense deck capacity limits for all profiles
+    try
+    {
+        var minLimit = Math.Min(MwohServer.Models.GameplaySettings.DefaultAttackPower, MwohServer.Models.GameplaySettings.DefaultDefensePower) * 0.8;
+        var lowCapProfiles = dbContext.Profiles.Where(p => p.AttackPower < minLimit || p.DefensePower < minLimit).ToList();
+        if (lowCapProfiles.Any())
+        {
+            foreach (var p in lowCapProfiles)
+            {
+                if (p.AttackPower < minLimit) p.AttackPower = MwohServer.Models.GameplaySettings.DefaultAttackPower;
+                if (p.DefensePower < minLimit) p.DefensePower = MwohServer.Models.GameplaySettings.DefaultDefensePower;
+            }
+            dbContext.SaveChanges();
+            logger.LogInformation($"Database auto-healing: Restored {lowCapProfiles.Count} player profiles with healthy default deck capacity limits (min {minLimit}).");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database auto-healing failed (Deck Power limits): {ex.Message}");
+    }
+
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
     

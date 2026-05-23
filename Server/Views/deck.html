@@ -7,6 +7,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
     <style>
+        html, body {
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 75px; /* Leave space for bottom fixed bar */
+        }
+
+        .selection-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: none !important;
+            padding-right: 4px;
+        }
+
         .card-thumbnail {
             width: 38px;
             height: 38px;
@@ -27,15 +50,16 @@
     <div class="header">
         <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
         <h1>DECK COMMAND</h1>
-        <div style="width: 50px;"></div>
+        <button class="back-btn" id="header-save-btn" onclick="saveLineup()" style="color: var(--hud-blue); border-color: rgba(0, 240, 255, 0.3); background: rgba(0, 240, 255, 0.05); font-size: 11px; cursor: pointer;">💾 SAVE</button>
+    </div>
+
+    <!-- Mode Tabs Sub-header -->
+    <div class="tab-bar" style="width: 100%; max-width: 480px; padding: 6px 15px; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px); border-radius: 0; border-left: none; border-right: none; border-top: none; border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 99; margin: 0 auto; box-sizing: border-box; display: flex; gap: 8px; flex-shrink: 0;">
+        <button class="tab-btn active" id="tab-attack" onclick="setMode('attack')" style="flex: 1; padding: 8px 10px;">ATTACK SQUAD</button>
+        <button class="tab-btn" id="tab-defense" onclick="setMode('defense')" style="flex: 1; padding: 8px 10px;">DEFENSE SQUAD</button>
     </div>
 
     <div class="container">
-        <!-- Mode Tabs -->
-        <div class="tab-bar">
-            <button class="tab-btn active" id="tab-attack" onclick="setMode('attack')">ATTACK SQUAD</button>
-            <button class="tab-btn" id="tab-defense" onclick="setMode('defense')">DEFENSE SQUAD</button>
-        </div>
 
         <!-- HUD Summary -->
         <div class="deck-hud-card">
@@ -54,6 +78,9 @@
                 <div class="bar-inner" id="power-bar" style="background: var(--hud-blue); width: 0%;"></div>
             </div>
             <div class="hud-lbl" id="error-msg" style="color: var(--accent-red); font-size: 10px; display: none;">WARNING: Power requirement exceeds available clearance capacity!</div>
+            
+            <!-- In-flow scrollable save control -->
+            <button class="submit-btn" id="hud-save-btn" onclick="saveLineup()" style="margin-top: 15px; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.4); color: #ffffff; padding: 10px; font-size: 11px; box-shadow: 0 4px 10px rgba(0, 240, 255, 0.15);">💾 SAVE SQUAD CONFIG</button>
         </div>
 
         <!-- Selectable cards list -->
@@ -160,16 +187,22 @@
             bar.style.width = pct + '%';
             
             const errorEl = document.getElementById('error-msg');
-            const saveBtn = document.getElementById('save-deck-btn');
+            const saveBtn1 = document.getElementById('save-deck-btn');
+            const saveBtn2 = document.getElementById('header-save-btn');
+            const saveBtn3 = document.getElementById('hud-save-btn');
             
             if (totalCost > cap) {
                 bar.style.backgroundColor = 'var(--accent-red)';
                 errorEl.style.display = 'block';
-                saveBtn.disabled = true;
+                if (saveBtn1) saveBtn1.disabled = true;
+                if (saveBtn2) saveBtn2.disabled = true;
+                if (saveBtn3) saveBtn3.disabled = true;
             } else {
                 bar.style.backgroundColor = 'var(--hud-blue)';
                 errorEl.style.display = 'none';
-                saveBtn.disabled = false;
+                if (saveBtn1) saveBtn1.disabled = false;
+                if (saveBtn2) saveBtn2.disabled = false;
+                if (saveBtn3) saveBtn3.disabled = false;
             }
         }
 
@@ -183,9 +216,26 @@
         }
 
         function saveLineup() {
-            const saveBtn = document.getElementById('save-deck-btn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = 'TRANSMITTING...';
+            const saveBtn1 = document.getElementById('save-deck-btn');
+            const saveBtn2 = document.getElementById('header-save-btn');
+            const saveBtn3 = document.getElementById('hud-save-btn');
+
+            const setButtonsState = (disabled, text) => {
+                if (saveBtn1) {
+                    saveBtn1.disabled = disabled;
+                    saveBtn1.textContent = text ? text : 'SAVE LINEUP CONFIG';
+                }
+                if (saveBtn2) {
+                    saveBtn2.disabled = disabled;
+                    saveBtn2.textContent = text ? (text === 'TRANSMITTING...' ? 'SYNC...' : '💾 SAVE') : '💾 SAVE';
+                }
+                if (saveBtn3) {
+                    saveBtn3.disabled = disabled;
+                    saveBtn3.textContent = text ? text.replace('LINEUP', 'SQUAD') : '💾 SAVE SQUAD CONFIG';
+                }
+            };
+
+            setButtonsState(true, 'TRANSMITTING...');
 
             const activeList = (currentMode === 'attack') ? selectedAttack : selectedDefense;
 
@@ -198,8 +248,7 @@
             })
             .then(res => res.json())
             .then(data => {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'SAVE LINEUP CONFIG';
+                setButtonsState(false);
                 if (data.success) {
                     showToast(data.message || 'Squad settings successfully secured!');
                 } else {
@@ -207,15 +256,20 @@
                 }
             })
             .catch(err => {
-                saveBtn.disabled = false;
-                saveBtn.textContent = 'SAVE LINEUP CONFIG';
+                setButtonsState(false);
                 console.error(err);
                 alert('Connection failure to secure terminal node.');
             });
         }
 
         // Initialize HUD
-        setMode('attack');
+        // Parse mode from query parameter if available (e.g. ?mode=defense or ?deck_type=defense)
+        const urlParams = new URLSearchParams(window.location.search);
+        let initialMode = urlParams.get('mode') || urlParams.get('deck_type') || 'attack';
+        if (initialMode !== 'attack' && initialMode !== 'defense') {
+            initialMode = 'attack';
+        }
+        setMode(initialMode);
     </script>
 </body>
 </html>

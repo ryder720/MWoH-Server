@@ -670,7 +670,13 @@ namespace MwohServer.Controllers
                 isLeader = c.IsLeader,
                 inAtk = c.IsInAttackDeck,
                 inDef = c.IsInDefenseDeck,
-                imageFile = c.CardTemplate?.ImageFileName ?? ""
+                imageFile = c.CardTemplate?.ImageFileName ?? "",
+                masteryCur = c.CurrentMastery,
+                masteryMax = c.CardTemplate?.MaxMastery ?? 100,
+                masteryBonusAtk = c.CardTemplate?.MasteryBonusAtk ?? 0,
+                masteryBonusDef = c.CardTemplate?.MasteryBonusDef ?? 0,
+                fusionBonusAtk = c.FusionBonusAtk,
+                fusionBonusDef = c.FusionBonusDef
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -729,7 +735,13 @@ namespace MwohServer.Controllers
                 imageFile = c.CardTemplate?.ImageFileName ?? "",
                 abilityLevel = string.IsNullOrEmpty(c.CardTemplate?.AbilityName) ? 0 : c.AbilityLevel,
                 abilityName = c.CardTemplate?.AbilityName ?? "",
-                abilityEffect = c.CardTemplate?.AbilityEffect ?? ""
+                abilityEffect = c.CardTemplate?.AbilityEffect ?? "",
+                masteryCur = c.CurrentMastery,
+                masteryMax = c.CardTemplate?.MaxMastery ?? 100,
+                masteryBonusAtk = c.CardTemplate?.MasteryBonusAtk ?? 0,
+                masteryBonusDef = c.CardTemplate?.MasteryBonusDef ?? 0,
+                fusionBonusAtk = c.FusionBonusAtk,
+                fusionBonusDef = c.FusionBonusDef
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -741,6 +753,206 @@ namespace MwohServer.Controllers
             };
 
             return Content(RenderTemplate("enhance.html", replacements), "text/html");
+        }
+
+        [HttpGet("card_union")]
+        public IActionResult ServeFusionPage()
+        {
+            _logger.LogInformation("[Cygames] ServeFusionPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var ownedCards = profile.Cards.Select(c => new
+            {
+                id = c.Id,
+                cardTemplateId = c.CardTemplateId,
+                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                variant = c.CardTemplate?.VariantName ?? "Base",
+                alignment = c.CardTemplate?.Alignment ?? "Speed",
+                rarity = c.CardTemplate?.Rarity ?? "Normal",
+                level = c.CurrentLevel,
+                maxLevel = GetMaxLevelByRarity(c.CardTemplate?.Rarity ?? "Normal"),
+                baseAtk = c.CardTemplate?.BaseAtk ?? 1000,
+                baseDef = c.CardTemplate?.BaseDef ?? 1000,
+                maxAtk = c.CardTemplate?.MaxAtk ?? 4000,
+                maxDef = c.CardTemplate?.MaxDef ?? 4000,
+                atk = c.CurrentAtk,
+                def = c.CurrentDef,
+                isLeader = c.IsLeader,
+                inUse = c.IsInAttackDeck || c.IsInDefenseDeck,
+                imageFile = c.CardTemplate?.ImageFileName ?? "",
+                abilityLevel = string.IsNullOrEmpty(c.CardTemplate?.AbilityName) ? 0 : c.AbilityLevel,
+                abilityName = c.CardTemplate?.AbilityName ?? "",
+                abilityEffect = c.CardTemplate?.AbilityEffect ?? "",
+                masteryCur = c.CurrentMastery,
+                masteryMax = c.CardTemplate?.MaxMastery ?? 100,
+                masteryBonusAtk = c.CardTemplate?.MasteryBonusAtk ?? 0,
+                masteryBonusDef = c.CardTemplate?.MasteryBonusDef ?? 0,
+                fusionBonusAtk = c.FusionBonusAtk,
+                fusionBonusDef = c.FusionBonusDef
+            }).ToList();
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "cardsJson", JsonSerializer.Serialize(ownedCards) },
+                { "silver", profile.SilverBalance.ToString() },
+                { "silverFormatted", profile.SilverBalance.ToString("N0") }
+            };
+
+            return Content(RenderTemplate("fuse.html", replacements), "text/html");
+        }
+
+        [HttpPost("mypage/fuse_cards")]
+        public IActionResult FuseCards()
+        {
+            _logger.LogInformation("[Cygames] FuseCards called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile not found." });
+
+            int.TryParse(Request.Form["base_card_id"].ToString(), out var baseCardId);
+            int.TryParse(Request.Form["partner_card_id"].ToString(), out var partnerCardId);
+
+            if (baseCardId <= 0 || partnerCardId <= 0 || baseCardId == partnerCardId)
+            {
+                return Ok(new { success = false, message = "Invalid card selection for fusion." });
+            }
+
+            var baseCard = profile.Cards.FirstOrDefault(c => c.Id == baseCardId);
+            var partnerCard = profile.Cards.FirstOrDefault(c => c.Id == partnerCardId);
+
+            if (baseCard == null || partnerCard == null)
+            {
+                return Ok(new { success = false, message = "One or both selected cards were not found in your secured active files." });
+            }
+
+            if (baseCard.CardTemplate == null || partnerCard.CardTemplate == null)
+            {
+                return Ok(new { success = false, message = "Could not resolve template assets for selected cards." });
+            }
+
+            // 1. Title verification (must be identical)
+            if (baseCard.CardTemplate.Title != partnerCard.CardTemplate.Title)
+            {
+                return Ok(new { success = false, message = "Fusion requires two identical Hero assets!" });
+            }
+
+            // 2. Representative or squad guards
+            if (baseCard.IsLeader || baseCard.IsInAttackDeck || baseCard.IsInDefenseDeck)
+            {
+                return Ok(new { success = false, message = $"Cannot fuse the core card because it is active in your deck/leader slot: {baseCard.CardTemplate?.Title}." });
+            }
+            if (partnerCard.IsLeader || partnerCard.IsInAttackDeck || partnerCard.IsInDefenseDeck)
+            {
+                return Ok(new { success = false, message = $"Cannot consume the partner card because it is active in your deck/leader slot: {partnerCard.CardTemplate?.Title}." });
+            }
+
+            // 3. Determine target template (suffix logic)
+            var baseTitle = baseCard.CardTemplate.Title;
+            var baseVariant = baseCard.CardTemplate.VariantName ?? "Base";
+            var targetVariant = baseVariant.EndsWith("+") ? baseVariant + "+" : baseVariant + "+";
+
+            var targetTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == baseTitle && t.VariantName == targetVariant);
+
+            if (targetTemplate == null)
+            {
+                // Fallback suffix parsing
+                targetTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == baseTitle && t.VariantName.Contains(baseVariant + "+"));
+            }
+
+            if (targetTemplate == null)
+            {
+                return Ok(new { success = false, message = $"{baseTitle} has already reached its final terminal fusion tier!" });
+            }
+
+            // 4. Rarity fee verification
+            var rarity = baseCard.CardTemplate.Rarity ?? "Normal";
+            int silverCost = rarity switch
+            {
+                "Common" or "Normal" => 1575,
+                "High Normal" or "Uncommon" => 3075,
+                "Rare" => 8075,
+                "High Rare" or "Special Rare" => 20075,
+                "Super Rare" or "Super Special Rare" => 40075,
+                "Ultra Rare" or "Ultimate Rare" => 81505,
+                "Legend" or "Legendary" or "Special Legend" => 120000,
+                _ => 8075
+            };
+
+            if (profile.SilverBalance < silverCost)
+            {
+                return Ok(new { success = false, message = $"Insufficient Silver budget for fusion fee (💎 {silverCost.ToString("N0")} required)." });
+            }
+
+            // 5. Carry-over stat calculation (Max Level Check)
+            var baseMaxLvl = GetMaxLevelByRarity(baseCard.CardTemplate?.Rarity ?? "Normal");
+            var partnerMaxLvl = GetMaxLevelByRarity(partnerCard.CardTemplate?.Rarity ?? "Normal");
+            
+            bool isMaxFusion = (baseCard.CurrentLevel >= baseMaxLvl) && (partnerCard.CurrentLevel >= partnerMaxLvl);
+            double factor = isMaxFusion ? 0.10 : 0.05;
+
+            int inheritedAtk = (int)Math.Round((baseCard.CurrentAtk + partnerCard.CurrentAtk) * factor);
+            int inheritedDef = (int)Math.Round((baseCard.CurrentDef + partnerCard.CurrentDef) * factor);
+
+            // 6. Mastery carry-over sum
+            var baseMaxMastery = baseCard.CardTemplate?.MaxMastery ?? 100;
+            var partnerMaxMastery = partnerCard.CardTemplate?.MaxMastery ?? 100;
+            
+            int masteryContribA = (baseCard.CurrentMastery >= baseMaxMastery) ? baseCard.CurrentLevel : 0;
+            int masteryContribB = (partnerCard.CurrentMastery >= partnerMaxMastery) ? partnerCard.CurrentLevel : 0;
+            int startingMastery = masteryContribA + masteryContribB;
+
+            // 7. Apply updates
+            profile.SilverBalance -= silverCost;
+
+            // Delete partner
+            _dbContext.PlayerCards.Remove(partnerCard);
+
+            // Accumulate permanent carry-over fusion bonuses
+            baseCard.CardTemplateId = targetTemplate.Id;
+            baseCard.CardTemplate = targetTemplate;
+            baseCard.FusionBonusAtk += inheritedAtk;
+            baseCard.FusionBonusDef += inheritedDef;
+
+            // Reset level and ability level as per wiki rules
+            baseCard.CurrentLevel = 1;
+            baseCard.AbilityLevel = 1;
+
+            // Calculate starting mastery stats
+            var targetMaxMastery = targetTemplate.MaxMastery;
+            if (targetMaxMastery <= 0) targetMaxMastery = 100;
+            baseCard.CurrentMastery = Math.Min(targetMaxMastery, startingMastery);
+
+            var activeMasteryAtk = targetMaxMastery > 0 ? (targetTemplate.MasteryBonusAtk * baseCard.CurrentMastery) / targetMaxMastery : 0;
+            var activeMasteryDef = targetMaxMastery > 0 ? (targetTemplate.MasteryBonusDef * baseCard.CurrentMastery) / targetMaxMastery : 0;
+
+            // Net combat stats
+            baseCard.CurrentAtk = targetTemplate.BaseAtk + activeMasteryAtk + baseCard.FusionBonusAtk;
+            baseCard.CurrentDef = targetTemplate.BaseDef + activeMasteryDef + baseCard.FusionBonusDef;
+
+            _dbContext.SaveChanges();
+
+            string fusionMessage = $"Fusion committed! upgraded to [ {targetTemplate.VisualTitle} ]!";
+            if (isMaxFusion)
+            {
+                fusionMessage += " 🔥 MAX FUSION BONUS ACHIEVED: 10% stats carry-over applied!";
+            }
+            else
+            {
+                fusionMessage += " (5% normal fusion stats carry-over applied).";
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = fusionMessage,
+                remaining_silver = profile.SilverBalance
+            });
         }
 
         [HttpPost("mypage/update_deck")]
@@ -1007,8 +1219,19 @@ namespace MwohServer.Controllers
             var maxDef = targetCard.CardTemplate?.MaxDef ?? 4000;
 
             var progress = (double)(newLevel - 1) / (maxLevel - 1);
-            targetCard.CurrentAtk = (int)Math.Round(baseAtk + (maxAtk - baseAtk) * progress);
-            targetCard.CurrentDef = (int)Math.Round(baseDef + (maxDef - baseDef) * progress);
+            var newBaseAtk = (int)Math.Round(baseAtk + (maxAtk - baseAtk) * progress);
+            var newBaseDef = (int)Math.Round(baseDef + (maxDef - baseDef) * progress);
+
+            // Re-apply active mastery stats on top of interpolated level stats
+            var maxMastery = targetCard.CardTemplate?.MaxMastery ?? 100;
+            if (maxMastery <= 0) maxMastery = 100;
+            var masteryBonusAtk = targetCard.CardTemplate?.MasteryBonusAtk ?? 0;
+            var masteryBonusDef = targetCard.CardTemplate?.MasteryBonusDef ?? 0;
+            var activeMasteryAtk = maxMastery > 0 ? (masteryBonusAtk * targetCard.CurrentMastery) / maxMastery : 0;
+            var activeMasteryDef = maxMastery > 0 ? (masteryBonusDef * targetCard.CurrentMastery) / maxMastery : 0;
+
+            targetCard.CurrentAtk = newBaseAtk + activeMasteryAtk + targetCard.FusionBonusAtk;
+            targetCard.CurrentDef = newBaseDef + activeMasteryDef + targetCard.FusionBonusDef;
 
             // Calculate Ability Level-Up Chance
             int abilityLevelUpChance = 0;
@@ -1463,14 +1686,12 @@ namespace MwohServer.Controllers
                         cardDropped = true;
                         droppedCardName = cardTemp.Title;
 
-                        _dbContext.PlayerCards.Add(new PlayerCard
+                        var droppedCard = new PlayerCard
                         {
-                            PlayerProfileId = profile.Id,
-                            CardTemplateId = cardTemp.Id,
-                            CurrentLevel = 1,
-                            CurrentAtk = cardTemp.BaseAtk,
-                            CurrentDef = cardTemp.BaseDef
-                        });
+                            PlayerProfileId = profile.Id
+                        };
+                        droppedCard.InitializeStats(cardTemp, GameplaySettings.DefaultMasteryPercentage);
+                        _dbContext.PlayerCards.Add(droppedCard);
                     }
                 }
             }
@@ -1561,14 +1782,12 @@ namespace MwohServer.Controllers
                 else
                 {
                     droppedCardName = rewardTemplate.Title;
-                    _dbContext.PlayerCards.Add(new PlayerCard
+                    var bossRewardCard = new PlayerCard
                     {
-                        PlayerProfileId = profile.Id,
-                        CardTemplateId = rewardTemplate.Id,
-                        CurrentLevel = 1,
-                        CurrentAtk = rewardTemplate.BaseAtk,
-                        CurrentDef = rewardTemplate.BaseDef
-                    });
+                        PlayerProfileId = profile.Id
+                    };
+                    bossRewardCard.InitializeStats(rewardTemplate, GameplaySettings.DefaultMasteryPercentage);
+                    _dbContext.PlayerCards.Add(bossRewardCard);
                 }
             }
 

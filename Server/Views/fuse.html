@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Fusion Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .fuse-thumbnail {
+            width: 34px;
+            height: 34px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(255, 255, 255, 0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .catalog-card {
+            background-color: rgba(3, 7, 18, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            aspect-ratio: 2/3;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            display: block;
+            padding: 0;
+        }
+
+        .catalog-card.is-leader-card {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .catalog-card.target-selected {
+            border-color: #c084fc;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6);
+            transform: scale(1.05);
+            z-index: 5;
+        }
+
+        .catalog-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(168, 85, 247, 0.3);
+            z-index: 5;
+        }
+
+        .catalog-card .mini-alignment-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .catalog-card .mini-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            letter-spacing: 0.5px;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+
+        .page-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: #c084fc;
+            background: rgba(168, 85, 247, 0.05);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(168, 85, 247, 0.15);
+            border-color: #c084fc;
+            box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+        }
+
+        .page-btn.active {
+            background: #a855f7;
+            color: #000;
+            border-color: #c084fc;
+            box-shadow: 0 0 10px rgba(168, 85, 247, 0.6);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            color: var(--text-muted);
+            border-color: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .limit-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+
+        /* 3-Panel Holographic Projector HUD */
+        .projector-container {
+            display: flex;
+            gap: 16px;
+            margin-top: 15px;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 10px;
+            padding: 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+        }
+
+        .projector-panel {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .panel-header {
+            color: #c084fc;
+            font-size: 8px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(168, 85, 247, 0.15);
+            padding-bottom: 4px;
+        }
+
+        .projector-card-thumb {
+            width: 80px;
+            height: 120px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-size: cover;
+            background-position: center;
+            background-color: rgba(3, 7, 18, 0.8);
+            margin: 6px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .projector-val {
+            font-weight: 800;
+            font-size: 13px;
+            color: #ffffff;
+            margin-top: 4px;
+        }
+
+        .proj-label {
+            color: var(--text-muted);
+            font-size: 9px;
+            margin-top: 2px;
+        }
+
+        .proj-arrow {
+            font-size: 14px;
+            color: #c084fc;
+            align-self: center;
+            text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+        }
+
+        /* Fusion Laser Sync Animation Charge Screen */
+        .laser-charge-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(3, 7, 18, 0.95);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-family: 'Space Mono', monospace;
+            color: #c084fc;
+            letter-spacing: 1.5px;
+            text-align: center;
+        }
+
+        .laser-beam {
+            width: 85%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #a855f7, #c084fc, #a855f7, transparent);
+            box-shadow: 0 0 20px #c084fc, 0 0 35px #a855f7;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: beam-pulse 0.3s infinite ease-in-out;
+        }
+
+        .scan-line {
+            width: 100%;
+            height: 4px;
+            background: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.6);
+            position: absolute;
+            top: 0;
+            animation: scan-move 1.5s infinite linear;
+        }
+
+        @keyframes beam-pulse {
+            0%, 100% { height: 2px; opacity: 0.8; }
+            50% { height: 5px; opacity: 1; filter: brightness(1.2); }
+        }
+
+        @keyframes scan-move {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+
+        .charge-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px dashed rgba(168, 85, 247, 0.3);
+            border-top-color: #c084fc;
+            animation: spin 1s infinite linear;
+            margin-bottom: 20px;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.1);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .fusion-strategy-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(192, 132, 252, 0.05));
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #c084fc;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-shadow: 0 0 4px rgba(168, 85, 247, 0.4);
+            margin-top: 4px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage" class="back-btn">&lt; BACK</a>
+        <h1>ISO-8 FUSION TERMINAL</h1>
+        <a href="/ultimate/mypage/enhance" class="back-btn" style="color: #ef4444; border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05);">🔥 FORGE</a>
+    </div>
+
+    <div class="container" style="padding-bottom: 80px;">
+        <!-- Silver budget balance -->
+        <div class="silver-panel">
+            <span class="hud-lbl" style="font-size: 10px;">AUTHORIZED SILVER BUDGET</span>
+            <span style="font-weight: 700; color: #cbd5e1; font-size: 14px;" id="hud-silver-val">💎 {{silverFormatted}}</span>
+        </div>
+
+        <!-- Step 1: Core card selection grid -->
+        <div class="step-box" id="step-1-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="hud-lbl">// STEP 1: SELECT CORE SUBJECT CARD</span>
+                <div class="limit-lbl" id="core-count-indicator">0 / 250</div>
+            </div>
+
+            <!-- Alignments filter tabs -->
+            <div class="filter-tabs" style="margin-bottom: 12px;">
+                <button class="filter-btn active" id="f-all" onclick="filterCoreCards('All')">ALL</button>
+                <button class="filter-btn" id="f-speed" onclick="filterCoreCards('Speed')" style="border-bottom: 2px solid #00f0ff;">SPEED</button>
+                <button class="filter-btn" id="f-bruiser" onclick="filterCoreCards('Bruiser')" style="border-bottom: 2px solid #ef4444;">BRUISER</button>
+                <button class="filter-btn" id="f-tactics" onclick="filterCoreCards('Tactics')" style="border-bottom: 2px solid #f59e0b;">TACTICS</button>
+            </div>
+
+            <!-- Binder 2x4 Grid -->
+            <div class="catalog-grid" id="core-card-grid">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" id="pagination-controls">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- Step 2: Partner card selection grid (shown only after base selected) -->
+        <div class="step-box" id="step-2-box" style="display: none; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="hud-lbl" style="color: #c084fc;">// STEP 2: SELECT DUPLICATE PARTNER ASSET</span>
+                <div class="limit-lbl" id="partner-count-indicator">0 spare files</div>
+            </div>
+
+            <div class="selection-list" id="partners-list-container" style="max-height: 250px;">
+                <!-- Rendered dynamically -->
+            </div>
+        </div>
+
+        <!-- 3-Panel Holographic Projector HUD -->
+        <div class="step-box" id="hud-projector-box" style="display: none; margin-top: 20px;">
+            <span class="hud-lbl">// HOLOGRAPHIC STAT FUSION SYNC PROJECTOR</span>
+            
+            <div class="projector-container">
+                <!-- Panel A: Core Subject -->
+                <div class="projector-panel">
+                    <div class="panel-header">CORE SUBJECT</div>
+                    <div class="projector-card-thumb" id="proj-art-a">🛡️</div>
+                    <div class="projector-val" id="proj-lvl-a">Lvl 1</div>
+                    <div class="proj-label" id="proj-atk-a">ATK 0</div>
+                    <div class="proj-label" id="proj-def-a">DEF 0</div>
+                </div>
+
+                <!-- Sync Connector -->
+                <div class="proj-arrow">➕</div>
+
+                <!-- Panel B: Partner Asset -->
+                <div class="projector-panel">
+                    <div class="panel-header">PARTNER ASSET</div>
+                    <div class="projector-card-thumb" id="proj-art-b">🛡️</div>
+                    <div class="projector-val" id="proj-lvl-b">Lvl 1</div>
+                    <div class="proj-label" id="proj-atk-b">ATK 0</div>
+                    <div class="proj-label" id="proj-def-b">DEF 0</div>
+                </div>
+
+                <!-- Sync Connector -->
+                <div class="proj-arrow">➔</div>
+
+                <!-- Panel C: Projected Fused Variant -->
+                <div class="projector-panel" style="border: 1px dashed rgba(168, 85, 247, 0.03); background: rgba(168, 85, 247, 0.03);">
+                    <div class="panel-header" style="color: #c084fc;">PROJECTED UPGRADE</div>
+                    <div class="projector-card-thumb" id="proj-art-c" style="border-color: #c084fc; box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);">🛡️</div>
+                    <div class="projector-val" id="proj-title-c" style="font-size: 10px; color: #c084fc;">VARIANT+</div>
+                    <div class="projector-val" id="proj-lvl-c" style="color: #cbd5e1; font-size: 11px; margin-top: 1px;">Lvl 1</div>
+                    
+                    <div class="proj-label" id="proj-atk-c" style="font-weight: 700; color: #ffffff;">ATK 0</div>
+                    <div class="proj-label" id="proj-def-c" style="font-weight: 700; color: #ffffff;">DEF 0</div>
+                    
+                    <div class="proj-label" id="proj-mastery-c" style="color: #c084fc; font-weight: 700; font-size: 8px;">Mastery +0</div>
+                </div>
+            </div>
+
+            <!-- Carry-over metrics and silver fee box -->
+            <div style="margin-top: 12px; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 6px; padding: 12px; font-size: 10px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">FUSION EFFICIENCY INDEX:</span>
+                    <span id="proj-factor-indicator" style="color: var(--hud-blue); font-weight: 700;">NORMAL (5% stats carry-over)</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">PERMANENT COMBAT ATK INHERITANCE:</span>
+                    <span id="proj-bonus-atk" style="color: var(--hud-green); font-weight: 700;">+0 ATK</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="color: var(--text-muted);">PERMANENT COMBAT DEF INHERITANCE:</span>
+                    <span id="proj-bonus-def" style="color: var(--hud-green); font-weight: 700;">+0 DEF</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); padding-bottom: 6px;">
+                    <span style="color: var(--text-muted);">INHERITED MASTERY OVERFLOW:</span>
+                    <span id="proj-bonus-mastery" style="color: #c084fc; font-weight: 700;">+0 Points</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px;">
+                    <span style="color: #ffffff; font-weight: 700;">REQUIRED FUSION FEE:</span>
+                    <span id="silver-cost-box" style="color: #ffffff; font-weight: 700;">💎 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Initiate fusion button -->
+        <button class="forge-action-btn" id="execute-fusion-btn" disabled onclick="initiateFusion()" style="margin-top: 25px; margin-bottom: 40px; background: linear-gradient(135deg, #a855f7, #6b21a8); border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);">INITIATE FUSION SYNC</button>
+    </div>
+
+    <!-- Fusion laser sweep overlay charge screen -->
+    <div class="laser-charge-overlay" id="laser-overlay">
+        <div class="charge-circle"></div>
+        <div class="laser-beam"></div>
+        <div class="scan-line"></div>
+        <div style="font-size: 14px; font-weight: 800; text-shadow: 0 0 10px rgba(168, 85, 247, 0.8);">COMMENCING FUSION SYNCHRONIZATION...</div>
+        <div style="font-size: 8px; color: var(--text-muted); margin-top: 8px;">HARMONIZING ATOMIC ISO-8 CORE STRUCTURES</div>
+    </div>
+
+    <div class="toast" id="fusion-toast">FUSION SYNCHRONIZATION COMMITTED!</div>
+
+    <script>
+        const cards = {{cardsJson}};
+        let userSilver = {{silver}};
+
+        let selectedCardId = null;
+        let selectedPartnerId = null;
+
+        let currentFilter = 'All';
+        let currentPage = 1;
+        const PAGE_SIZE = 8; // 2 rows of 4 column compact grids
+
+        function filterCoreCards(align) {
+            currentFilter = align;
+            currentPage = 1; // Reset to page 1 on filter
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (align === 'All') document.getElementById('f-all').classList.add('active');
+            else if (align === 'Speed') document.getElementById('f-speed').classList.add('active');
+            else if (align === 'Bruiser') document.getElementById('f-bruiser').classList.add('active');
+            else if (align === 'Tactics') document.getElementById('f-tactics').classList.add('active');
+
+            renderCoreGrid();
+        }
+
+        function renderCoreGrid() {
+            const grid = document.getElementById('core-card-grid');
+            grid.innerHTML = '';
+
+            // Core candidates must have duplicates
+            const coreEligible = cards.filter(c => {
+                const duplicates = cards.filter(d => d.id !== c.id && d.title === c.title && !d.isLeader && !d.inUse);
+                return duplicates.length > 0;
+            });
+
+            const filtered = (currentFilter === 'All') ? coreEligible : coreEligible.filter(c => c.alignment === currentFilter);
+
+            document.getElementById('core-count-indicator').textContent = `${coreEligible.length} matching subjects`;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-muted); font-size: 11px; padding: 30px 0;">No duplicate Hero assets found in secured depot files.</div>';
+                document.getElementById('pagination-controls').innerHTML = '';
+                return;
+            }
+
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const endIndex = startIndex + PAGE_SIZE;
+            const pageCards = filtered.slice(startIndex, endIndex);
+
+            pageCards.forEach(c => {
+                const alignColor = c.alignment === 'Speed' ? '#00f0ff' : (c.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+                
+                const cardEl = document.createElement('div');
+                cardEl.className = 'catalog-card';
+                if (c.isLeader) cardEl.classList.add('is-leader-card');
+                if (c.id === selectedCardId) cardEl.classList.add('target-selected');
+                
+                cardEl.onclick = () => selectCoreCard(c.id);
+                cardEl.style.backgroundImage = `url('/images/cards/${c.imageFile}')`;
+
+                cardEl.innerHTML = `
+                    <div class="mini-alignment-dot" style="background-color: ${alignColor}; box-shadow: 0 0 6px ${alignColor};"></div>
+                    ${c.isLeader ? '<span class="mini-badge" style="color: var(--accent-gold); border-color: var(--accent-gold);">LEADER</span>' : ''}
+                    ${(!c.isLeader && c.inUse) ? '<span class="mini-badge" style="color: var(--hud-blue); border-color: var(--hud-blue);">DECKED</span>' : ''}
+                `;
+                grid.appendChild(cardEl);
+            });
+
+            renderPaginationControls(totalPages);
+        }
+
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('pagination-controls');
+            container.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.innerHTML = '◀';
+            prevBtn.disabled = (currentPage === 1);
+            prevBtn.onclick = () => {
+                currentPage--;
+                renderCoreGrid();
+            };
+            container.appendChild(prevBtn);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderCoreGrid();
+                };
+                container.appendChild(pageBtn);
+            }
+
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.innerHTML = '▶';
+            nextBtn.disabled = (currentPage === totalPages);
+            nextBtn.onclick = () => {
+                currentPage++;
+                renderCoreGrid();
+            };
+            container.appendChild(nextBtn);
+        }
+
+        function selectCoreCard(cardId) {
+            selectedCardId = cardId;
+            selectedPartnerId = null; // Reset partner
+
+            document.getElementById('step-2-box').style.display = 'block';
+            document.getElementById('hud-projector-box').style.display = 'block';
+
+            renderCoreGrid();
+            populatePartners();
+            updateProjector();
+        }
+
+        function populatePartners() {
+            const container = document.getElementById('partners-list-container');
+            container.innerHTML = '';
+
+            const coreCard = cards.find(c => c.id === selectedCardId);
+            if (!coreCard) return;
+
+            // Partner must be identical duplicate, not core, not leader/decked
+            const eligiblePartners = cards.filter(c => c.id !== coreCard.id && c.title === coreCard.title && !c.isLeader && !c.inUse);
+
+            document.getElementById('partner-count-indicator').textContent = `${eligiblePartners.length} identical duplicates in depot`;
+
+            eligiblePartners.forEach(p => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'material-item';
+                itemEl.id = `partner-${p.id}`;
+                itemEl.onclick = () => selectPartner(p.id);
+
+                if (p.id === selectedPartnerId) {
+                    itemEl.classList.add('selected');
+                }
+
+                const baseLvlMax = getMaxLevelByRarity(p.rarity);
+                const isMaxed = p.level >= baseLvlMax;
+                const statusBadge = isMaxed 
+                    ? ` <span style="color: var(--hud-green); font-weight: 700; text-shadow: 0 0 4px rgba(16,185,129,0.3);">[🔥 LVL MAX]</span>` 
+                    : ` <span style="color: var(--text-muted); font-size: 8px;">[Lvl ${p.level}/${baseLvlMax}]</span>`;
+
+                const masteryMaxed = p.masteryCur >= p.masteryMax;
+                const masteryBadge = (p.masteryCur > 0 && masteryMaxed) 
+                    ? ` <span style="color: #c084fc; font-weight: 700; text-shadow: 0 0 4px rgba(168,85,247,0.3);">[⭐ MASTERED]</span>` 
+                    : (p.masteryCur > 0 ? ` <span style="color: #c084fc; font-size: 8px;">[Mstr ${p.masteryCur}/${p.masteryMax}]</span>` : '');
+
+                itemEl.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="enhance-thumbnail" style="background-image: url('/images/cards/${p.imageFile}');">${p.imageFile ? '' : '🛡️'}</div>
+                        <div>
+                            <div class="material-lbl">${p.title}</div>
+                            <div class="material-sub">ATK ${p.atk.toLocaleString()} // DEF ${p.def.toLocaleString()}${statusBadge}${masteryBadge}</div>
+                        </div>
+                    </div>
+                    <button class="material-selector-btn" style="border-color: rgba(168, 85, 247, 0.4); color: #c084fc;">SELECT</button>
+                `;
+                container.appendChild(itemEl);
+            });
+        }
+
+        function selectPartner(partnerId) {
+            selectedPartnerId = selectedPartnerId === partnerId ? null : partnerId;
+            
+            document.querySelectorAll('#partners-list-container .material-item').forEach(el => el.classList.remove('selected'));
+            if (selectedPartnerId) {
+                const el = document.getElementById(`partner-${selectedPartnerId}`);
+                if (el) el.classList.add('selected');
+            }
+
+            updateProjector();
+        }
+
+        function getBaseCardSilverCost(rarity) {
+            switch (rarity) {
+                case "Common":
+                case "Normal":
+                    return 1575;
+                case "High Normal":
+                case "Uncommon":
+                    return 3075;
+                case "Rare":
+                    return 8075;
+                case "High Rare":
+                case "Special Rare":
+                    return 20075;
+                case "Super Rare":
+                case "Super Special Rare":
+                    return 40075;
+                case "Ultra Rare":
+                case "Ultimate Rare":
+                    return 81505;
+                case "Legend":
+                case "Legendary":
+                    return 120000;
+                default:
+                    return 8075;
+            }
+        }
+
+        function getMaxLevelByRarity(rarity) {
+            switch (rarity) {
+                case "Normal":
+                case "Common":
+                    return 30;
+                case "High Normal":
+                case "Uncommon":
+                    return 40;
+                case "Rare":
+                    return 40;
+                case "High Rare":
+                case "Special Rare":
+                    return 50;
+                case "Super Rare":
+                case "Super Special Rare":
+                    return 60;
+                case "Ultra Rare":
+                case "Ultimate Rare":
+                    return 70;
+                case "Legend":
+                case "Legendary":
+                    return 80;
+                case "Special Legend":
+                case "Ultimate Legendary":
+                    return 90;
+                default:
+                    return 40;
+            }
+        }
+
+        function updateProjector() {
+            const cardA = cards.find(c => c.id === selectedCardId);
+            if (!cardA) return;
+
+            // Panel A
+            document.getElementById('proj-lvl-a').textContent = `Lvl ${cardA.level} / ${cardA.maxLevel}`;
+            document.getElementById('proj-atk-a').textContent = `ATK: ${cardA.atk.toLocaleString()}`;
+            document.getElementById('proj-def-a').textContent = `DEF: ${cardA.def.toLocaleString()}`;
+            const artA = document.getElementById('proj-art-a');
+            if (cardA.imageFile) {
+                artA.style.backgroundImage = `url('/images/cards/${cardA.imageFile}')`;
+                artA.textContent = '';
+            }
+
+            const cardB = cards.find(c => c.id === selectedPartnerId);
+            const artB = document.getElementById('proj-art-b');
+
+            if (cardB) {
+                document.getElementById('proj-lvl-b').textContent = `Lvl ${cardB.level} / ${cardB.maxLevel}`;
+                document.getElementById('proj-atk-b').textContent = `ATK: ${cardB.atk.toLocaleString()}`;
+                document.getElementById('proj-def-b').textContent = `DEF: ${cardB.def.toLocaleString()}`;
+                if (cardB.imageFile) {
+                    artB.style.backgroundImage = `url('/images/cards/${cardB.imageFile}')`;
+                    artB.textContent = '';
+                }
+            } else {
+                document.getElementById('proj-lvl-b').textContent = 'Lvl ?';
+                document.getElementById('proj-atk-b').textContent = 'ATK: ?';
+                document.getElementById('proj-def-b').textContent = 'DEF: ?';
+                artB.style.backgroundImage = 'none';
+                artB.textContent = '🛡️';
+            }
+
+            // Panel C Projected Upgrade
+            const titleC = document.getElementById('proj-title-c');
+            const artC = document.getElementById('proj-art-c');
+            const lvlC = document.getElementById('proj-lvl-c');
+            const atkC = document.getElementById('proj-atk-c');
+            const defC = document.getElementById('proj-def-c');
+            const masteryC = document.getElementById('proj-mastery-c');
+
+            const factorIndicator = document.getElementById('proj-factor-indicator');
+            const bonusAtkIndicator = document.getElementById('proj-bonus-atk');
+            const bonusDefIndicator = document.getElementById('proj-bonus-def');
+            const bonusMasteryIndicator = document.getElementById('proj-bonus-mastery');
+            const silverCostBox = document.getElementById('silver-cost-box');
+            const fuseBtn = document.getElementById('execute-fusion-btn');
+
+            if (cardA && cardB) {
+                const baseVariant = cardA.variant;
+                const nextVariant = baseVariant.endsWith('+') ? baseVariant + '+' : baseVariant + '+';
+                
+                titleC.textContent = nextVariant.toUpperCase();
+                if (cardA.imageFile) {
+                    artC.style.backgroundImage = `url('/images/cards/${cardA.imageFile}')`;
+                    artC.textContent = '';
+                }
+
+                // Carry over Factor logic
+                const maxLvlA = getMaxLevelByRarity(cardA.rarity);
+                const maxLvlB = getMaxLevelByRarity(cardB.rarity);
+                const isMax = (cardA.level >= maxLvlA) && (cardB.level >= maxLvlB);
+                
+                const factor = isMax ? 0.10 : 0.05;
+
+                const inheritedAtk = Math.round((cardA.atk + cardB.atk) * factor);
+                const inheritedDef = Math.round((cardA.def + cardB.def) * factor);
+
+                // Mastery transfer sum
+                const masteryContribA = (cardA.masteryCur >= cardA.masteryMax) ? cardA.level : 0;
+                const masteryContribB = (cardB.masteryCur >= cardB.masteryMax) ? cardB.level : 0;
+                const startingMastery = masteryContribA + masteryContribB;
+
+                // Fee
+                const fee = getBaseCardSilverCost(cardA.rarity);
+
+                // Projections
+                factorIndicator.innerHTML = isMax 
+                    ? `<span style="color: var(--hud-green); font-weight: 700; text-shadow: 0 0 8px rgba(16,185,129,0.4);">🔥 OPTIMAL MAX FUSION (10% carry-over)</span>` 
+                    : `NORMAL (5% stats carry-over)`;
+
+                bonusAtkIndicator.textContent = `+${inheritedAtk.toLocaleString()} ATK`;
+                bonusDefIndicator.textContent = `+${inheritedDef.toLocaleString()} DEF`;
+                bonusMasteryIndicator.textContent = `+${startingMastery} Starting Mastery`;
+
+                const nextBaseAtk = Math.round(cardA.baseAtk * 1.2);
+                const nextBaseDef = Math.round(cardA.baseDef * 1.2);
+
+                const projectedAtk = nextBaseAtk + inheritedAtk + cardA.fusionBonusAtk;
+                const projectedDef = nextBaseDef + inheritedDef + cardA.fusionBonusDef;
+
+                lvlC.textContent = `Lvl 1 (FF TARGET)`;
+                atkC.textContent = `ATK: ~${projectedAtk.toLocaleString()}`;
+                defC.textContent = `DEF: ~${projectedDef.toLocaleString()}`;
+                masteryC.textContent = `Mastery starting at ${startingMastery} Pts`;
+
+                silverCostBox.textContent = `💎 ${fee.toLocaleString()}`;
+
+                if (userSilver < fee) {
+                    silverCostBox.style.color = 'var(--accent-red)';
+                    fuseBtn.disabled = true;
+                } else {
+                    silverCostBox.style.color = '#ffffff';
+                    fuseBtn.disabled = false;
+                }
+            } else {
+                titleC.textContent = 'VARIANT+';
+                lvlC.textContent = 'Lvl ?';
+                atkC.textContent = 'ATK: ?';
+                defC.textContent = 'DEF: ?';
+                masteryC.textContent = 'Mastery +0';
+                artC.style.backgroundImage = 'none';
+                artC.textContent = '🛡️';
+                
+                factorIndicator.textContent = 'NORMAL (5% stats carry-over)';
+                bonusAtkIndicator.textContent = '+0 ATK';
+                bonusDefIndicator.textContent = '+0 DEF';
+                bonusMasteryIndicator.textContent = '+0 Starting Mastery';
+                silverCostBox.textContent = '💎 0';
+                silverCostBox.style.color = '#ffffff';
+                fuseBtn.disabled = true;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('fusion-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function initiateFusion() {
+            if (!selectedCardId || !selectedPartnerId) return;
+
+            const overlay = document.getElementById('laser-overlay');
+            overlay.style.display = 'flex';
+
+            setTimeout(() => {
+                fetch('/ultimate/mypage/fuse_cards', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `base_card_id=${selectedCardId}&partner_card_id=${selectedPartnerId}`
+                })
+                .then(res => res.json())
+                .then(data => {
+                    overlay.style.display = 'none';
+                    if (data.success) {
+                        showToast(data.message || 'Fusion synchronization complete!');
+                        
+                        userSilver = data.remaining_silver;
+                        document.getElementById('hud-silver-val').textContent = `💎 ${userSilver.toLocaleString()}`;
+
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        alert(data.message || 'Fusion terminal synchronization failure.');
+                    }
+                })
+                .catch(err => {
+                    overlay.style.display = 'none';
+                    console.error(err);
+                    alert('Connection failure to terminal node.');
+                });
+            }, 1800);
+        }
+
+        renderCoreGrid();
+    </script>
+</body>
+</html>

@@ -83,6 +83,14 @@ namespace MwohServer.Data
                             int masteryAtk = GetIntStat(stats, "mastery_bonus_atk");
                             int masteryDef = GetIntStat(stats, "mastery_bonus_def");
 
+                            int maxMastery = 100;
+                            if (varEl.TryGetProperty("max_mastery", out var maxMProp))
+                            {
+                                if (maxMProp.ValueKind == JsonValueKind.Number) maxMastery = maxMProp.GetInt32();
+                                else if (maxMProp.ValueKind == JsonValueKind.String && maxMProp.GetString() is string str && int.TryParse(str, out int parsed)) maxMastery = parsed;
+                            }
+                            if (maxMastery <= 0) maxMastery = 100;
+
                             // Image filename mapping (clean special chars to match scraper titles)
                             string safeTitle = new string(title.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
                             string imageFile = $"{safeTitle}_{variantIndex + 1}.jpg";
@@ -102,6 +110,7 @@ namespace MwohServer.Data
                                 MaxDef = maxDef,
                                 MasteryBonusAtk = masteryAtk,
                                 MasteryBonusDef = masteryDef,
+                                MaxMastery = maxMastery,
                                 AbilityName = abilityName,
                                 AbilityEffect = abilityEffect,
                                 Quote = quote,
@@ -153,6 +162,9 @@ namespace MwohServer.Data
                 BaseDef = 1800,
                 MaxAtk = 5000,
                 MaxDef = 4500,
+                MasteryBonusAtk = 600,
+                MasteryBonusDef = 540,
+                MaxMastery = 40,
                 AbilityName = "Web-Slinger",
                 AbilityEffect = "Strengthen Speed ATK.",
                 Quote = "With great power comes great responsibility!",
@@ -172,6 +184,9 @@ namespace MwohServer.Data
                 BaseDef = 2400,
                 MaxAtk = 6000,
                 MaxDef = 5800,
+                MasteryBonusAtk = 800,
+                MasteryBonusDef = 760,
+                MaxMastery = 45,
                 AbilityName = "Uni-Beam",
                 AbilityEffect = "Strengthen Tactics ATK.",
                 Quote = "I am Iron Man.",
@@ -191,6 +206,9 @@ namespace MwohServer.Data
                 BaseDef = 2600,
                 MaxAtk = 5200,
                 MaxDef = 6200,
+                MasteryBonusAtk = 660,
+                MasteryBonusDef = 780,
+                MaxMastery = 40,
                 AbilityName = "Shield Toss",
                 AbilityEffect = "Strengthen Bruiser DEF.",
                 Quote = "I can do this all day.",
@@ -210,6 +228,9 @@ namespace MwohServer.Data
                 BaseDef = 1100,
                 MaxAtk = 3200,
                 MaxDef = 3000,
+                MasteryBonusAtk = 400,
+                MasteryBonusDef = 360,
+                MaxMastery = 30,
                 AbilityName = "Stinger Blast",
                 AbilityEffect = "Slightly Strengthen Speed ATK.",
                 Quote = "Nothing lasts forever.",
@@ -229,6 +250,9 @@ namespace MwohServer.Data
                 BaseDef = 2800,
                 MaxAtk = 8500,
                 MaxDef = 6800,
+                MasteryBonusAtk = 1200,
+                MasteryBonusDef = 900,
+                MaxMastery = 50,
                 AbilityName = "Gamma Slam",
                 AbilityEffect = "Massively Strengthen Bruiser ATK.",
                 Quote = "HULK SMASH!",
@@ -248,6 +272,9 @@ namespace MwohServer.Data
                 BaseDef = 3000,
                 MaxAtk = 8200,
                 MaxDef = 7200,
+                MasteryBonusAtk = 1150,
+                MasteryBonusDef = 1000,
+                MaxMastery = 50,
                 AbilityName = "Lightning Strike",
                 AbilityEffect = "Massively Strengthen Tactics ATK.",
                 Quote = "Bring me Thanos!",
@@ -270,18 +297,15 @@ namespace MwohServer.Data
                     bool isLeader = (index == 0);
                     bool inDecks = (index < 5); // Max 5 cards in deck
 
-                    context.PlayerCards.Add(new PlayerCard
+                    var card = new PlayerCard
                     {
                         PlayerProfileId = profile.Id,
-                        CardTemplateId = temp.Id,
-                        CurrentLevel = 1,
-                        CurrentMastery = 0,
-                        CurrentAtk = temp.BaseAtk,
-                        CurrentDef = temp.BaseDef,
                         IsLeader = isLeader,
                         IsInAttackDeck = inDecks,
                         IsInDefenseDeck = inDecks
-                    });
+                    };
+                    card.InitializeStats(temp, GameplaySettings.DefaultMasteryPercentage);
+                    context.PlayerCards.Add(card);
                     index++;
                 }
                 context.SaveChanges();

@@ -99,8 +99,8 @@ namespace MwohServer.Services
                 Experience = 0,
                 EnergyMax = 100,
                 EnergyCurrent = 100,
-                AttackPower = 10,
-                DefensePower = 10,
+                AttackPower = GameplaySettings.DefaultAttackPower,
+                DefensePower = GameplaySettings.DefaultDefensePower,
                 MobaCoinBalance = 10000,
                 SilverBalance = 50000,
                 PlayerIdString = (100000 + newUser.Id).ToString(),
@@ -121,15 +121,11 @@ namespace MwohServer.Services
                 var starterCard = new PlayerCard
                 {
                     PlayerProfileId = profile.Id,
-                    CardTemplateId = spiderTemplate.Id,
-                    CurrentLevel = 1,
-                    CurrentMastery = 0,
-                    CurrentAtk = spiderTemplate.BaseAtk,
-                    CurrentDef = spiderTemplate.BaseDef,
                     IsLeader = true,
                     IsInAttackDeck = true,
                     IsInDefenseDeck = true
                 };
+                starterCard.InitializeStats(spiderTemplate, GameplaySettings.DefaultMasteryPercentage);
                 _dbContext.PlayerCards.Add(starterCard);
                 _dbContext.SaveChanges();
             }

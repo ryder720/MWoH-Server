@@ -8,6 +8,13 @@
       "BaseXpRequirement": 1000,
       "XpIncrementPerLevel": 500,
       "EnergyMaxIncreasePerLevel": 2
+    },
+    "DefaultDeckCapacity": {
+      "AttackPower": 100,
+      "DefensePower": 100
+    },
+    "CardGrowth": {
+      "DefaultMasteryPercentage": 100
     }
   }
 }

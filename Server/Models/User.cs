@@ -89,6 +89,7 @@ namespace MwohServer.Models
         public int MaxDef { get; set; }
         public int MasteryBonusAtk { get; set; }
         public int MasteryBonusDef { get; set; }
+        public int MaxMastery { get; set; } = 100;
         
         public string AbilityName { get; set; } = string.Empty;
         public string AbilityEffect { get; set; } = string.Empty;
@@ -115,6 +116,8 @@ namespace MwohServer.Models
         public int CurrentAtk { get; set; }
         public int CurrentDef { get; set; }
         public int AbilityLevel { get; set; } = 1;
+        public int FusionBonusAtk { get; set; } = 0;
+        public int FusionBonusDef { get; set; } = 0;
         
         // Deck and Leader representative flags
         public bool IsLeader { get; set; } = false;
@@ -124,6 +127,26 @@ namespace MwohServer.Models
         // Navigation properties
         public PlayerProfile? PlayerProfile { get; set; }
         public CardTemplate? CardTemplate { get; set; }
+
+        public void InitializeStats(CardTemplate template, int defaultMasteryPercentage)
+        {
+            CardTemplate = template;
+            CardTemplateId = template.Id;
+            CurrentLevel = 1;
+            FusionBonusAtk = 0;
+            FusionBonusDef = 0;
+            
+            var maxMastery = template.MaxMastery;
+            if (maxMastery <= 0) maxMastery = 100;
+            
+            CurrentMastery = (maxMastery * defaultMasteryPercentage) / 100;
+            
+            var activeMasteryAtk = maxMastery > 0 ? (template.MasteryBonusAtk * CurrentMastery) / maxMastery : 0;
+            var activeMasteryDef = maxMastery > 0 ? (template.MasteryBonusDef * CurrentMastery) / maxMastery : 0;
+            
+            CurrentAtk = template.BaseAtk + activeMasteryAtk;
+            CurrentDef = template.BaseDef + activeMasteryDef;
+        }
     }
 
     // Static item metadata parsed from Wiki listings or preloaded catalog
@@ -167,6 +190,9 @@ namespace MwohServer.Models
         public static int BaseXpRequirement { get; set; } = 1000;
         public static int XpIncrementPerLevel { get; set; } = 500;
         public static int EnergyMaxIncreasePerLevel { get; set; } = 2;
+        public static int DefaultMasteryPercentage { get; set; } = 100;
+        public static int DefaultAttackPower { get; set; } = 100;
+        public static int DefaultDefensePower { get; set; } = 100;
 
         public static void Load()
         {
@@ -197,6 +223,18 @@ namespace MwohServer.Models
                                 if (lvlNode.TryGetProperty("EnergyMaxIncreasePerLevel", out var energyIncProp))
                                     EnergyMaxIncreasePerLevel = energyIncProp.GetInt32();
                             }
+                            if (gameplayNode.TryGetProperty("DefaultDeckCapacity", out var deckCapNode))
+                            {
+                                if (deckCapNode.TryGetProperty("AttackPower", out var atkProp))
+                                    DefaultAttackPower = atkProp.GetInt32();
+                                if (deckCapNode.TryGetProperty("DefensePower", out var defProp))
+                                    DefaultDefensePower = defProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("CardGrowth", out var growthNode))
+                            {
+                                if (growthNode.TryGetProperty("DefaultMasteryPercentage", out var masteryProp))
+                                    DefaultMasteryPercentage = masteryProp.GetInt32();
+                            }
                         }
                     }
                 }
@@ -217,6 +255,13 @@ namespace MwohServer.Models
       ""BaseXpRequirement"": 1000,
       ""XpIncrementPerLevel"": 500,
       ""EnergyMaxIncreasePerLevel"": 2
+    },
+    ""DefaultDeckCapacity"": {
+      ""AttackPower"": 100,
+      ""DefensePower"": 100
+    },
+    ""CardGrowth"": {
+      ""DefaultMasteryPercentage"": 100
     }
   }
 }";
