@@ -47,24 +47,84 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
     
     dbContext.Database.EnsureCreated();
+    // 1. Migrate PlayerCards - Add AbilityLevel column if missing
     try
     {
-        dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN AbilityLevel INTEGER NOT NULL DEFAULT 1;");
-        logger.LogInformation("Database migration: Added AbilityLevel column to PlayerCards.");
+        var hasAbilityLevel = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(PlayerCards);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString() == "AbilityLevel")
+                    {
+                        hasAbilityLevel = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!hasAbilityLevel)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN AbilityLevel INTEGER NOT NULL DEFAULT 1;");
+            logger.LogInformation("Database migration: Added AbilityLevel column to PlayerCards.");
+        }
+        else
+        {
+            logger.LogInformation("Database migration check finished (AbilityLevel): Already exists.");
+        }
     }
     catch (Exception ex)
     {
-        logger.LogInformation($"Database migration check finished (AbilityLevel): {ex.Message}");
+        logger.LogError($"Database migration failed (AbilityLevel): {ex.Message}");
     }
 
+    // 2. Migrate Profiles - Add LastEnergyRecoveryTime column if missing
     try
     {
-        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN LastEnergyRecoveryTime TEXT NOT NULL DEFAULT '2026-05-23 00:00:00';");
-        logger.LogInformation("Database migration: Added LastEnergyRecoveryTime column to Profiles.");
+        var hasLastEnergyRecoveryTime = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Profiles);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString() == "LastEnergyRecoveryTime")
+                    {
+                        hasLastEnergyRecoveryTime = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!hasLastEnergyRecoveryTime)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN LastEnergyRecoveryTime TEXT NOT NULL DEFAULT '2026-05-23 00:00:00';");
+            logger.LogInformation("Database migration: Added LastEnergyRecoveryTime column to Profiles.");
+        }
+        else
+        {
+            logger.LogInformation("Database migration check finished (LastEnergyRecoveryTime): Already exists.");
+        }
     }
     catch (Exception ex)
     {
-        logger.LogInformation($"Database migration check finished (LastEnergyRecoveryTime): {ex.Message}");
+        logger.LogError($"Database migration failed (LastEnergyRecoveryTime): {ex.Message}");
     }
 
     DatabaseSeeder.SeedCards(dbContext, logger);
