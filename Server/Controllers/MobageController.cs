@@ -778,6 +778,13 @@ namespace MwohServer.Controllers
             return Ok(new { success = true });
         }
 
+        // Stub browser favicon requests to avoid 404 console entries
+        [HttpGet("favicon.ico")]
+        public IActionResult Favicon()
+        {
+            return NoContent(); // HTTP 204 No Content
+        }
+
         // 12. Native Mobage SDK Session Establishment & Persistence Endpoint
         [HttpPost("1/{appKey}/session")]
         public async Task<IActionResult> ReestablishSession(string appKey)
