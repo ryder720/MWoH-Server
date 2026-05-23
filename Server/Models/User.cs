@@ -170,7 +170,7 @@ namespace MwohServer.Models
 
         public static void Load()
         {
-            var configPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gameplay_settings.json");
+            var configPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Config", "gameplay_settings.json");
             if (System.IO.File.Exists(configPath))
             {
                 try
@@ -202,7 +202,7 @@ namespace MwohServer.Models
                 }
                 catch (Exception ex)
                 {
-                    System.Console.WriteLine($"[Warning] Failed to load gameplay_settings.json: {ex.Message}. Using default settings.");
+                    System.Console.WriteLine($"[Warning] Failed to load Config/gameplay_settings.json: {ex.Message}. Using default settings.");
                 }
             }
             else
@@ -222,6 +222,11 @@ namespace MwohServer.Models
 }";
                 try
                 {
+                    var dir = System.IO.Path.GetDirectoryName(configPath);
+                    if (dir != null && !System.IO.Directory.Exists(dir))
+                    {
+                        System.IO.Directory.CreateDirectory(dir);
+                    }
                     System.IO.File.WriteAllText(configPath, defaultJson);
                 }
                 catch {}

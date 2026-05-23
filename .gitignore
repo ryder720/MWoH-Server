@@ -11,6 +11,8 @@ Server/obj/
 Server/Logs/
 Server/mwoh.db
 Server/mwoh.db-journal
+Server/Data/mwoh.db
+Server/Data/mwoh.db-journal
 
 # Local Environment Variables and User Configuration
 .env

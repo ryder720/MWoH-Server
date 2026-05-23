@@ -29,15 +29,14 @@ namespace MwohServer.Controllers
         {
             try
             {
-                var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Tools", "Scraper", "operations_db.json");
+                var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "operations_db.json");
                 if (!System.IO.File.Exists(jsonPath))
                 {
-                    jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tools", "Scraper", "operations_db.json");
+                    jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Tools", "Scraper", "operations_db.json");
                 }
                 if (!System.IO.File.Exists(jsonPath))
                 {
-                    // Fallback to Server current directory relative check
-                    jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "operations_db.json");
+                    jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tools", "Scraper", "operations_db.json");
                 }
                 if (System.IO.File.Exists(jsonPath))
                 {

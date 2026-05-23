@@ -1,7 +1,7 @@
 {
   "Gameplay": {
     "EnergyRecovery": {
-      "IntervalSeconds": 300,
+      "IntervalSeconds": 3,
       "AmountPerInterval": 1
     },
     "LevelUp": {

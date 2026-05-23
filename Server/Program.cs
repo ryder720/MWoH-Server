@@ -29,7 +29,7 @@ builder.Services.AddControllers();
 
 // Register SQLite DbContext
 builder.Services.AddDbContext<MwohDbContext>(options =>
-    options.UseSqlite("Data Source=mwoh.db"));
+    options.UseSqlite("Data Source=Data/mwoh.db"));
 
 // Register Custom Services and Filters
 builder.Services.AddScoped<IAuthService, AuthService>();
