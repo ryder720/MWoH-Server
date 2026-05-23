@@ -1282,23 +1282,35 @@ namespace MwohServer.Controllers
 
             var cardDropped = false;
             var droppedCardName = "";
+
+            // Check if card inventory limit is reached
+            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
+            bool isInventoryFull = currentCardCount >= 250;
+
             if (rand.Next(1, 101) <= 20 && activeMission.PossibleDrops.Count > 0)
             {
                 var templateName = activeMission.PossibleDrops[rand.Next(activeMission.PossibleDrops.Count)];
                 var cardTemp = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == templateName);
                 if (cardTemp != null)
                 {
-                    cardDropped = true;
-                    droppedCardName = cardTemp.Title;
-
-                    _dbContext.PlayerCards.Add(new PlayerCard
+                    if (isInventoryFull)
                     {
-                        PlayerProfileId = profile.Id,
-                        CardTemplateId = cardTemp.Id,
-                        CurrentLevel = 1,
-                        CurrentAtk = cardTemp.BaseAtk,
-                        CurrentDef = cardTemp.BaseDef
-                    });
+                        _logger.LogWarning($"[Cygames] Card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
+                    }
+                    else
+                    {
+                        cardDropped = true;
+                        droppedCardName = cardTemp.Title;
+
+                        _dbContext.PlayerCards.Add(new PlayerCard
+                        {
+                            PlayerProfileId = profile.Id,
+                            CardTemplateId = cardTemp.Id,
+                            CurrentLevel = 1,
+                            CurrentAtk = cardTemp.BaseAtk,
+                            CurrentDef = cardTemp.BaseDef
+                        });
+                    }
                 }
             }
 
@@ -1318,6 +1330,10 @@ namespace MwohServer.Controllers
             if (cardDropped)
             {
                 logLines.Add($"🎁 TRANSMISSION DECRYPTED: RECOVERED HERO ASSET {droppedCardName}!");
+            }
+            else if (isInventoryFull && activeMission.PossibleDrops.Count > 0)
+            {
+                logLines.Add($"⚠️ WARNING: INVENTORY EXCEEDS MAXIMUM SECURED FILES (250/250). NO HERO ASSETS RECOVERED!");
             }
 
             return Ok(new
@@ -1371,18 +1387,28 @@ namespace MwohServer.Controllers
             var rewardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == bossRewardTemplateName)
                 ?? _dbContext.CardTemplates.FirstOrDefault();
 
-            var droppedCardName = "Unknown Hero";
+            var droppedCardName = "";
+            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
+            bool isInventoryFull = currentCardCount >= 250;
+
             if (rewardTemplate != null)
             {
-                droppedCardName = rewardTemplate.Title;
-                _dbContext.PlayerCards.Add(new PlayerCard
+                if (isInventoryFull)
                 {
-                    PlayerProfileId = profile.Id,
-                    CardTemplateId = rewardTemplate.Id,
-                    CurrentLevel = 1,
-                    CurrentAtk = rewardTemplate.BaseAtk,
-                    CurrentDef = rewardTemplate.BaseDef
-                });
+                    _logger.LogWarning($"[Cygames] Boss card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
+                }
+                else
+                {
+                    droppedCardName = rewardTemplate.Title;
+                    _dbContext.PlayerCards.Add(new PlayerCard
+                    {
+                        PlayerProfileId = profile.Id,
+                        CardTemplateId = rewardTemplate.Id,
+                        CurrentLevel = 1,
+                        CurrentAtk = rewardTemplate.BaseAtk,
+                        CurrentDef = rewardTemplate.BaseDef
+                    });
+                }
             }
 
             profile.SilverBalance += activeOp.BossSilverReward;
@@ -1421,11 +1447,15 @@ namespace MwohServer.Controllers
             SavePlayerMissionProgress(profile, progressState);
             _dbContext.SaveChanges();
 
+            var clearMessage = isInventoryFull
+                ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL (250/250) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
+                : $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
+
             return Ok(new
             {
                 success = true,
                 droppedCardName = droppedCardName,
-                message = $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
+                message = clearMessage
             });
         }
 

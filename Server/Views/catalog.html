@@ -6,6 +6,122 @@
     <title>S.H.I.E.L.D. Card Catalog</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .catalog-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            aspect-ratio: 2/3;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            display: block;
+            padding: 0;
+        }
+
+        .catalog-card.is-leader-card {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+
+        .catalog-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(0, 240, 255, 0.2);
+            z-index: 5;
+        }
+
+        .catalog-card .mini-alignment-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            border: 1px solid rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .catalog-card .mini-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: rgba(3, 7, 18, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+            letter-spacing: 0.5px;
+        }
+
+        .pagination-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .page-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 4px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: rgba(0, 240, 255, 0.15);
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 8px var(--hud-blue-glow);
+        }
+
+        .page-btn.active {
+            background: var(--hud-blue);
+            color: var(--bg-color);
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            color: var(--text-muted);
+            border-color: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .limit-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -24,10 +140,16 @@
         </div>
 
         <!-- Cards grid dossier -->
-        <div class="section-hdr">// DECRYPTED AGENT ROSTER</div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="section-hdr" style="margin-bottom: 0;">// DECRYPTED AGENT ROSTER</div>
+            <div class="limit-lbl" id="catalog-limit-indicator">0 / 250</div>
+        </div>
         <div class="catalog-grid" id="catalog-card-grid">
             <!-- Loaded dynamically by JS -->
         </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-bar" id="pagination-controls"></div>
     </div>
 
     <!-- Details overlay modal -->
@@ -87,9 +209,12 @@
         const cards = {{cardsJson}};
         let currentFilter = 'All';
         let activeSelectedCard = null;
+        let currentPage = 1;
+        const PAGE_SIZE = 15; // 5 columns * 3 rows
 
         function filterCards(align) {
             currentFilter = align;
+            currentPage = 1; // Reset to page 1 on filter swap
             document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
             if (align === 'All') document.getElementById('f-all').classList.add('active');
             else if (align === 'Speed') document.getElementById('f-speed').classList.add('active');
@@ -105,29 +230,83 @@
 
             const filtered = (currentFilter === 'All') ? cards : cards.filter(c => c.alignment === currentFilter);
 
+            // Update player capacity indicator (using clean format: e.g. "12 / 250")
+            document.getElementById('catalog-limit-indicator').textContent = `${cards.length} / 250`;
+
             if (filtered.length === 0) {
-                grid.innerHTML = '<div style="grid-column: span 2; text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px 0;">No active files under this alignment node.</div>';
+                grid.innerHTML = '<div style="grid-column: span 5; text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px 0;">No active files under this alignment node.</div>';
+                document.getElementById('pagination-controls').innerHTML = '';
                 return;
             }
 
-            filtered.forEach(c => {
+            // Paginate filtered roster list
+            const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const endIndex = startIndex + PAGE_SIZE;
+            const pageCards = filtered.slice(startIndex, endIndex);
+
+            pageCards.forEach(c => {
                 const alignColor = c.alignment === 'Speed' ? '#00f0ff' : (c.alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
                 
                 const cardEl = document.createElement('div');
                 cardEl.className = 'catalog-card' + (c.isLeader ? ' is-leader-card' : '');
                 cardEl.onclick = () => openDetails(c);
+                cardEl.style.backgroundImage = `url('/images/cards/${c.imageFile}')`;
 
                 cardEl.innerHTML = `
                     <div class="mini-alignment-dot" style="background-color: ${alignColor}; box-shadow: 0 0 6px ${alignColor};"></div>
                     ${c.isLeader ? '<span class="mini-badge" style="color: var(--accent-gold); border-color: var(--accent-gold);">LEADER</span>' : ''}
                     ${(!c.isLeader && (c.inAtk || c.inDef)) ? '<span class="mini-badge" style="color: var(--hud-blue); border-color: var(--hud-blue);">DECKED</span>' : ''}
-                    
-                    <div class="card-thumb-placeholder" style="background-image: url('/images/cards/${c.imageFile}'); background-size: cover; background-position: center;">${c.imageFile ? '' : '🛡️'}</div>
-                    <div class="thumb-name">${c.title}</div>
-                    <span class="thumb-sub">LVL ${c.level} // PWR ${c.cost}</span>
                 `;
                 grid.appendChild(cardEl);
             });
+
+            // Render paginator numbers and controls
+            renderPaginationControls(totalPages);
+        }
+
+        function renderPaginationControls(totalPages) {
+            const container = document.getElementById('pagination-controls');
+            container.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            // Previous trigger
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.innerHTML = '◀';
+            prevBtn.disabled = (currentPage === 1);
+            prevBtn.onclick = () => {
+                currentPage--;
+                renderGrid();
+            };
+            container.appendChild(prevBtn);
+
+            // Page numbers list
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = 'page-btn' + (i === currentPage ? ' active' : '');
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    renderGrid();
+                };
+                container.appendChild(pageBtn);
+            }
+
+            // Next trigger
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.innerHTML = '▶';
+            nextBtn.disabled = (currentPage === totalPages);
+            nextBtn.onclick = () => {
+                currentPage++;
+                renderGrid();
+            };
+            container.appendChild(nextBtn);
         }
 
         function openDetails(card) {
