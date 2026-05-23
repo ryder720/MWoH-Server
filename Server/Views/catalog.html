@@ -9,7 +9,7 @@
     <style>
         .catalog-grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 12px;
             margin-top: 15px;
         }
@@ -210,7 +210,7 @@
         let currentFilter = 'All';
         let activeSelectedCard = null;
         let currentPage = 1;
-        const PAGE_SIZE = 15; // 5 columns * 3 rows
+        const PAGE_SIZE = 16; // 4 columns * 4 rows
 
         function filterCards(align) {
             currentFilter = align;
@@ -234,7 +234,7 @@
             document.getElementById('catalog-limit-indicator').textContent = `${cards.length} / 250`;
 
             if (filtered.length === 0) {
-                grid.innerHTML = '<div style="grid-column: span 5; text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px 0;">No active files under this alignment node.</div>';
+                grid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: var(--text-muted); font-size: 11px; padding: 40px 0;">No active files under this alignment node.</div>';
                 document.getElementById('pagination-controls').innerHTML = '';
                 return;
             }
