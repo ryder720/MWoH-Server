@@ -121,6 +121,170 @@
             letter-spacing: 0.5px;
             font-weight: 700;
         }
+
+        /* Large Split Widescreen details overlay modal overrides */
+        .modal-card {
+            max-width: 820px;
+            width: 95%;
+            background: rgba(6, 12, 24, 0.97);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 28px;
+            display: block;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal-split-layout {
+            display: flex;
+            flex-direction: row;
+            gap: 28px;
+            align-items: stretch;
+            text-align: left;
+        }
+
+        .modal-card-art-frame {
+            flex: 0 0 340px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-full-art {
+            width: 100%;
+            aspect-ratio: 2/3;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: rgba(3, 7, 18, 0.6);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        /* Premium Hover 3D Pop & Glow */
+        .modal-full-art:hover {
+            transform: translateY(-6px) scale(1.03);
+            border-color: var(--hud-blue);
+            box-shadow: 0 15px 40px rgba(0, 240, 255, 0.3);
+        }
+
+        /* Metallic Sheen Sweep Pseudo-Element */
+        .modal-full-art::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 25%;
+            height: 200%;
+            background: linear-gradient(
+                to right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.35) 30%,
+                rgba(255, 255, 255, 0.35) 70%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            transition: none;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Sheen Sweep Animation Trigger */
+        .modal-full-art:hover::after {
+            animation: sheen-sweep 1.2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+
+        @keyframes sheen-sweep {
+            0% {
+                left: -60%;
+                opacity: 0;
+            }
+            15% {
+                opacity: 0.6;
+            }
+            85% {
+                opacity: 0.6;
+            }
+            100% {
+                left: 140%;
+                opacity: 0;
+            }
+        }
+
+        .modal-details-stack {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .modal-vertical-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 12px 0;
+        }
+
+        .card-stat-vertical {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(3, 7, 18, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            padding: 10px 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+
+        .card-stat-vertical:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Dossier Accent Left Borders */
+        .stat-level { border-left-color: var(--accent-gold); }
+        .stat-cost  { border-left-color: var(--hud-blue); }
+        .stat-atk   { border-left-color: #ef4444; }
+        .stat-def   { border-left-color: #10b981; }
+
+        .stat-lbl-vertical {
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .stat-val-vertical {
+            font-weight: 800;
+            font-size: 13px;
+            text-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 600px) {
+            .modal-split-layout {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            .modal-card {
+                max-width: 380px;
+                padding: 18px;
+            }
+            .modal-card-art-frame {
+                flex: 0 0 280px;
+                width: 280px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -157,49 +321,57 @@
         <div class="modal-card" onclick="event.stopPropagation()">
             <button class="close-btn" onclick="closeDetailsModal()">X</button>
             
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <span class="modal-lbl" id="modal-codename">CODENAME // SPEED</span>
-                    <h2 class="modal-val-lg" id="modal-name">SPIDER-MAN</h2>
+            <div class="modal-split-layout">
+                <!-- Left Side: Large Playing Card Art -->
+                <div class="modal-card-art-frame">
+                    <div class="modal-full-art" id="modal-artwork-thumb">🛡️</div>
                 </div>
-                <div class="badge-lvl" id="modal-rarity" style="color: var(--accent-gold); border-color: var(--accent-gold);">RARE</div>
+                
+                <!-- Right Side: Details Stack -->
+                <div class="modal-details-stack">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div>
+                            <span class="modal-lbl" id="modal-codename">CODENAME // SPEED</span>
+                            <h2 class="modal-val-lg" id="modal-name">SPIDER-MAN</h2>
+                        </div>
+                        <div class="badge-lvl" id="modal-rarity" style="color: var(--accent-gold); border-color: var(--accent-gold); margin-top: 5px;">RARE</div>
+                    </div>
+
+                    <!-- Vertical Stats Stack -->
+                    <div class="modal-vertical-stats">
+                        <div class="card-stat-vertical stat-level">
+                            <span class="stat-lbl-vertical">CLEARANCE LEVEL</span>
+                            <span class="stat-val-vertical" id="modal-level" style="color: var(--accent-gold);">1</span>
+                        </div>
+                        <div class="card-stat-vertical stat-cost">
+                            <span class="stat-lbl-vertical">POWER REQUIRED</span>
+                            <span class="stat-val-vertical" id="modal-cost" style="color: var(--hud-blue);">12</span>
+                        </div>
+                        <div class="card-stat-vertical stat-atk">
+                            <span class="stat-lbl-vertical">ATTACK FORCE</span>
+                            <span class="stat-val-vertical" id="modal-atk" style="color: #ef4444;">2000</span>
+                        </div>
+                        <div class="card-stat-vertical stat-def">
+                            <span class="stat-lbl-vertical">DEFENSE FACTOR</span>
+                            <span class="stat-val-vertical" id="modal-def" style="color: #10b981;">1800</span>
+                        </div>
+                    </div>
+
+                    <!-- Ability Panel -->
+                    <div class="modal-ability-panel" style="margin-top: 15px; margin-bottom: 15px;">
+                        <span class="modal-lbl">ACTIVE SYNC ABILITY</span>
+                        <div class="ability-title" id="modal-ability-title">WEB-SLINGER</div>
+                        <div class="ability-desc" id="modal-ability-desc">Strengthen Speed ATK lineup.</div>
+                    </div>
+
+                    <div class="card-footer-quote" id="modal-quote" style="margin-bottom: 15px;">
+                        "With great power comes great responsibility!"
+                    </div>
+
+                    <!-- Set Representative Leader -->
+                    <button class="set-leader-btn" id="leader-action-btn" onclick="setAsLeader()">SET AS ACTIVE LEADER</button>
+                </div>
             </div>
-
-            <div class="card-thumb-placeholder" id="modal-artwork-thumb">🛡️</div>
-
-            <!-- Stats grid -->
-            <div class="card-stats-row">
-                <div class="card-stat">
-                    <span class="stat-lbl">LEVEL</span>
-                    <span class="stat-val" id="modal-level">1</span>
-                </div>
-                <div class="card-stat">
-                    <span class="stat-lbl">POWER COST</span>
-                    <span class="stat-val" id="modal-cost">12</span>
-                </div>
-                <div class="card-stat">
-                    <span class="stat-lbl">ATK</span>
-                    <span class="stat-val" id="modal-atk" style="color: #ef4444;">2000</span>
-                </div>
-                <div class="card-stat">
-                    <span class="stat-lbl">DEF</span>
-                    <span class="stat-val" id="modal-def" style="color: #10b981;">1800</span>
-                </div>
-            </div>
-
-            <!-- Ability Panel -->
-            <div class="modal-ability-panel">
-                <span class="modal-lbl">ACTIVE SYNC ABILITY</span>
-                <div class="ability-title" id="modal-ability-title">WEB-SLINGER</div>
-                <div class="ability-desc" id="modal-ability-desc">Strengthen Speed ATK lineup.</div>
-            </div>
-
-            <div class="card-footer-quote" id="modal-quote">
-                "With great power comes great responsibility!"
-            </div>
-
-            <!-- Set Representative Leader -->
-            <button class="set-leader-btn" id="leader-action-btn" onclick="setAsLeader()">SET AS ACTIVE LEADER</button>
         </div>
     </div>
 
@@ -210,7 +382,7 @@
         let currentFilter = 'All';
         let activeSelectedCard = null;
         let currentPage = 1;
-        const PAGE_SIZE = 16; // 4 columns * 4 rows
+        const PAGE_SIZE = 20; // 4 columns * 5 rows
 
         function filterCards(align) {
             currentFilter = align;
