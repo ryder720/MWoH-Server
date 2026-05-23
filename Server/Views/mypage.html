@@ -6,6 +6,48 @@
     <title>S.H.I.E.L.D. Agent dossier</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .hud-boost-badge {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--hud-blue);
+            color: var(--hud-blue);
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-decoration: none;
+            text-shadow: 0 0 4px var(--hud-blue-glow);
+            box-shadow: 0 0 6px var(--hud-blue-glow);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+        }
+        .hud-boost-badge:hover {
+            background: var(--hud-blue);
+            color: #000;
+            box-shadow: 0 0 10px var(--hud-blue);
+            text-shadow: none;
+        }
+        .hud-boost-link {
+            color: var(--hud-blue);
+            font-size: 10px;
+            font-weight: 700;
+            text-decoration: none;
+            text-shadow: 0 0 4px var(--hud-blue-glow);
+            transition: all 0.2s ease;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(0, 240, 255, 0.05);
+        }
+        .hud-boost-link:hover {
+            color: #ffffff;
+            border-color: #ffffff;
+            text-shadow: 0 0 8px #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -19,7 +61,10 @@
         <div class="profile-panel">
             <div class="profile-dossier-row">
                 <span class="agent-id-box">AGENT // COD-{{clearanceCode}}</span>
-                <span class="badge-lvl">LEVEL {{level}}</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <a href="/ultimate/mypage/enhance" class="hud-boost-badge">🧪 BOOST</a>
+                    <span class="badge-lvl">LEVEL {{level}}</span>
+                </div>
             </div>
             <div class="agent-name">{{agentName}}</div>
             
@@ -66,7 +111,10 @@
 
         <!-- Leader Card Showcase -->
         <div class="leader-card-section">
-            <div class="section-hdr">// REPRESENTATIVE LEADER</div>
+            <div class="section-hdr" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>// REPRESENTATIVE LEADER</span>
+                <a href="/ultimate/mypage/enhance" class="hud-boost-link">🧪 FORGE & BOOST</a>
+            </div>
             {{leaderHtml}}
         </div>
 
@@ -106,19 +154,13 @@
                 <span class="action-desc">Edit Attack & Defense Squad lineups.</span>
             </a>
 
-            <a href="/ultimate/mypage/enhance" class="action-card">
-                <span class="action-ico">🧪</span>
-                <span class="action-title">ISO-8 FORGE</span>
-                <span class="action-desc">Level up Hero stats with Serums & fusion.</span>
-            </a>
-
             <a href="/ultimate/mypage/catalog" class="action-card">
                 <span class="action-ico">📂</span>
                 <span class="action-title">CARD CATALOG</span>
                 <span class="action-desc">Dossier folder of all recruited Heroes.</span>
             </a>
 
-            <a href="/ultimate/item/index" class="action-card">
+            <a href="/ultimate/item/index" class="action-card" style="grid-column: span 2;">
                 <span class="action-ico">🎒</span>
                 <span class="action-title">ITEMS DEPOT</span>
                 <span class="action-desc">Consume and deploy active restoratives.</span>
