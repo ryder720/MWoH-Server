@@ -754,6 +754,22 @@ namespace MwohServer.Controllers
             return Ok(response);
         }
 
+        // Stub Mobage Bank Balance Inquiry
+        [HttpGet("1/{appKey}/bank/balance")]
+        public IActionResult GetBankBalance(string appKey)
+        {
+            var user = ResolveMobageUser();
+            var balance = user.Profile?.MobaCoinBalance ?? 999999;
+            
+            _logger.LogInformation($"[Mobage] GetBankBalance called. AppKey: {appKey}, User: {user.Username}, Balance: {balance}");
+
+            var response = new
+            {
+                balance = balance
+            };
+            return Ok(response);
+        }
+
         // 12. Native Mobage SDK Session Establishment & Persistence Endpoint
         [HttpPost("1/{appKey}/session")]
         public async Task<IActionResult> ReestablishSession(string appKey)
