@@ -593,7 +593,7 @@ namespace MwohServer.Controllers
                 { "energyMax", energyMax.ToString() },
                 { "energyPct", energyPct.ToString() },
                 { "energyRecoveryInterval", GameplaySettings.EnergyRecoveryIntervalSeconds.ToString() },
-                { "lastRecoveryTime", profile.LastEnergyRecoveryTime.ToString("o") },
+                { "lastRecoveryTime", DateTime.SpecifyKind(profile.LastEnergyRecoveryTime, DateTimeKind.Utc).ToString("o") },
                 { "mobacoin", profile.MobaCoinBalance.ToString() },
                 { "silver", profile.SilverBalance.ToString() },
                 { "leaderHtml", leaderHtml },
@@ -1644,9 +1644,11 @@ namespace MwohServer.Controllers
             {
                 // Run Lazy Timed Energy Restoration
                 var now = DateTime.UtcNow;
+                var lastRecovery = DateTime.SpecifyKind(profile.LastEnergyRecoveryTime, DateTimeKind.Utc);
+
                 if (profile.EnergyCurrent < profile.EnergyMax)
                 {
-                    var secondsElapsed = (now - profile.LastEnergyRecoveryTime).TotalSeconds;
+                    var secondsElapsed = (now - lastRecovery).TotalSeconds;
                     var recoveryInterval = GameplaySettings.EnergyRecoveryIntervalSeconds;
                     if (secondsElapsed >= recoveryInterval && recoveryInterval > 0)
                     {
@@ -1655,14 +1657,14 @@ namespace MwohServer.Controllers
                         profile.EnergyCurrent = Math.Min(profile.EnergyMax, profile.EnergyCurrent + restoredEnergy);
                         
                         // Advance LastEnergyRecoveryTime by the exact intervals consumed
-                        profile.LastEnergyRecoveryTime = profile.LastEnergyRecoveryTime.AddSeconds(intervals * recoveryInterval);
+                        profile.LastEnergyRecoveryTime = lastRecovery.AddSeconds(intervals * recoveryInterval);
                         _dbContext.SaveChanges();
                     }
                 }
                 else
                 {
                     // Energy is already at or above max, keep the recovery time pinned to now
-                    if (profile.LastEnergyRecoveryTime < now)
+                    if (lastRecovery < now)
                     {
                         profile.LastEnergyRecoveryTime = now;
                         _dbContext.SaveChanges();
