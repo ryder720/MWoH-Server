@@ -592,6 +592,8 @@ namespace MwohServer.Controllers
                 { "energyCur", energyCur.ToString() },
                 { "energyMax", energyMax.ToString() },
                 { "energyPct", energyPct.ToString() },
+                { "energyRecoveryInterval", GameplaySettings.EnergyRecoveryIntervalSeconds.ToString() },
+                { "lastRecoveryTime", profile.LastEnergyRecoveryTime.ToString("o") },
                 { "mobacoin", profile.MobaCoinBalance.ToString() },
                 { "silver", profile.SilverBalance.ToString() },
                 { "leaderHtml", leaderHtml },

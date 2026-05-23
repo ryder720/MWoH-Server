@@ -38,10 +38,10 @@
             <div class="progress-block">
                 <div class="progress-lbl">
                     <span>ENERGY RESERVES</span>
-                    <span>{{energyCur}} / {{energyMax}}</span>
+                    <span id="energy-val">{{energyCur}} / {{energyMax}}</span>
                 </div>
                 <div class="bar-outer">
-                    <div class="bar-inner" style="background: var(--hud-green); width: {{energyPct}}%;"></div>
+                    <div class="bar-inner" id="energy-bar" style="background: var(--hud-green); width: {{energyPct}}%;"></div>
                 </div>
             </div>
 
@@ -119,5 +119,42 @@
             </a>
         </div>
     </div>
+
+    <script>
+        (function() {
+            let currentEnergy = parseInt("{{energyCur}}") || 0;
+            const maxEnergy = parseInt("{{energyMax}}") || 100;
+            const intervalSeconds = parseInt("{{energyRecoveryInterval}}") || 300;
+            const lastRecoveryTime = new Date("{{lastRecoveryTime}}");
+
+            function tickEnergy() {
+                if (currentEnergy >= maxEnergy) {
+                    document.getElementById("energy-val").textContent = `${maxEnergy} / ${maxEnergy}`;
+                    document.getElementById("energy-bar").style.width = "100%";
+                    return;
+                }
+
+                const now = new Date();
+                const secondsElapsed = Math.floor((now.getTime() - lastRecoveryTime.getTime()) / 1000);
+                if (secondsElapsed >= intervalSeconds && intervalSeconds > 0) {
+                    const ticks = Math.floor(secondsElapsed / intervalSeconds);
+                    const restored = ticks * 1; // recovery amount
+                    const newEnergy = Math.min(maxEnergy, currentEnergy + restored);
+                    
+                    if (newEnergy !== currentEnergy) {
+                        currentEnergy = newEnergy;
+                        document.getElementById("energy-val").textContent = `${currentEnergy} / ${maxEnergy}`;
+                        const pct = Math.min(100, (currentEnergy * 100) / maxEnergy);
+                        document.getElementById("energy-bar").style.width = `${pct}%`;
+                    }
+                }
+            }
+
+            if (intervalSeconds > 0 && currentEnergy < maxEnergy) {
+                setInterval(tickEnergy, 1000);
+                tickEnergy();
+            }
+        })();
+    </script>
 </body>
 </html>
