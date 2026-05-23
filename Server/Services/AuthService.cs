@@ -111,6 +111,29 @@ namespace MwohServer.Services
             _dbContext.Profiles.Add(profile);
             _dbContext.SaveChanges();
 
+            // Give the new user a base Spider-Man card as a starting card
+            var spiderTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == "Spider-Man" && t.VariantName == "Base")
+                ?? _dbContext.CardTemplates.FirstOrDefault(t => t.Title == "Spider-Man")
+                ?? _dbContext.CardTemplates.FirstOrDefault(t => t.Title.Contains("Spider-Man"));
+
+            if (spiderTemplate != null)
+            {
+                var starterCard = new PlayerCard
+                {
+                    PlayerProfileId = profile.Id,
+                    CardTemplateId = spiderTemplate.Id,
+                    CurrentLevel = 1,
+                    CurrentMastery = 0,
+                    CurrentAtk = spiderTemplate.BaseAtk,
+                    CurrentDef = spiderTemplate.BaseDef,
+                    IsLeader = true,
+                    IsInAttackDeck = true,
+                    IsInDefenseDeck = true
+                };
+                _dbContext.PlayerCards.Add(starterCard);
+                _dbContext.SaveChanges();
+            }
+
             return newUser;
         }
 
