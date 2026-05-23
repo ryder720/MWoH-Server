@@ -54,6 +54,7 @@ namespace MwohServer.Models
         
         public string MissionProgressJson { get; set; } = "{\"UnlockedOperationId\":1,\"UnlockedMissionId\":1,\"ActiveMissionId\":1,\"ActiveMissionProgress\":0}";
 
+        public DateTime LastEnergyRecoveryTime { get; set; } = DateTime.UtcNow;
         
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
@@ -157,5 +158,74 @@ namespace MwohServer.Models
         // Navigation properties
         public PlayerProfile? PlayerProfile { get; set; }
         public ItemTemplate? ItemTemplate { get; set; }
+    }
+
+    public static class GameplaySettings
+    {
+        public static int EnergyRecoveryIntervalSeconds { get; set; } = 300; // 5 minutes
+        public static int EnergyRecoveryAmount { get; set; } = 1;
+        public static int BaseXpRequirement { get; set; } = 1000;
+        public static int XpIncrementPerLevel { get; set; } = 500;
+        public static int EnergyMaxIncreasePerLevel { get; set; } = 2;
+
+        public static void Load()
+        {
+            var configPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "gameplay_settings.json");
+            if (System.IO.File.Exists(configPath))
+            {
+                try
+                {
+                    var json = System.IO.File.ReadAllText(configPath);
+                    using (var doc = System.Text.Json.JsonDocument.Parse(json))
+                    {
+                        var root = doc.RootElement;
+                        if (root.TryGetProperty("Gameplay", out var gameplayNode))
+                        {
+                            if (gameplayNode.TryGetProperty("EnergyRecovery", out var energyNode))
+                            {
+                                if (energyNode.TryGetProperty("IntervalSeconds", out var intervalProp))
+                                    EnergyRecoveryIntervalSeconds = intervalProp.GetInt32();
+                                if (energyNode.TryGetProperty("AmountPerInterval", out var amountProp))
+                                    EnergyRecoveryAmount = amountProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("LevelUp", out var lvlNode))
+                            {
+                                if (lvlNode.TryGetProperty("BaseXpRequirement", out var baseXpProp))
+                                    BaseXpRequirement = baseXpProp.GetInt32();
+                                if (lvlNode.TryGetProperty("XpIncrementPerLevel", out var xpIncProp))
+                                    XpIncrementPerLevel = xpIncProp.GetInt32();
+                                if (lvlNode.TryGetProperty("EnergyMaxIncreasePerLevel", out var energyIncProp))
+                                    EnergyMaxIncreasePerLevel = energyIncProp.GetInt32();
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Console.WriteLine($"[Warning] Failed to load gameplay_settings.json: {ex.Message}. Using default settings.");
+                }
+            }
+            else
+            {
+                var defaultJson = @"{
+  ""Gameplay"": {
+    ""EnergyRecovery"": {
+      ""IntervalSeconds"": 300,
+      ""AmountPerInterval"": 1
+    },
+    ""LevelUp"": {
+      ""BaseXpRequirement"": 1000,
+      ""XpIncrementPerLevel"": 500,
+      ""EnergyMaxIncreasePerLevel"": 2
+    }
+  }
+}";
+                try
+                {
+                    System.IO.File.WriteAllText(configPath, defaultJson);
+                }
+                catch {}
+            }
+        }
     }
 }

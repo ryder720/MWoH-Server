@@ -574,7 +574,7 @@ namespace MwohServer.Controllers
             var defensePower = defDeck.Sum(c => c.CurrentDef);
 
             var expCurrent = profile.Experience;
-            var expNext = profile.Level * 5000;
+            var expNext = GameplaySettings.BaseXpRequirement + (profile.Level - 1) * GameplaySettings.XpIncrementPerLevel;
             var expPct = Math.Min(100, (expCurrent * 100) / expNext);
 
             var energyCur = profile.EnergyCurrent;
@@ -1423,14 +1423,21 @@ namespace MwohServer.Controllers
             profile.Experience += xpGained;
 
             var levelUp = false;
-            var nextExpNeeded = profile.Level * 1000;
-            if (profile.Experience >= nextExpNeeded)
+            while (true)
             {
-                profile.Experience -= nextExpNeeded;
-                profile.Level++;
-                profile.EnergyMax += 5;
-                profile.EnergyCurrent = profile.EnergyMax;
-                levelUp = true;
+                var nextExpNeeded = GameplaySettings.BaseXpRequirement + (profile.Level - 1) * GameplaySettings.XpIncrementPerLevel;
+                if (profile.Experience >= nextExpNeeded)
+                {
+                    profile.Experience -= nextExpNeeded;
+                    profile.Level++;
+                    profile.EnergyMax += GameplaySettings.EnergyMaxIncreasePerLevel;
+                    profile.EnergyCurrent = profile.EnergyMax;
+                    levelUp = true;
+                }
+                else
+                {
+                    break;
+                }
             }
 
             var cardDropped = false;
@@ -1613,20 +1620,55 @@ namespace MwohServer.Controllers
         }
 
         private PlayerProfile? GetPlayerProfile(int profileId, bool includeInventory = false)
-
         {
             var query = _dbContext.Profiles
                 .Include(p => p.Cards)
                     .ThenInclude(c => c.CardTemplate);
 
+            PlayerProfile? profile;
             if (includeInventory)
             {
-                return query
+                profile = query
                     .Include(p => p.InventoryItems)
                         .ThenInclude(pi => pi.ItemTemplate)
                     .FirstOrDefault(p => p.Id == profileId);
             }
-            return query.FirstOrDefault(p => p.Id == profileId);
+            else
+            {
+                profile = query.FirstOrDefault(p => p.Id == profileId);
+            }
+
+            if (profile != null)
+            {
+                // Run Lazy Timed Energy Restoration
+                var now = DateTime.UtcNow;
+                if (profile.EnergyCurrent < profile.EnergyMax)
+                {
+                    var secondsElapsed = (now - profile.LastEnergyRecoveryTime).TotalSeconds;
+                    var recoveryInterval = GameplaySettings.EnergyRecoveryIntervalSeconds;
+                    if (secondsElapsed >= recoveryInterval && recoveryInterval > 0)
+                    {
+                        var intervals = (int)(secondsElapsed / recoveryInterval);
+                        var restoredEnergy = intervals * GameplaySettings.EnergyRecoveryAmount;
+                        profile.EnergyCurrent = Math.Min(profile.EnergyMax, profile.EnergyCurrent + restoredEnergy);
+                        
+                        // Advance LastEnergyRecoveryTime by the exact intervals consumed
+                        profile.LastEnergyRecoveryTime = profile.LastEnergyRecoveryTime.AddSeconds(intervals * recoveryInterval);
+                        _dbContext.SaveChanges();
+                    }
+                }
+                else
+                {
+                    // Energy is already at or above max, keep the recovery time pinned to now
+                    if (profile.LastEnergyRecoveryTime < now)
+                    {
+                        profile.LastEnergyRecoveryTime = now;
+                        _dbContext.SaveChanges();
+                    }
+                }
+            }
+
+            return profile;
         }
 
         private string RenderTemplate(string templateName, Dictionary<string, string> replacements)

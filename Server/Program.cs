@@ -35,6 +35,9 @@ builder.Services.AddDbContext<MwohDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
+// Load Gameplay Custom Configurations
+MwohServer.Models.GameplaySettings.Load();
+
 var app = builder.Build();
 
 // 3. Automatically ensure SQLite database exists and is seeded
@@ -51,9 +54,19 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        // Column already exists
-        logger.LogInformation($"Database migration check finished: {ex.Message}");
+        logger.LogInformation($"Database migration check finished (AbilityLevel): {ex.Message}");
     }
+
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN LastEnergyRecoveryTime TEXT NOT NULL DEFAULT '2026-05-23 00:00:00';");
+        logger.LogInformation("Database migration: Added LastEnergyRecoveryTime column to Profiles.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogInformation($"Database migration check finished (LastEnergyRecoveryTime): {ex.Message}");
+    }
+
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
     

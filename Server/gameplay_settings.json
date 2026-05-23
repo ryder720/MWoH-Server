@@ -1,0 +1,13 @@
+{
+  "Gameplay": {
+    "EnergyRecovery": {
+      "IntervalSeconds": 300,
+      "AmountPerInterval": 1
+    },
+    "LevelUp": {
+      "BaseXpRequirement": 1000,
+      "XpIncrementPerLevel": 500,
+      "EnergyMaxIncreasePerLevel": 2
+    }
+  }
+}
