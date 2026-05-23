@@ -893,11 +893,21 @@ namespace MwohServer.Controllers
 
             int.TryParse(Request.Form["target_card_id"].ToString(), out var targetCardId);
             string materialType = Request.Form["material_type"].ToString();
-            int.TryParse(Request.Form["material_id"].ToString(), out var materialId);
+            string materialIdStr = Request.Form["material_id"].ToString();
 
-            if (targetCardId <= 0 || string.IsNullOrEmpty(materialType) || materialId <= 0)
+            if (targetCardId <= 0 || string.IsNullOrEmpty(materialType) || string.IsNullOrEmpty(materialIdStr))
             {
                 return Ok(new { success = false, message = "Missing forge parameters." });
+            }
+
+            var materialIds = materialIdStr.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                           .Select(id => int.TryParse(id, out var v) ? v : 0)
+                                           .Where(id => id > 0)
+                                           .ToList();
+
+            if (materialIds.Count == 0)
+            {
+                return Ok(new { success = false, message = "No material selected." });
             }
 
             var targetCard = profile.Cards.FirstOrDefault(c => c.Id == targetCardId);
@@ -908,11 +918,12 @@ namespace MwohServer.Controllers
 
             int expGain = 0;
             PlayerInventoryItem? invItem = null;
-            PlayerCard? materialCard = null;
+            List<PlayerCard>? materialCardsList = null;
             int silverCost = 0;
 
             if (materialType == "serum")
             {
+                var materialId = materialIds[0];
                 invItem = profile.InventoryItems.FirstOrDefault(pi => pi.ItemTemplateId == materialId);
                 if (invItem == null || invItem.Quantity <= 0)
                 {
@@ -923,26 +934,38 @@ namespace MwohServer.Controllers
             }
             else if (materialType == "card")
             {
-                materialCard = profile.Cards.FirstOrDefault(c => c.Id == materialId);
-                if (materialCard == null)
+                var materialCards = profile.Cards.Where(c => materialIds.Contains(c.Id)).ToList();
+                if (materialCards.Count != materialIds.Count)
                 {
-                    return Ok(new { success = false, message = "Material card not found." });
+                    return Ok(new { success = false, message = "One or more material cards not found." });
                 }
-                if (materialCard.IsLeader || materialCard.IsInAttackDeck || materialCard.IsInDefenseDeck)
+                foreach (var matCard in materialCards)
                 {
-                    return Ok(new { success = false, message = "Cannot sacrifice active representative or squad member." });
+                    if (matCard.IsLeader || matCard.IsInAttackDeck || matCard.IsInDefenseDeck)
+                    {
+                        return Ok(new { success = false, message = $"Cannot sacrifice active representative or squad member: {matCard.CardTemplate?.Title}." });
+                    }
+                    if (matCard.Id == targetCard.Id)
+                    {
+                        return Ok(new { success = false, message = "Cannot sacrifice the target card itself!" });
+                    }
                 }
-                
-                var baseRarityXp = GetBoosterBaseXP(materialCard.CardTemplate?.Rarity ?? "Common");
-                var isSameAlignment = string.Equals(targetCard.CardTemplate?.Alignment, materialCard.CardTemplate?.Alignment, StringComparison.OrdinalIgnoreCase);
-                var alignmentBonus = isSameAlignment ? 24 : 0;
-                var levelFactor = (materialCard.CurrentLevel - 1) * 20;
 
-                expGain = baseRarityXp + alignmentBonus + levelFactor;
+                foreach (var matCard in materialCards)
+                {
+                    var baseRarityXp = GetBoosterBaseXP(matCard.CardTemplate?.Rarity ?? "Common");
+                    var isSameAlignment = string.Equals(targetCard.CardTemplate?.Alignment, matCard.CardTemplate?.Alignment, StringComparison.OrdinalIgnoreCase);
+                    var alignmentBonus = isSameAlignment ? 24 : 0;
+                    var levelFactor = (matCard.CurrentLevel - 1) * 20;
 
-                int baseCost = GetBaseCardSilverCost(targetCard.CurrentLevel);
-                int boosterModifier = GetBoosterLevelModifier(targetCard.CurrentLevel);
-                silverCost = baseCost + Math.Max(0, materialCard.CurrentLevel - 1) * boosterModifier;
+                    expGain += baseRarityXp + alignmentBonus + levelFactor;
+
+                    int baseCost = GetBaseCardSilverCost(targetCard.CurrentLevel);
+                    int boosterModifier = GetBoosterLevelModifier(targetCard.CurrentLevel);
+                    silverCost += baseCost + Math.Max(0, matCard.CurrentLevel - 1) * boosterModifier;
+                }
+
+                materialCardsList = materialCards;
             }
             else
             {
@@ -983,9 +1006,12 @@ namespace MwohServer.Controllers
             {
                 invItem.Quantity--;
             }
-            else if (materialType == "card" && materialCard != null)
+            else if (materialType == "card" && materialCardsList != null)
             {
-                _dbContext.PlayerCards.Remove(materialCard);
+                foreach (var matCard in materialCardsList)
+                {
+                    _dbContext.PlayerCards.Remove(matCard);
+                }
             }
 
             _dbContext.SaveChanges();

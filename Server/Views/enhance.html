@@ -244,7 +244,7 @@
         let selectedCardId = null;
         let selectedCardMaterialType = null; // C# replacement workaround conflict variable renamed to match logic safely
         let selectedMaterialType = null; // 'serum' or 'card'
-        let selectedMaterialId = null;   // serumTemplateId or cardInstanceId
+        let selectedMaterialIds = [];    // array of ids for multi-select
 
         let currentFilter = 'All';
         let currentPage = 1;
@@ -347,7 +347,7 @@
         function selectTargetCard(cardId) {
             selectedCardId = cardId;
             selectedMaterialType = null;
-            selectedMaterialId = null;
+            selectedMaterialIds = [];
 
             document.getElementById('hud-projection-box').style.display = 'block';
             document.getElementById('materials-box').style.display = 'block';
@@ -459,7 +459,7 @@
                             <div class="material-sub">+${totalXp.toLocaleString()} EXP ${isSameAlignment ? '🔥 Alignment Match!' : ''} // SACRIFICE DEPLOYMENT</div>
                         </div>
                     </div>
-                    <button class="material-selector-btn">SACRIFICE</button>
+                    <button class="material-selector-btn">SELECT</button>
                 `;
                 container.appendChild(itemEl);
             });
@@ -470,19 +470,41 @@
         }
 
         function selectMaterial(type, id) {
-            // Deselect old
-            if (selectedMaterialType && selectedMaterialId) {
-                const oldEl = document.getElementById(`material-${selectedMaterialType}-${selectedMaterialId}`);
-                if (oldEl) oldEl.classList.remove('selected');
+            if (type === 'serum') {
+                selectedMaterialType = 'serum';
+                selectedMaterialIds = [id];
+            } else if (type === 'card') {
+                if (selectedMaterialType !== 'card') {
+                    selectedMaterialType = 'card';
+                    selectedMaterialIds = [];
+                }
+                
+                const index = selectedMaterialIds.indexOf(id);
+                if (index > -1) {
+                    selectedMaterialIds.splice(index, 1);
+                } else {
+                    selectedMaterialIds.push(id);
+                }
+
+                if (selectedMaterialIds.length === 0) {
+                    selectedMaterialType = null;
+                }
             }
 
-            selectedMaterialType = type;
-            selectedMaterialId = id;
-
-            const newEl = document.getElementById(`material-${type}-${id}`);
-            if (newEl) newEl.classList.add('selected');
-
+            updateMaterialItemsVisuals();
             updateProjection();
+        }
+
+        function updateMaterialItemsVisuals() {
+            const items = document.querySelectorAll('.material-item');
+            items.forEach(el => el.classList.remove('selected'));
+
+            if (selectedMaterialType && selectedMaterialIds.length > 0) {
+                selectedMaterialIds.forEach(id => {
+                    const el = document.getElementById(`material-${selectedMaterialType}-${id}`);
+                    if (el) el.classList.add('selected');
+                });
+            }
         }
 
         function calculateStatsForLevel(c, level) {
@@ -506,27 +528,29 @@
             let projectedLvl = targetCard.level;
             let silverCost = 0;
 
-            if (selectedMaterialType && selectedMaterialId) {
+            if (selectedMaterialType && selectedMaterialIds.length > 0) {
                 let expGain = 0;
                 if (selectedMaterialType === 'serum') {
-                    const serum = serums.find(s => s.id === selectedMaterialId);
+                    const serum = serums.find(s => s.id === selectedMaterialIds[0]);
                     if (serum) {
                         expGain = serum.exp_val;
                         silverCost = getBaseCardSilverCost(targetCard.level);
                     }
                 } else {
-                    const matCard = cards.find(c => c.id === selectedMaterialId);
-                    if (matCard) {
-                        const baseRarityXp = getBoosterBaseXP(matCard.rarity);
-                        const isSameAlignment = targetCard.alignment.toLowerCase() === matCard.alignment.toLowerCase();
-                        const alignmentBonus = isSameAlignment ? 24 : 0;
-                        const levelFactor = (matCard.level - 1) * 20;
-                        expGain = baseRarityXp + alignmentBonus + levelFactor;
+                    selectedMaterialIds.forEach(id => {
+                        const matCard = cards.find(c => c.id === id);
+                        if (matCard) {
+                            const baseRarityXp = getBoosterBaseXP(matCard.rarity);
+                            const isSameAlignment = targetCard.alignment.toLowerCase() === matCard.alignment.toLowerCase();
+                            const alignmentBonus = isSameAlignment ? 24 : 0;
+                            const levelFactor = (matCard.level - 1) * 20;
+                            expGain += baseRarityXp + alignmentBonus + levelFactor;
 
-                        const baseCost = getBaseCardSilverCost(targetCard.level);
-                        const boosterModifier = getBoosterLevelModifier(targetCard.level);
-                        silverCost = baseCost + Math.max(0, matCard.level - 1) * boosterModifier;
-                    }
+                            const baseCost = getBaseCardSilverCost(targetCard.level);
+                            const boosterModifier = getBoosterLevelModifier(targetCard.level);
+                            silverCost += baseCost + Math.max(0, matCard.level - 1) * boosterModifier;
+                        }
+                    });
                 }
 
                 const levelsGained = Math.floor(expGain / 100);
@@ -544,7 +568,7 @@
             
             const forgeBtn = document.getElementById('execute-forge-btn');
             
-            if (selectedMaterialType && selectedMaterialId) {
+            if (selectedMaterialType && selectedMaterialIds.length > 0) {
                 if (userSilver < silverCost) {
                     costBox.style.color = 'var(--accent-red)';
                     forgeBtn.disabled = true;
@@ -567,18 +591,20 @@
         }
 
         function executeForge() {
-            if (!selectedCardId || !selectedMaterialType || !selectedMaterialId) return;
+            if (!selectedCardId || !selectedMaterialType || selectedMaterialIds.length === 0) return;
 
             const btn = document.getElementById('execute-forge-btn');
             btn.disabled = true;
             btn.textContent = 'COMMENCING FORGE...';
+
+            const materialIdStr = selectedMaterialIds.join(',');
 
             fetch('/ultimate/mypage/enhance_card', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `target_card_id=${selectedCardId}&material_type=${selectedMaterialType}&material_id=${selectedMaterialId}`
+                body: `target_card_id=${selectedCardId}&material_type=${selectedMaterialType}&material_id=${materialIdStr}`
             })
             .then(res => res.json())
             .then(data => {
