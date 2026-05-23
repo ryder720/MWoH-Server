@@ -708,14 +708,7 @@ namespace MwohServer.Controllers
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
                 rarity = c.CardTemplate?.Rarity ?? "Normal",
                 level = c.CurrentLevel,
-                maxLevel = c.CardTemplate?.Rarity switch
-                {
-                    "Normal" => 40,
-                    "Rare" => 60,
-                    "Super Rare" => 80,
-                    "Legendary" => 99,
-                    _ => 50
-                },
+                maxLevel = GetMaxLevelByRarity(c.CardTemplate?.Rarity ?? "Normal"),
                 baseAtk = c.CardTemplate?.BaseAtk ?? 1000,
                 baseDef = c.CardTemplate?.BaseDef ?? 1000,
                 maxAtk = c.CardTemplate?.MaxAtk ?? 4000,
@@ -824,6 +817,63 @@ namespace MwohServer.Controllers
             return Ok(new { success = true, message = "S.H.I.E.L.D. representative leader successfully designated!" });
         }
 
+        private static int GetBaseCardSilverCost(int baseLevel)
+        {
+            if (baseLevel <= 9) return 75 + (baseLevel - 1) * 50;
+            if (baseLevel <= 19) return 735 + (baseLevel - 10) * 70;
+            if (baseLevel <= 29) return 1845 + (baseLevel - 20) * 90;
+            if (baseLevel <= 39) return 3355 + (baseLevel - 30) * 110;
+            if (baseLevel <= 49) return 5265 + (baseLevel - 40) * 130;
+            if (baseLevel <= 59) return 7575 + (baseLevel - 50) * 150;
+            if (baseLevel <= 69) return 10285 + (baseLevel - 60) * 170;
+            if (baseLevel <= 79) return 13395 + (baseLevel - 70) * 190;
+            if (baseLevel <= 89) return 16905 + (baseLevel - 80) * 210;
+            return 20815 + (baseLevel - 90) * 230;
+        }
+
+        private static int GetBoosterLevelModifier(int baseLevel)
+        {
+            if (baseLevel <= 9) return 25;
+            if (baseLevel <= 19) return 35;
+            if (baseLevel <= 29) return 45;
+            if (baseLevel <= 39) return 55;
+            if (baseLevel <= 49) return 65;
+            if (baseLevel <= 59) return 75;
+            if (baseLevel <= 69) return 85;
+            if (baseLevel <= 79) return 95;
+            return 105;
+        }
+
+        private static int GetMaxLevelByRarity(string rarity)
+        {
+            return rarity switch
+            {
+                "Common" or "Normal" => 30,
+                "High Normal" or "Uncommon" => 40,
+                "Rare" => 50,
+                "High Rare" => 60,
+                "Super Rare" => 70,
+                "Ultra Rare" => 80,
+                "Legend" or "Legendary" => 90,
+                "Special Legend" => 100,
+                _ => 50
+            };
+        }
+
+        private static int GetBoosterBaseXP(string rarity)
+        {
+            return rarity switch
+            {
+                "Normal" or "Common" => 100,
+                "High Normal" or "Uncommon" => 250,
+                "Rare" => 600,
+                "High Rare" => 1200,
+                "Super Rare" or "Ultra Rare" => 1500,
+                "Legend" or "Legendary" or "Special Legend" => 3000,
+                _ => 100
+            };
+        }
+
         [HttpPost("mypage/enhance_card")]
         public IActionResult EnhanceCard()
         {
@@ -852,6 +902,7 @@ namespace MwohServer.Controllers
             int expGain = 0;
             PlayerInventoryItem? invItem = null;
             PlayerCard? materialCard = null;
+            int silverCost = 0;
 
             if (materialType == "serum")
             {
@@ -861,6 +912,7 @@ namespace MwohServer.Controllers
                     return Ok(new { success = false, message = "Insufficient Serum quantity in depot." });
                 }
                 expGain = materialId == 36 ? 5000 : 1000;
+                silverCost = GetBaseCardSilverCost(targetCard.CurrentLevel);
             }
             else if (materialType == "card")
             {
@@ -873,37 +925,37 @@ namespace MwohServer.Controllers
                 {
                     return Ok(new { success = false, message = "Cannot sacrifice active representative or squad member." });
                 }
-                expGain = materialCard.CurrentLevel * 200;
+                
+                var baseRarityXp = GetBoosterBaseXP(materialCard.CardTemplate?.Rarity ?? "Common");
+                var isSameAlignment = string.Equals(targetCard.CardTemplate?.Alignment, materialCard.CardTemplate?.Alignment, StringComparison.OrdinalIgnoreCase);
+                var alignmentBonus = isSameAlignment ? 24 : 0;
+                var levelFactor = (materialCard.CurrentLevel - 1) * 20;
+
+                expGain = baseRarityXp + alignmentBonus + levelFactor;
+
+                int baseCost = GetBaseCardSilverCost(targetCard.CurrentLevel);
+                int boosterModifier = GetBoosterLevelModifier(targetCard.CurrentLevel);
+                silverCost = baseCost + Math.Max(0, materialCard.CurrentLevel - 1) * boosterModifier;
             }
             else
             {
                 return Ok(new { success = false, message = "Unsupported material type." });
             }
 
-            var levelsGained = Math.Max(1, expGain / 1000);
-            var silverCost = levelsGained * 1500;
-
-            if (profile.SilverBalance < silverCost)
-            {
-                return Ok(new { success = false, message = "Insufficient Silver budget for forge synthesis." });
-            }
-
-            // Apply card level changes
             var rarity = targetCard.CardTemplate?.Rarity ?? "Normal";
-            var maxLevel = rarity switch
-            {
-                "Normal" => 40,
-                "Rare" => 60,
-                "Super Rare" => 80,
-                "Legendary" => 99,
-                _ => 50
-            };
+            var maxLevel = GetMaxLevelByRarity(rarity);
 
             if (targetCard.CurrentLevel >= maxLevel)
             {
                 return Ok(new { success = false, message = "Target Hero is already at maximum clearance capacity!" });
             }
 
+            if (profile.SilverBalance < silverCost)
+            {
+                return Ok(new { success = false, message = "Insufficient Silver budget for forge synthesis." });
+            }
+
+            var levelsGained = expGain / 100;
             var newLevel = Math.Min(maxLevel, targetCard.CurrentLevel + levelsGained);
             targetCard.CurrentLevel = newLevel;
 

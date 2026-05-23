@@ -136,6 +136,55 @@
             updateProjection();
         }
 
+        function getBoosterBaseXP(rarity) {
+            switch (rarity) {
+                case "Normal":
+                case "Common":
+                    return 100;
+                case "High Normal":
+                case "Uncommon":
+                    return 250;
+                case "Rare":
+                    return 600;
+                case "High Rare":
+                    return 1200;
+                case "Super Rare":
+                case "Ultra Rare":
+                    return 1500;
+                case "Legend":
+                case "Legendary":
+                case "Special Legend":
+                    return 3000;
+                default:
+                    return 100;
+            }
+        }
+
+        function getBaseCardSilverCost(baseLevel) {
+            if (baseLevel <= 9) return 75 + (baseLevel - 1) * 50;
+            if (baseLevel <= 19) return 735 + (baseLevel - 10) * 70;
+            if (baseLevel <= 29) return 1845 + (baseLevel - 20) * 90;
+            if (baseLevel <= 39) return 3355 + (baseLevel - 30) * 110;
+            if (baseLevel <= 49) return 5265 + (baseLevel - 40) * 130;
+            if (baseLevel <= 59) return 7575 + (baseLevel - 50) * 150;
+            if (baseLevel <= 69) return 10285 + (baseLevel - 60) * 170;
+            if (baseLevel <= 79) return 13395 + (baseLevel - 70) * 190;
+            if (baseLevel <= 89) return 16905 + (baseLevel - 80) * 210;
+            return 20815 + (baseLevel - 90) * 230;
+        }
+
+        function getBoosterLevelModifier(baseLevel) {
+            if (baseLevel <= 9) return 25;
+            if (baseLevel <= 19) return 35;
+            if (baseLevel <= 29) return 45;
+            if (baseLevel <= 39) return 55;
+            if (baseLevel <= 49) return 65;
+            if (baseLevel <= 59) return 75;
+            if (baseLevel <= 69) return 85;
+            if (baseLevel <= 79) return 95;
+            return 105;
+        }
+
         function populateMaterials() {
             const container = document.getElementById('materials-list-container');
             container.innerHTML = '';
@@ -172,12 +221,18 @@
                 itemEl.id = `material-card-${c.id}`;
                 itemEl.onclick = () => selectMaterial('card', c.id);
 
+                const baseRarityXp = getBoosterBaseXP(c.rarity);
+                const isSameAlignment = targetCard.alignment.toLowerCase() === c.alignment.toLowerCase();
+                const alignmentBonus = isSameAlignment ? 24 : 0;
+                const levelFactor = (c.level - 1) * 20;
+                const totalXp = baseRarityXp + alignmentBonus + levelFactor;
+
                 itemEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <div class="enhance-thumbnail" style="background-image: url('/images/cards/${c.imageFile}');">${c.imageFile ? '' : '🛡️'}</div>
                         <div>
                             <div class="material-lbl">${c.title}</div>
-                            <div class="material-sub">+${c.level * 200} EXP // SACRIFICE DEPLOYMENT</div>
+                            <div class="material-sub">+${totalXp.toLocaleString()} EXP ${isSameAlignment ? '🔥 Alignment Match!' : ''} // SACRIFICE DEPLOYMENT</div>
                         </div>
                     </div>
                     <button class="material-selector-btn">SACRIFICE</button>
@@ -231,16 +286,27 @@
                 let expGain = 0;
                 if (selectedMaterialType === 'serum') {
                     const serum = serums.find(s => s.id === selectedMaterialId);
-                    if (serum) expGain = serum.exp_val;
+                    if (serum) {
+                        expGain = serum.exp_val;
+                        silverCost = getBaseCardSilverCost(targetCard.level);
+                    }
                 } else {
                     const matCard = cards.find(c => c.id === selectedMaterialId);
-                    if (matCard) expGain = matCard.level * 200;
+                    if (matCard) {
+                        const baseRarityXp = getBoosterBaseXP(matCard.rarity);
+                        const isSameAlignment = targetCard.alignment.toLowerCase() === matCard.alignment.toLowerCase();
+                        const alignmentBonus = isSameAlignment ? 24 : 0;
+                        const levelFactor = (matCard.level - 1) * 20;
+                        expGain = baseRarityXp + alignmentBonus + levelFactor;
+
+                        const baseCost = getBaseCardSilverCost(targetCard.level);
+                        const boosterModifier = getBoosterLevelModifier(targetCard.level);
+                        silverCost = baseCost + Math.max(0, matCard.level - 1) * boosterModifier;
+                    }
                 }
 
-                // Simple level up calculation: every +1000 exp is a level, up to max limit
-                const levelsGained = Math.max(1, Math.floor(expGain / 1000));
+                const levelsGained = Math.floor(expGain / 100);
                 projectedLvl = Math.min(targetCard.maxLevel, targetCard.level + levelsGained);
-                silverCost = levelsGained * 1500;
             }
 
             document.getElementById('hud-lvl-proj').textContent = projectedLvl;
