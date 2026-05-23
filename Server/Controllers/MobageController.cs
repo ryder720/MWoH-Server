@@ -770,6 +770,14 @@ namespace MwohServer.Controllers
             return Ok(response);
         }
 
+        // Stub Mobage Telemetry / Analytics Bulk Statistics Ingest
+        [HttpPost("pipes/r.2/bulk_record_stats")]
+        public IActionResult BulkRecordStats()
+        {
+            // Swallow Ngpipes telemetry stats silently to keep the logs clean
+            return Ok(new { success = true });
+        }
+
         // 12. Native Mobage SDK Session Establishment & Persistence Endpoint
         [HttpPost("1/{appKey}/session")]
         public async Task<IActionResult> ReestablishSession(string appKey)
