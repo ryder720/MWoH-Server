@@ -37,6 +37,9 @@ Tools/Patcher/bin/
 
 # Scraped assets (illustrations and database images)
 Tools/Scraper/illustrations/
+Server/wwwroot/images/operations/
+Server/wwwroot/images/cards/
+
 
 # Local diagnostic logs
 EmulatorLogs/

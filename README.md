@@ -8,13 +8,15 @@ Welcome to the **Marvel: War of Heroes (MWoH) Private Server Suite**. This repos
 
 ```
 MWoH Server/
-├── Server/                      # ASP.NET Core 8.0 Web API Private Server
+├── Server/                      # ASP.NET Core 10.0 Web API Private Server
 │   ├── Controllers/             # Cygames Game Logic and DeNA/Mobage Social APIs
 │   ├── Data/                    # SQLite EF Core Database context and auto-seeder
-│   └── Filters/                 # Cryptographic GAuth Action Filters
+│   ├── Filters/                 # Cryptographic GAuth Action Filters
+│   └── wwwroot/                 # Static asset server directory (operations and card art)
 ├── Tools/
 │   ├── Scraper/                 # Wiki Card Data & Artwork Crawler
 │   │   ├── wiki_scraper.py      # Crawler script (MediaWiki API + HTML parsing)
+│   │   ├── download_missing_images.py # Diagnostic downloader for missing illustrations
 │   │   └── cards_db.json        # Output seeded card metadata database
 │   └── Patcher/                 # Automated Client APK Bytecode Patcher
 │       ├── patcher.py           # Patching script (manifest + smali + HTTPS downgrade)
@@ -25,7 +27,7 @@ MWoH Server/
 ```
 
 > [!NOTE]
-> The entire `/APK/` folder (including original and patched clients), decompiled intermediates, downloaded artwork, local SQLite databases (`mwoh.db`), and logs are strictly ignored in Git via the root `.gitignore` to prevent any distribution of copyrighted assets. This keeps the repository extremely lean and legally clear.
+> The entire `/APK/` folder (including original and patched clients), decompiled intermediates, downloaded artwork (`Server/wwwroot/images/cards/` and `/images/operations/`), local SQLite databases (`mwoh.db`), and logs are strictly ignored in Git via the root `.gitignore` to prevent any distribution of copyrighted assets. This keeps the repository extremely lean and legally clear.
 > 
 > **Getting Started Setup**: When first cloning this repository, you should create a folder named `APK/Base/` at the root and place your untouched game APK there. The automated patcher script will dynamically generate the `APK/Modified/` output directory for you during execution.
 
@@ -102,14 +104,18 @@ To populate the private server with authentic card metadata, stats, and illustra
    ```powershell
    python wiki_scraper.py
    ```
-4. To test parsing on a single custom card:
+4. To run the **Diagnostic Asset Sync** (downloads any missing card illustrations to ensure 100% static cover in wwwroot):
+   ```powershell
+   python download_missing_images.py
+   ```
+5. To test parsing on a single custom card:
    ```powershell
    python wiki_scraper.py --test "Great Responsibility Spider-Man"
    ```
 
 ### Scraper Capabilities
 * **Automatic Variant Matching**: Distinguishes base from fused variants (e.g. `Spider-Man` vs `Spider-Man+`) via context-sensitive page titles and MediaWiki images.
-* **High-Res Media Fetching**: Automatically downloads high-resolution original card illustrations and saves them locally under `Tools/Scraper/illustrations/`.
+* **Widescreen Static Cache Feeding**: Downloads high-resolution original card illustrations and saves them directly into the server's static directory `Server/wwwroot/images/cards/` for offline-ready, high-speed serving.
 * **Polite Crawling**: Respects remote wiki servers by keeping a strict `1.5` second cooldown between requests to prevent IP blocks.
 
 ---

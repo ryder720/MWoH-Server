@@ -23,8 +23,37 @@ namespace MwohServer.Controllers
         private readonly ILogger<CygamesController> _logger;
         private readonly IAuthService _authService;
         private readonly MwohDbContext _dbContext;
+        private static readonly List<OperationBlueprint> _operations = new();
+
+        static CygamesController()
+        {
+            try
+            {
+                var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Tools", "Scraper", "operations_db.json");
+                if (!System.IO.File.Exists(jsonPath))
+                {
+                    jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tools", "Scraper", "operations_db.json");
+                }
+                if (!System.IO.File.Exists(jsonPath))
+                {
+                    // Fallback to Server current directory relative check
+                    jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "operations_db.json");
+                }
+                if (System.IO.File.Exists(jsonPath))
+                {
+                    var jsonText = System.IO.File.ReadAllText(jsonPath);
+
+                    _operations = JsonSerializer.Deserialize<List<OperationBlueprint>>(jsonText, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }) ?? new List<OperationBlueprint>();
+                }
+            }
+            catch
+            {
+                // Let it remain empty; fallback handled dynamically in endpoints
+            }
+        }
 
         public CygamesController(ILogger<CygamesController> logger, IAuthService authService, MwohDbContext dbContext)
+
         {
             _logger = logger;
             _authService = authService;
@@ -485,9 +514,8 @@ namespace MwohServer.Controllers
                         <span class="card-variant">{leader.CardTemplate?.VariantName ?? "Base"}</span>
                     </div>
                     <div class="card-artwork-frame">
-                        <div class="card-artwork-placeholder">
-                            <span class="artwork-icon">{icon}</span>
-                            <span class="artwork-lbl">// Dossier Loaded</span>
+                        <div class="card-artwork-placeholder" style="background-image: url('/images/cards/{leader.CardTemplate?.ImageFileName}'); background-size: cover; background-position: center; width: 100%; height: 100%; border-radius: 6px;">
+                            <span class="artwork-icon" style="opacity: 0.15;">{icon}</span>
                         </div>
                     </div>
                     <div class="card-stats-row">
@@ -589,7 +617,8 @@ namespace MwohServer.Controllers
                 def = c.CurrentDef,
                 cost = c.CardTemplate?.PowerRequirement ?? 5,
                 in_atk = c.IsInAttackDeck,
-                in_def = c.IsInDefenseDeck
+                in_def = c.IsInDefenseDeck,
+                imageFile = c.CardTemplate?.ImageFileName ?? ""
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -629,7 +658,8 @@ namespace MwohServer.Controllers
                 quote = c.CardTemplate?.Quote ?? "",
                 isLeader = c.IsLeader,
                 inAtk = c.IsInAttackDeck,
-                inDef = c.IsInDefenseDeck
+                inDef = c.IsInDefenseDeck,
+                imageFile = c.CardTemplate?.ImageFileName ?? ""
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -683,7 +713,8 @@ namespace MwohServer.Controllers
                 atk = c.CurrentAtk,
                 def = c.CurrentDef,
                 isLeader = c.IsLeader,
-                inUse = c.IsInAttackDeck || c.IsInDefenseDeck
+                inUse = c.IsInAttackDeck || c.IsInDefenseDeck,
+                imageFile = c.CardTemplate?.ImageFileName ?? ""
             }).ToList();
 
             var replacements = new Dictionary<string, string>
@@ -898,7 +929,455 @@ namespace MwohServer.Controllers
             });
         }
 
+        private MissionProgressState GetPlayerMissionProgress(PlayerProfile profile)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(profile.MissionProgressJson))
+                {
+                    return JsonSerializer.Deserialize<MissionProgressState>(profile.MissionProgressJson) ?? new MissionProgressState();
+                }
+            }
+            catch { }
+            return new MissionProgressState();
+        }
+
+        private void SavePlayerMissionProgress(PlayerProfile profile, MissionProgressState state)
+        {
+            profile.MissionProgressJson = JsonSerializer.Serialize(state);
+        }
+
+        [HttpGet("mypage/missions")]
+        [HttpGet("quest")]
+        public IActionResult ServeMissionsHub()
+        {
+            _logger.LogInformation("[Cygames] ServeMissionsHub called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var progressState = GetPlayerMissionProgress(profile);
+
+            // Seed progressive fallbacks if scraper JSON failed to load
+            if (_operations.Count == 0)
+            {
+                _logger.LogWarning("[Cygames] Operations registry empty. Re-seeding progressive defaults.");
+                for (int i = 1; i <= 29; i++)
+                {
+                    _operations.Add(new OperationBlueprint
+                    {
+                        OperationId = i,
+                        Title = $"Operation {i}: Secure Node {i}",
+                        CleanName = $"Secure Node {i}",
+                        EnergyCost = Math.Max(1, i / 2),
+                        XpReward = Math.Max(1, i / 2),
+                        SilverMin = i * 20,
+                        SilverMax = i * 24,
+                        BossName = "Sentinel Guard"
+                    });
+                }
+            }
+
+            var opsHtmlList = new List<string>();
+            foreach (var op in _operations)
+            {
+                bool isUnlocked = op.OperationId <= progressState.UnlockedOperationId;
+                
+                var neonColor = (op.OperationId % 3) switch
+                {
+                    0 => "#00f0ff", // Speed
+                    1 => "#ef4444", // Bruiser
+                    2 => "#f59e0b", // Tactics
+                    _ => "#00f0ff"
+                };
+                var alignmentIcon = (op.OperationId % 3) switch
+                {
+                    0 => "⚡ SPEED",
+                    1 => "🔥 BRUISER",
+                    2 => "🧠 TACTICS",
+                    _ => "⚡ SPEED"
+                };
+
+                if (isUnlocked)
+                {
+                    var missionListHtml = new List<string>();
+                    foreach (var mission in op.Missions)
+                    {
+                        bool missionUnlocked = false;
+                        if (op.OperationId < progressState.UnlockedOperationId)
+                        {
+                            missionUnlocked = true;
+                        }
+                        else if (op.OperationId == progressState.UnlockedOperationId)
+                        {
+                            var mSubIndex = 1;
+                            var parts = mission.MissionCode.Split('-');
+                            if (parts.Length > 1 && int.TryParse(parts[1], out int parsedIndex))
+                            {
+                                mSubIndex = parsedIndex;
+                            }
+                            missionUnlocked = mSubIndex <= progressState.UnlockedMissionId;
+                        }
+
+                        if (missionUnlocked)
+                        {
+                            bool isCompleted = progressState.CompletedMissions.ContainsKey(mission.MissionCode);
+                            var statusLbl = isCompleted ? "<span class=\"mission-play-btn completed\">CLEARED</span>" : "<span class=\"mission-play-btn\">ENGAGE</span>";
+
+                            missionListHtml.Add($"""
+                            <a href="/ultimate/mypage/missions/play/{mission.MissionCode}" class="mission-link">
+                                <span class="mission-code">{mission.MissionCode}</span>
+                                <span class="mission-name">{mission.Name}</span>
+                                {statusLbl}
+                            </a>
+                            """);
+                        }
+                        else
+                        {
+                            missionListHtml.Add($"""
+                            <div class="mission-link" style="opacity: 0.4; cursor: not-allowed;">
+                                <span class="mission-code" style="color: #6b7280;">{mission.MissionCode}</span>
+                                <span class="mission-name" style="color: #6b7280;">CLASSIFIED SECTOR</span>
+                                <span class="mission-play-btn completed" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">LOCKED</span>
+                            </div>
+                            """);
+                        }
+                    }
+
+                    var missionsBox = $"""
+                    <div class="mission-selector">
+                        {string.Join("\n", missionListHtml)}
+                    </div>
+                    """;
+
+                    opsHtmlList.Add($"""
+                    <div class="op-card" style="border-color: {neonColor};">
+                        <div class="op-banner" style="background-image: url('/images/operations/operation_{op.OperationId}.jpg');"></div>
+                        <div class="op-header">
+                            <span class="op-title">{op.CleanName}</span>
+                            <span class="op-id" style="color: {neonColor}; border-color: {neonColor};">{alignmentIcon} // CH-{op.OperationId}</span>
+                        </div>
+                        <div class="op-stats">
+                            <div class="op-stat">ENERGY COST: <span style="color: {neonColor};">{op.EnergyCost}</span></div>
+                            <div class="op-stat">SECTORS: <span>{op.Missions.Count}</span></div>
+                            <div class="op-stat">TARGET VILLAIN: <span style="color: #ef4444;">{op.BossName.ToUpper()}</span></div>
+                        </div>
+                        {missionsBox}
+                    </div>
+                    """);
+                }
+                else
+                {
+                    opsHtmlList.Add($"""
+                    <div class="op-card locked">
+                        <div class="locked-overlay">
+                            <span class="lock-icon">🔒</span>
+                            <span class="lock-lbl">CLASSIFIED // LEVEL INSUFFICIENT</span>
+                        </div>
+                        <div class="op-banner" style="background-image: url('/images/operations/operation_{op.OperationId}.jpg');"></div>
+                        <div class="op-header">
+                            <span class="op-title">{op.CleanName}</span>
+                            <span class="op-id">CLASSIFIED // CH-{op.OperationId}</span>
+                        </div>
+                        <div class="op-stats">
+                            <div class="op-stat">ENERGY COST: <span>{op.EnergyCost}</span></div>
+                            <div class="op-stat">SECTORS: <span>{op.Missions.Count}</span></div>
+                            <div class="op-stat">TARGET VILLAIN: <span>CLASSIFIED</span></div>
+                        </div>
+                    </div>
+                    """);
+                }
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "level", profile.Level.ToString() },
+                { "agentName", profile.Nickname },
+                { "energyCur", profile.EnergyCurrent.ToString() },
+                { "energyMax", profile.EnergyMax.ToString() },
+                { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
+                { "operationsHtml", string.Join("\n", opsHtmlList) }
+            };
+
+            return Content(RenderTemplate("missions.html", replacements), "text/html");
+        }
+
+        [HttpGet("mypage/missions/play/{id}")]
+        public IActionResult ServeMissionPlay(string id)
+        {
+            _logger.LogInformation($"[Cygames] ServeMissionPlay called for mission {id}.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var progressState = GetPlayerMissionProgress(profile);
+
+            OperationBlueprint? activeOp = null;
+            MissionBlueprint? activeMission = null;
+
+            foreach (var op in _operations)
+            {
+                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
+                if (m != null)
+                {
+                    activeOp = op;
+                    activeMission = m;
+                    break;
+                }
+            }
+
+            if (activeOp == null || activeMission == null)
+            {
+                return RedirectToAction("ServeMissionsHub");
+            }
+
+            if (progressState.ActiveMissionId != id)
+            {
+                progressState.ActiveMissionId = id;
+                progressState.ActiveMissionProgress = 0;
+                SavePlayerMissionProgress(profile, progressState);
+                _dbContext.SaveChanges();
+            }
+
+            var leaderCard = profile.Cards.FirstOrDefault(c => c.IsLeader);
+            var leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Operative";
+            var leaderAtk = leaderCard?.CurrentAtk ?? 1000;
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "missionId", id },
+                { "missionCode", id },
+                { "opId", activeOp.OperationId.ToString() },
+                { "energyCur", profile.EnergyCurrent.ToString() },
+                { "energyMax", profile.EnergyMax.ToString() },
+                { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
+                { "energyCost", activeMission.EnergyCost.ToString() },
+                { "progressPct", progressState.ActiveMissionProgress.ToString() },
+                { "leaderName", leaderName },
+                { "leaderAtk", leaderAtk.ToString() },
+                { "bossName", activeOp.BossName },
+                { "bossDisplay", progressState.ActiveMissionProgress >= 100 ? "flex" : "none" }
+            };
+
+            return Content(RenderTemplate("mission_play.html", replacements), "text/html");
+        }
+
+        [HttpPost("mypage/missions/attack/{id}")]
+        public IActionResult ProcessMissionAttack(string id)
+        {
+            _logger.LogInformation($"[Cygames] ProcessMissionAttack for mission {id}.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile not synced." });
+
+            var progressState = GetPlayerMissionProgress(profile);
+
+            OperationBlueprint? activeOp = null;
+            MissionBlueprint? activeMission = null;
+
+            foreach (var op in _operations)
+            {
+                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
+                if (m != null)
+                {
+                    activeOp = op;
+                    activeMission = m;
+                    break;
+                }
+            }
+
+            if (activeOp == null || activeMission == null)
+            {
+                return BadRequest(new { success = false, message = "Mission blueprint mismatch." });
+            }
+
+            if (profile.EnergyCurrent < activeMission.EnergyCost)
+            {
+                return Ok(new
+                {
+                    success = false,
+                    message = "⚠️ DEPLOYMENT ENERGY DEPLETED // Sync items at S.H.I.E.L.D. depot."
+                });
+            }
+
+            profile.EnergyCurrent -= activeMission.EnergyCost;
+            progressState.ActiveMissionProgress = Math.Min(100, progressState.ActiveMissionProgress + 20);
+
+            var rand = new Random();
+            var silverGained = rand.Next(activeMission.SilverMin, activeMission.SilverMax + 1);
+            profile.SilverBalance += silverGained;
+
+            var xpGained = activeMission.XpReward;
+            profile.Experience += xpGained;
+
+            var levelUp = false;
+            var nextExpNeeded = profile.Level * 1000;
+            if (profile.Experience >= nextExpNeeded)
+            {
+                profile.Experience -= nextExpNeeded;
+                profile.Level++;
+                profile.EnergyMax += 5;
+                profile.EnergyCurrent = profile.EnergyMax;
+                levelUp = true;
+            }
+
+            var cardDropped = false;
+            var droppedCardName = "";
+            if (rand.Next(1, 101) <= 20 && activeMission.PossibleDrops.Count > 0)
+            {
+                var templateName = activeMission.PossibleDrops[rand.Next(activeMission.PossibleDrops.Count)];
+                var cardTemp = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == templateName);
+                if (cardTemp != null)
+                {
+                    cardDropped = true;
+                    droppedCardName = cardTemp.Title;
+
+                    _dbContext.PlayerCards.Add(new PlayerCard
+                    {
+                        PlayerProfileId = profile.Id,
+                        CardTemplateId = cardTemp.Id,
+                        CurrentLevel = 1,
+                        CurrentAtk = cardTemp.BaseAtk,
+                        CurrentDef = cardTemp.BaseDef
+                    });
+                }
+            }
+
+            SavePlayerMissionProgress(profile, progressState);
+            _dbContext.SaveChanges();
+
+            var logLines = new List<string>
+            {
+                $"DEPLOYED SQUAD DEEP INTO SECTOR {id}.",
+                $"DEFEATED HOSTILE ELEMENTS IN THE AREA.",
+                $"GAINED +{silverGained} SILVER AND +{xpGained} XP."
+            };
+            if (levelUp)
+            {
+                logLines.Add($"⚡ LEVEL UP! CLEARANCE LEVEL INCREMENTED TO {profile.Level}!");
+            }
+            if (cardDropped)
+            {
+                logLines.Add($"🎁 TRANSMISSION DECRYPTED: RECOVERED HERO ASSET {droppedCardName}!");
+            }
+
+            return Ok(new
+            {
+                success = true,
+                energyCurrent = profile.EnergyCurrent,
+                energyMax = profile.EnergyMax,
+                energyPct = (double)profile.EnergyCurrent / profile.EnergyMax * 100,
+                progressPct = progressState.ActiveMissionProgress,
+                cardDropped = cardDropped,
+                droppedCardName = droppedCardName,
+                logLines = logLines
+            });
+        }
+
+        [HttpPost("mypage/missions/engage-boss/{id}")]
+        public IActionResult ProcessBossBattle(string id)
+        {
+            _logger.LogInformation($"[Cygames] ProcessBossBattle for mission {id}.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
+
+            var progressState = GetPlayerMissionProgress(profile);
+
+            OperationBlueprint? activeOp = null;
+            MissionBlueprint? activeMission = null;
+
+            foreach (var op in _operations)
+            {
+                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
+                if (m != null)
+                {
+                    activeOp = op;
+                    activeMission = m;
+                    break;
+                }
+            }
+
+            if (activeOp == null || activeMission == null)
+            {
+                return BadRequest(new { success = false, message = "Mission blueprint mismatch." });
+            }
+
+            var bossRewardTemplateName = activeMission.PossibleDrops.Count > 0 
+                ? activeMission.PossibleDrops[0] 
+                : "Spider-Man";
+
+            var rewardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == bossRewardTemplateName)
+                ?? _dbContext.CardTemplates.FirstOrDefault();
+
+            var droppedCardName = "Unknown Hero";
+            if (rewardTemplate != null)
+            {
+                droppedCardName = rewardTemplate.Title;
+                _dbContext.PlayerCards.Add(new PlayerCard
+                {
+                    PlayerProfileId = profile.Id,
+                    CardTemplateId = rewardTemplate.Id,
+                    CurrentLevel = 1,
+                    CurrentAtk = rewardTemplate.BaseAtk,
+                    CurrentDef = rewardTemplate.BaseDef
+                });
+            }
+
+            profile.SilverBalance += activeOp.BossSilverReward;
+
+            if (!progressState.CompletedMissions.ContainsKey(id))
+            {
+                progressState.CompletedMissions.Add(id, 1);
+            }
+            else
+            {
+                progressState.CompletedMissions[id]++;
+            }
+
+            var mSubIndex = 1;
+            var parts = id.Split('-');
+            if (parts.Length > 1 && int.TryParse(parts[1], out int parsedIndex))
+            {
+                mSubIndex = parsedIndex;
+            }
+
+            if (activeOp.OperationId == progressState.UnlockedOperationId && mSubIndex == progressState.UnlockedMissionId)
+            {
+                if (mSubIndex < 5)
+                {
+                    progressState.UnlockedMissionId++;
+                }
+                else
+                {
+                    progressState.UnlockedOperationId = Math.Min(29, progressState.UnlockedOperationId + 1);
+                    progressState.UnlockedMissionId = 1;
+                }
+            }
+
+            progressState.ActiveMissionProgress = 0;
+
+            SavePlayerMissionProgress(profile, progressState);
+            _dbContext.SaveChanges();
+
+            return Ok(new
+            {
+                success = true,
+                droppedCardName = droppedCardName,
+                message = $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
+            });
+        }
+
         private PlayerProfile? GetPlayerProfile(int profileId, bool includeInventory = false)
+
         {
             var query = _dbContext.Profiles
                 .Include(p => p.Cards)

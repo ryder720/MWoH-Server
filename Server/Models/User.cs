@@ -52,6 +52,9 @@ namespace MwohServer.Models
         
         public string SessionId { get; set; } = "";
         
+        public string MissionProgressJson { get; set; } = "{\"UnlockedOperationId\":1,\"UnlockedMissionId\":1,\"ActiveMissionId\":1,\"ActiveMissionProgress\":0}";
+
+        
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
         public System.Collections.Generic.ICollection<PlayerCard> Cards { get; set; } = new System.Collections.Generic.List<PlayerCard>();

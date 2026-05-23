@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Mission Bridge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .terminal-panel {
+            background: rgba(15, 23, 42, 0.75);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            backdrop-filter: blur(12px);
+        }
+        .combat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            align-items: center;
+        }
+        .combat-avatar-box {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            position: relative;
+            text-align: center;
+        }
+        .combat-avatar-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+        }
+        .combat-avatar-name {
+            font-size: 13px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+        .log-console {
+            background: #020617;
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: #38bdf8;
+            padding: 10px;
+            height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+        .log-line {
+            line-height: 1.4;
+        }
+        .log-line.system { color: #f59e0b; }
+        .log-line.success { color: var(--hud-green); }
+        .log-line.danger { color: var(--accent-red); }
+        .action-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.2));
+            border: 1px solid var(--hud-blue);
+            color: var(--hud-blue);
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .action-button:active {
+            transform: scale(0.98);
+            box-shadow: 0 0 15px var(--hud-blue-glow);
+            background: var(--hud-blue);
+            color: var(--bg-color);
+        }
+        .boss-panel {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px dashed var(--accent-red);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            animation: pulse-red-alert 2s infinite ease-in-out;
+        }
+        @keyframes pulse-red-alert {
+            0% { border-color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 5px rgba(239, 68, 68, 0.1); }
+            50% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 15px rgba(239, 68, 68, 0.3); }
+            100% { border-color: rgba(239, 68, 68, 0.3); box-shadow: 0 0 5px rgba(239, 68, 68, 0.1); }
+        }
+        .boss-btn {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.3));
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+        .boss-btn:active {
+            background: var(--accent-red);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+        }
+        /* Modal Popup for Card Rewards */
+        .reward-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .reward-modal {
+            background: rgba(15, 23, 42, 0.95);
+            border: 2px solid var(--hud-blue);
+            box-shadow: 0 0 30px var(--hud-blue-glow);
+            border-radius: 12px;
+            padding: 25px;
+            width: 100%;
+            max-width: 380px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            animation: modal-zoom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        @keyframes modal-zoom {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .reward-title {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--hud-blue);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .reward-close-btn {
+            display: block;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        .reward-close-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        /* Shake Animation for hit */
+        .shake {
+            animation: shake-anim 0.2s ease-in-out;
+        }
+        @keyframes shake-anim {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-5px, 5px); }
+            40% { transform: translate(5px, -5px); }
+            60% { transform: translate(-5px, -5px); }
+            80% { transform: translate(5px, 5px); }
+            100% { transform: translate(0, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage/missions" class="back-btn">&lt; SECTORS</a>
+        <h1>TACTICAL BRIDGE</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container" id="combatBridge">
+        <!-- Energy Reserve Header -->
+        <div class="terminal-panel" style="gap: 10px;">
+            <div class="progress-block" style="margin-bottom: 0;">
+                <div class="progress-lbl">
+                    <span style="font-family: 'Space Mono', monospace; color: var(--hud-green);">🔋 DEPLOYMENT POWER</span>
+                    <span id="hudEnergyText" style="font-weight: 800;">{{energyCur}} / {{energyMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" id="hudEnergyBar" style="background: var(--hud-green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); width: {{energyPct}}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Combat Frame -->
+        <div class="terminal-panel">
+            <div class="section-hdr">// MISSION TERMINAL: OP-{{opId}}</div>
+            <div class="op-banner" style="background-image: url('/images/operations/operation_{{opId}}.jpg'); height: 110px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.08); background-size: cover; background-position: center; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); margin-bottom: 5px;"></div>
+            
+            <div class="combat-row">
+                <!-- Player Leader -->
+                <div class="combat-avatar-box" style="border-color: rgba(0, 240, 255, 0.3); box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);">
+                    <div class="combat-avatar-title">MY LEADER</div>
+                    <div style="font-size: 28px;">⚡</div>
+                    <div class="combat-avatar-name" id="leaderName">{{leaderName}}</div>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--hud-blue);">ATK: {{leaderAtk}}</div>
+                </div>
+
+                <!-- Thugs / Enemies -->
+                <div class="combat-avatar-box" id="targetBox" style="border-color: rgba(239, 68, 68, 0.15);">
+                    <div class="combat-avatar-title" style="color: var(--accent-red);">TARGET THREAT</div>
+                    <div style="font-size: 28px;">💥</div>
+                    <div class="combat-avatar-name" id="targetName">Hydra Outpost</div>
+                    <div style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--accent-red);" id="targetHp">HP: 100%</div>
+                </div>
+            </div>
+
+            <!-- Mission Progression -->
+            <div class="progress-block" style="margin-bottom: 0;">
+                <div class="progress-lbl">
+                    <span>SECTOR INFILTRATION LEVEL</span>
+                    <span id="progressText" style="font-weight: 800;">{{progressPct}}%</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" id="progressBar" style="background: var(--hud-blue); box-shadow: 0 0 10px rgba(0, 240, 255, 0.4); width: {{progressPct}}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Logs -->
+        <div class="terminal-panel">
+            <div class="section-hdr">// S.H.I.E.L.D. DATASTREAM LOGS</div>
+            <div class="log-console" id="logConsole">
+                <div class="log-line system">[+] ESTABLISHING SECURE CONNECTION TO SECTOR {{missionCode}}...</div>
+                <div class="log-line system">[+] SQUAD SYNCED WITH LEADER CARD: {{leaderName}}.</div>
+                <div class="log-line">[+] READY FOR DEPLOYMENT. STAND BY...</div>
+            </div>
+        </div>
+
+        <!-- Actions Panel -->
+        <div class="terminal-panel" id="actionPanel" style="gap: 12px;">
+            <!-- Normal Attack -->
+            <button class="action-button" id="btnInvestigate" onclick="performInvestigate();">
+                INVESTIGATE NODE (Cost: {{energyCost}} Energy)
+            </button>
+
+            <!-- Red Alert Boss panel (hidden initially unless 100%) -->
+            <div class="boss-panel" id="bossPanel" style="display: {{bossDisplay}};">
+                <div style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent-red);">
+                    ⚠️ WARNING // BOSS THREAT DETECTED: {{bossName}}!
+                </div>
+                <button class="action-button boss-btn" onclick="engageBoss();">
+                    ENGAGE SUPER VILLAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reward Modal popup (hidden by default) -->
+    <div class="reward-overlay" id="rewardOverlay" style="display: none;">
+        <div class="reward-modal">
+            <div class="reward-title">TRANSMISSION DECRYPTED</div>
+            <div style="font-size: 40px;">🎁</div>
+            <p style="font-size: 14px; line-height: 1.5; color: var(--text-color);">
+                S.H.I.E.L.D. tactical drops successfully intercepted! A new asset has been added to your squad catalog:
+            </p>
+            <div id="rewardCardName" style="font-size: 18px; font-weight: 800; color: var(--accent-gold); text-transform: uppercase;">
+                Spider-Woman
+            </div>
+            <button class="reward-close-btn" onclick="closeRewardModal();">DISMISS DOSSIER</button>
+        </div>
+    </div>
+
+    <script>
+        const missionId = "{{missionId}}";
+        const opId = "{{opId}}";
+        const energyCost = parseInt("{{energyCost}}");
+
+        function addLog(text, type = "") {
+            const console = document.getElementById("logConsole");
+            const div = document.createElement("div");
+            div.className = "log-line " + type;
+            div.innerText = "[+] " + text;
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+        }
+
+        function performInvestigate() {
+            const btn = document.getElementById("btnInvestigate");
+            btn.disabled = true;
+
+            // Simple hit shake animation
+            const targetBox = document.getElementById("targetBox");
+            targetBox.classList.add("shake");
+            setTimeout(() => targetBox.classList.remove("shake"), 300);
+
+            addLog("DEPLOYING SQUAD TO NODE...", "system");
+
+            fetch(`/ultimate/mypage/missions/attack/${missionId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                if (!data.success) {
+                    addLog(data.message || "OPERATION ABORTED", "danger");
+                    alert(data.message || "Failed to complete action.");
+                    return;
+                }
+
+                // Update Energy balances
+                document.getElementById("hudEnergyText").innerText = `${data.energyCurrent} / ${data.energyMax}`;
+                document.getElementById("hudEnergyBar").style.width = `${data.energyPct}%`;
+
+                // Update Progress bar
+                document.getElementById("progressText").innerText = `${data.progressPct}%`;
+                document.getElementById("progressBar").style.width = `${data.progressPct}%`;
+
+                // Add logs
+                if (data.logLines) {
+                    data.logLines.forEach(l => addLog(l, data.cardDropped ? "success" : ""));
+                }
+
+                // Show card drops if any
+                if (data.cardDropped && data.droppedCardName) {
+                    document.getElementById("rewardCardName").innerText = data.droppedCardName;
+                    document.getElementById("rewardOverlay").style.display = "flex";
+                }
+
+                // If progress reaches 100%, show the Boss Fight option
+                if (data.progressPct >= 100) {
+                    document.getElementById("btnInvestigate").style.display = "none";
+                    document.getElementById("bossPanel").style.display = "flex";
+                    document.getElementById("targetName").innerText = "{{bossName}}";
+                    document.getElementById("targetHp").innerText = "HP: 100% (BOSS)";
+                    addLog("🚨 RED ALERT // CONVERGING BOSS ELEMENT: {{bossName}}!", "danger");
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                addLog("TRANSMISSION ERROR // PROTOCOL RESYNC INITIATED.", "danger");
+            });
+        }
+
+        function engageBoss() {
+            addLog("ENGAGING BOSS... FIRING DESTRUCTION PROTOCOLS!", "danger");
+            
+            fetch(`/ultimate/mypage/missions/engage-boss/${missionId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    addLog(data.message || "COMBAT ENGAGEMENT FAILED", "danger");
+                    alert(data.message || "Boss battle failed.");
+                    return;
+                }
+
+                // Show Boss Defeated popup modal
+                document.getElementById("rewardCardName").innerText = `${data.droppedCardName} (BOSS DROP!)`;
+                document.getElementById("rewardOverlay").style.display = "flex";
+
+                // Setup redirection to Missions Hub after closing reward modal
+                window.shouldRedirect = true;
+            })
+            .catch(err => {
+                addLog("TRANSMISSION ERROR // ENGAGEMENT RETRY INITIATED.", "danger");
+            });
+        }
+
+        function closeRewardModal() {
+            document.getElementById("rewardOverlay").style.display = "none";
+            if (window.shouldRedirect) {
+                window.location.href = "/ultimate/mypage/missions";
+            }
+        }
+    </script>
+</body>
+</html>

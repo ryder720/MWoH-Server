@@ -12,7 +12,7 @@ BASE_WIKI_URL = "https://marvel-war-of-heroes.fandom.com"
 ALIGNMENTS = ["Speed", "Bruiser", "Tactics"]
 DATA_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_JSON = os.path.join(DATA_DIR, "cards_db.json")
-IMAGE_DIR = os.path.join(DATA_DIR, "illustrations")
+IMAGE_DIR = os.path.abspath(os.path.join(DATA_DIR, "..", "..", "Server", "wwwroot", "images", "cards"))
 
 # Cooldown to respect server load (in seconds)
 REQUEST_DELAY = 1.5

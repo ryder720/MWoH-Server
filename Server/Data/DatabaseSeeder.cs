@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Net.Http;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using MwohServer.Models;
 
@@ -71,8 +73,8 @@ namespace MwohServer.Data
                             
                             // Map stats
                             var stats = varEl.GetProperty("stats");
-                            int baseAtk = GetIntStat(stats, "base_atk");
-                            int baseDef = GetIntStat(stats, "base_def");
+                            int baseAtk = GetIntStat(stats, "base_atk", GetIntStat(stats, "catalog_atk", GetIntStat(stats, "proper_fused_atk")));
+                            int baseDef = GetIntStat(stats, "base_def", GetIntStat(stats, "catalog_def", GetIntStat(stats, "proper_fused_def")));
                             
                             // Support fallback mapping keys for fused variant structures
                             int maxAtk = GetIntStat(stats, "max_atk", GetIntStat(stats, "catalog_atk"));
@@ -82,7 +84,7 @@ namespace MwohServer.Data
                             int masteryDef = GetIntStat(stats, "mastery_bonus_def");
 
                             // Image filename mapping (clean special chars to match scraper titles)
-                            string safeTitle = new string(title.Where(c => char.IsLetterOrDigit(c) || c == ' ').ToArray()).Replace(' ', '_');
+                            string safeTitle = new string(title.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
                             string imageFile = $"{safeTitle}_{variantIndex + 1}.jpg";
 
                             context.CardTemplates.Add(new CardTemplate
@@ -413,6 +415,156 @@ namespace MwohServer.Data
                 }
                 context.SaveChanges();
             }
+        }
+
+        private static readonly Dictionary<int, string> OperationTitles = new()
+        {
+            { 1, "Operation 1: Trouble in Mid-Town" },
+            { 2, "Operation 2: HYDRA Hijinks" },
+            { 3, "Operation 3: The Doctor's Revenge" },
+            { 4, "Operation 4: Mean Streets" },
+            { 5, "Operation 5: Buckets of Bullets" },
+            { 6, "Operation 6: Mind of MODOK" },
+            { 7, "Operation 7: Aiming Too High" },
+            { 8, "Operation 8: Baron's Gambit" },
+            { 9, "Operation 9: Might and Fury" },
+            { 10, "Operation 10: Hunters" },
+            { 11, "Operation 11: Vanity Vanquished" },
+            { 12, "Operation 12: Day Walker" },
+            { 13, "Operation 13: Put a Stake in it" },
+            { 14, "Operation 14: The Break In" },
+            { 15, "Operation 15: A Wider Conspiracy" },
+            { 16, "Operation 16: Caged Fury!" },
+            { 17, "Operation 17: My Fist... Your FACE!" },
+            { 18, "Operation 18: Sentinel Search-and-Destroy" },
+            { 19, "Operation 19: Scientific Mystique" },
+            { 20, "Operation 20: Day at the Zoo" },
+            { 21, "Operation 21: Taking AIM" },
+            { 22, "Operation 22: All An Illusion" },
+            { 23, "Operation 23: Tunnel Vision" },
+            { 24, "Operation 24: Vampire Jailbreak" },
+            { 25, "Operation 25: Lesson Learned" },
+            { 26, "Operation 26: Crime and..." },
+            { 27, "Operation 27: ...Punishment" },
+            { 28, "Operation 28: Relics of Genosha I" },
+            { 29, "Operation 29: Relics of Genosha II" }
+        };
+
+        public static void DownloadOperationBanners(ILogger logger)
+        {
+            logger.LogInformation("[Downloader] Starting background banner downloader...");
+            string outputDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "operations");
+            try
+            {
+                if (!Directory.Exists(outputDir))
+                {
+                    Directory.CreateDirectory(outputDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError($"[Downloader] Failed to create operations image directory: {ex.Message}");
+                return;
+            }
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+
+            foreach (var kvp in OperationTitles)
+            {
+                int opId = kvp.Key;
+                string title = kvp.Value;
+                string filePath = Path.Combine(outputDir, $"operation_{opId}.jpg");
+
+                if (File.Exists(filePath))
+                {
+                    continue;
+                }
+
+                logger.LogInformation($"[Downloader] Fetching banner image metadata for Operation {opId}...");
+                try
+                {
+                    var parseUrl = $"https://marvel-war-of-heroes.fandom.com/api.php?action=parse&page={Uri.EscapeDataString(title)}&format=json";
+                    var parseResponse = httpClient.GetStringAsync(parseUrl).GetAwaiter().GetResult();
+                    using var doc = JsonDocument.Parse(parseResponse);
+                    
+                    if (doc.RootElement.TryGetProperty("parse", out var parseObj) && parseObj.TryGetProperty("images", out var imagesArr))
+                    {
+                        string? selectedImageName = null;
+                        foreach (var imgElement in imagesArr.EnumerateArray())
+                        {
+                            string img = imgElement.GetString() ?? "";
+                            if (img.Contains("operation", StringComparison.OrdinalIgnoreCase))
+                            {
+                                selectedImageName = img;
+                                break;
+                            }
+                        }
+
+                        if (selectedImageName == null)
+                        {
+                            foreach (var imgElement in imagesArr.EnumerateArray())
+                            {
+                                string img = imgElement.GetString() ?? "";
+                                if (img.StartsWith("op", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    selectedImageName = img;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (selectedImageName == null && imagesArr.GetArrayLength() > 0)
+                        {
+                            selectedImageName = imagesArr[0].GetString();
+                        }
+
+                        if (!string.IsNullOrEmpty(selectedImageName))
+                        {
+                            var queryUrl = $"https://marvel-war-of-heroes.fandom.com/api.php?action=query&titles=File:{Uri.EscapeDataString(selectedImageName)}&prop=imageinfo&iiprop=url&format=json";
+                            var queryResponse = httpClient.GetStringAsync(queryUrl).GetAwaiter().GetResult();
+                            using var queryDoc = JsonDocument.Parse(queryResponse);
+                            if (queryDoc.RootElement.TryGetProperty("query", out var queryObj) && queryObj.TryGetProperty("pages", out var pagesObj))
+                            {
+                                string? directUrl = null;
+                                foreach (var pageProp in pagesObj.EnumerateObject())
+                                {
+                                    if (pageProp.Value.TryGetProperty("imageinfo", out var imageInfoArr) && imageInfoArr.GetArrayLength() > 0)
+                                    {
+                                        directUrl = imageInfoArr[0].GetProperty("url").GetString();
+                                        break;
+                                    }
+                                }
+
+                                if (!string.IsNullOrEmpty(directUrl))
+                                {
+                                    logger.LogInformation($"[Downloader] Downloading Operation {opId} banner from Fandom: {directUrl}");
+                                    var imageBytes = httpClient.GetByteArrayAsync(directUrl).GetAwaiter().GetResult();
+                                    File.WriteAllBytes(filePath, imageBytes);
+                                    logger.LogInformation($"[Downloader] Successfully cached Operation {opId} banner.");
+                                }
+                                else
+                                {
+                                    logger.LogWarning($"[Downloader] Could not resolve direct download URL for {selectedImageName}.");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning($"[Downloader] No banner image found for Operation {opId}.");
+                        }
+                    }
+                    else
+                    {
+                        logger.LogWarning($"[Downloader] Parse node not found in Fandom API response for Operation {opId}.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError($"[Downloader] Error downloading banner for Operation {opId}: {ex.Message}");
+                }
+            }
+            logger.LogInformation("[Downloader] Background banner download task completed successfully.");
         }
     }
 }

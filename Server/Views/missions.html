@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Quest Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .op-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(8px);
+        }
+        .op-banner {
+            width: 100%;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 5px;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.7);
+        }
+        .op-card.locked {
+            opacity: 0.55;
+            border-color: rgba(239, 68, 68, 0.15);
+            background: rgba(15, 23, 42, 0.8);
+        }
+        .op-card:not(.locked):hover {
+            box-shadow: 0 0 15px var(--hud-blue-glow);
+            border-color: var(--hud-blue);
+        }
+        .op-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .op-id {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            padding: 2px 6px;
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 4px;
+        }
+        .op-card.locked .op-id {
+            color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.05);
+            border-color: rgba(239, 68, 68, 0.15);
+        }
+        .op-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .op-stats {
+            display: flex;
+            gap: 15px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 0;
+        }
+        .op-stat span {
+            color: var(--text-color);
+        }
+        .engage-btn {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--hud-blue);
+            color: var(--hud-blue);
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+        .engage-btn:active {
+            background: var(--hud-blue);
+            color: var(--bg-color);
+            box-shadow: 0 0 12px var(--hud-blue-glow);
+        }
+        .locked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(3, 7, 18, 0.4);
+            backdrop-filter: blur(2px);
+            border-radius: 8px;
+            z-index: 10;
+        }
+        .lock-icon {
+            font-size: 24px;
+            color: var(--accent-red);
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.5));
+            margin-bottom: 5px;
+        }
+        .lock-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent-red);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .mission-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+            border-top: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-top: 12px;
+        }
+        .mission-link {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px;
+            text-decoration: none;
+            transition: all 0.15s ease;
+        }
+        .mission-link:hover {
+            background: rgba(0, 240, 255, 0.03);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+        .mission-code {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--hud-blue);
+        }
+        .mission-name {
+            font-size: 13px;
+            color: var(--text-color);
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+        .mission-play-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--hud-green);
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 4px;
+            padding: 3px 8px;
+            text-transform: uppercase;
+        }
+        .mission-play-btn.completed {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .hud-energy {
+            padding: 15px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1>S.H.I.E.L.D. QUESTS</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container">
+        <!-- Energy Reserve Header -->
+        <div class="hud-energy">
+            <div class="progress-block" style="margin-bottom: 0;">
+                <div class="progress-lbl">
+                    <span style="font-family: 'Space Mono', monospace; letter-spacing: 1px; color: var(--hud-green);">🔋 ENERGY RESERVE STATUS</span>
+                    <span style="font-weight: 800;">{{energyCur}} / {{energyMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" style="background: var(--hud-green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); width: {{energyPct}}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-hdr">// ACTIVE S.H.I.E.L.D. OPERATIONS</div>
+
+        <!-- Render List of 29 Operations -->
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            {{operationsHtml}}
+        </div>
+    </div>
+</body>
+</html>

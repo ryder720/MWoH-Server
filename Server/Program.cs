@@ -46,6 +46,9 @@ using (var scope = app.Services.CreateScope())
     dbContext.Database.EnsureCreated();
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
+    
+    // Start background banner downloader task (non-blocking)
+    _ = Task.Run(() => DatabaseSeeder.DownloadOperationBanners(logger));
 }
 
 // 4. Set up HTTP pipeline

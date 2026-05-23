@@ -1,0 +1,1984 @@
+[
+    {
+        "operation_id": 1,
+        "title": "Operation 1: Trouble in Mid-Town",
+        "clean_name": "Trouble in Mid-Town",
+        "energy_cost": 1,
+        "xp_reward": 1,
+        "silver_min": 20,
+        "silver_max": 24,
+        "boss_name": "Green Goblin",
+        "boss_silver_reward": 1000,
+        "missions": [
+            {
+                "mission_code": "1-1",
+                "name": "Tactical Sector 1-1",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Widow",
+                    "Spider-Man",
+                    "Captain America"
+                ]
+            },
+            {
+                "mission_code": "1-2",
+                "name": "Tactical Sector 1-2",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Widow",
+                    "Spider-Man",
+                    "Captain America"
+                ]
+            },
+            {
+                "mission_code": "1-3",
+                "name": "Tactical Sector 1-3",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Widow",
+                    "Spider-Man",
+                    "Captain America"
+                ]
+            },
+            {
+                "mission_code": "1-4",
+                "name": "Tactical Sector 1-4",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Widow",
+                    "Spider-Man",
+                    "Captain America"
+                ]
+            },
+            {
+                "mission_code": "1-5",
+                "name": "Tactical Sector 1-5",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Widow",
+                    "Spider-Man",
+                    "Captain America"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 2,
+        "title": "Operation 2: HYDRA Hijinks",
+        "clean_name": "HYDRA Hijinks",
+        "energy_cost": 1,
+        "xp_reward": 1,
+        "silver_min": 20,
+        "silver_max": 24,
+        "boss_name": "Doctor Octopus",
+        "boss_silver_reward": 2000,
+        "missions": [
+            {
+                "mission_code": "2-1",
+                "name": "Infiltration Node 2-1",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "2-2",
+                "name": "Infiltration Node 2-2",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "2-3",
+                "name": "Infiltration Node 2-3",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "2-4",
+                "name": "Infiltration Node 2-4",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "2-5",
+                "name": "Infiltration Node 2-5",
+                "energy_cost": 1,
+                "xp_reward": 1,
+                "silver_min": 20,
+                "silver_max": 24,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 3,
+        "title": "Operation 3: The Doctor's Revenge",
+        "clean_name": "The Doctor's Revenge",
+        "energy_cost": 2,
+        "xp_reward": 2,
+        "silver_min": 40,
+        "silver_max": 48,
+        "boss_name": "Doctor Octopus",
+        "boss_silver_reward": 4000,
+        "missions": [
+            {
+                "mission_code": "3-1",
+                "name": "Infiltration Node 3-1",
+                "energy_cost": 2,
+                "xp_reward": 2,
+                "silver_min": 40,
+                "silver_max": 48,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "3-2",
+                "name": "Infiltration Node 3-2",
+                "energy_cost": 2,
+                "xp_reward": 2,
+                "silver_min": 40,
+                "silver_max": 48,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "3-3",
+                "name": "Infiltration Node 3-3",
+                "energy_cost": 2,
+                "xp_reward": 2,
+                "silver_min": 40,
+                "silver_max": 48,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "3-4",
+                "name": "Infiltration Node 3-4",
+                "energy_cost": 2,
+                "xp_reward": 2,
+                "silver_min": 40,
+                "silver_max": 48,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "3-5",
+                "name": "Infiltration Node 3-5",
+                "energy_cost": 2,
+                "xp_reward": 2,
+                "silver_min": 40,
+                "silver_max": 48,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 4,
+        "title": "Operation 4: Mean Streets",
+        "clean_name": "Mean Streets",
+        "energy_cost": 3,
+        "xp_reward": 3,
+        "silver_min": 60,
+        "silver_max": 72,
+        "boss_name": "Jigsaw",
+        "boss_silver_reward": 6000,
+        "missions": [
+            {
+                "mission_code": "4-1",
+                "name": "Infiltration Node 4-1",
+                "energy_cost": 3,
+                "xp_reward": 3,
+                "silver_min": 60,
+                "silver_max": 72,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            },
+            {
+                "mission_code": "4-2",
+                "name": "Infiltration Node 4-2",
+                "energy_cost": 3,
+                "xp_reward": 3,
+                "silver_min": 60,
+                "silver_max": 72,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "4-3",
+                "name": "Infiltration Node 4-3",
+                "energy_cost": 3,
+                "xp_reward": 3,
+                "silver_min": 60,
+                "silver_max": 72,
+                "possible_drops": [
+                    "Ghost Rider"
+                ]
+            },
+            {
+                "mission_code": "4-4",
+                "name": "Infiltration Node 4-4",
+                "energy_cost": 3,
+                "xp_reward": 3,
+                "silver_min": 60,
+                "silver_max": 72,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "4-5",
+                "name": "Infiltration Node 4-5",
+                "energy_cost": 3,
+                "xp_reward": 3,
+                "silver_min": 60,
+                "silver_max": 72,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 5,
+        "title": "Operation 5: Buckets of Bullets",
+        "clean_name": "Buckets of Bullets",
+        "energy_cost": 4,
+        "xp_reward": 4,
+        "silver_min": 80,
+        "silver_max": 96,
+        "boss_name": "Jigsaw",
+        "boss_silver_reward": 8000,
+        "missions": [
+            {
+                "mission_code": "5-1",
+                "name": "Infiltration Node 5-1",
+                "energy_cost": 4,
+                "xp_reward": 4,
+                "silver_min": 80,
+                "silver_max": 96,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "5-2",
+                "name": "Infiltration Node 5-2",
+                "energy_cost": 4,
+                "xp_reward": 4,
+                "silver_min": 80,
+                "silver_max": 96,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "5-3",
+                "name": "Infiltration Node 5-3",
+                "energy_cost": 4,
+                "xp_reward": 4,
+                "silver_min": 80,
+                "silver_max": 96,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "5-4",
+                "name": "Infiltration Node 5-4",
+                "energy_cost": 4,
+                "xp_reward": 4,
+                "silver_min": 80,
+                "silver_max": 96,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "5-5",
+                "name": "Infiltration Node 5-5",
+                "energy_cost": 4,
+                "xp_reward": 4,
+                "silver_min": 80,
+                "silver_max": 96,
+                "possible_drops": [
+                    "Ghost Rider"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 6,
+        "title": "Operation 6: Mind of MODOK",
+        "clean_name": "Mind of MODOK",
+        "energy_cost": 5,
+        "xp_reward": 5,
+        "silver_min": 100,
+        "silver_max": 120,
+        "boss_name": "MODOK",
+        "boss_silver_reward": 10,
+        "missions": [
+            {
+                "mission_code": "6-1",
+                "name": "Infiltration Node 6-1",
+                "energy_cost": 5,
+                "xp_reward": 5,
+                "silver_min": 100,
+                "silver_max": 120,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            },
+            {
+                "mission_code": "6-2",
+                "name": "Infiltration Node 6-2",
+                "energy_cost": 5,
+                "xp_reward": 5,
+                "silver_min": 100,
+                "silver_max": 120,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "6-3",
+                "name": "Infiltration Node 6-3",
+                "energy_cost": 5,
+                "xp_reward": 5,
+                "silver_min": 100,
+                "silver_max": 120,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "6-4",
+                "name": "Infiltration Node 6-4",
+                "energy_cost": 5,
+                "xp_reward": 5,
+                "silver_min": 100,
+                "silver_max": 120,
+                "possible_drops": [
+                    "Blade"
+                ]
+            },
+            {
+                "mission_code": "6-5",
+                "name": "Infiltration Node 6-5",
+                "energy_cost": 5,
+                "xp_reward": 5,
+                "silver_min": 100,
+                "silver_max": 120,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 7,
+        "title": "Operation 7: Aiming Too High",
+        "clean_name": "Aiming Too High",
+        "energy_cost": 6,
+        "xp_reward": 6,
+        "silver_min": 120,
+        "silver_max": 144,
+        "boss_name": "MODOK",
+        "boss_silver_reward": 12,
+        "missions": [
+            {
+                "mission_code": "7-1",
+                "name": "Infiltration Node 7-1",
+                "energy_cost": 6,
+                "xp_reward": 6,
+                "silver_min": 120,
+                "silver_max": 144,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "7-2",
+                "name": "Infiltration Node 7-2",
+                "energy_cost": 6,
+                "xp_reward": 6,
+                "silver_min": 120,
+                "silver_max": 144,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            },
+            {
+                "mission_code": "7-3",
+                "name": "Infiltration Node 7-3",
+                "energy_cost": 6,
+                "xp_reward": 6,
+                "silver_min": 120,
+                "silver_max": 144,
+                "possible_drops": [
+                    "Blade"
+                ]
+            },
+            {
+                "mission_code": "7-4",
+                "name": "Infiltration Node 7-4",
+                "energy_cost": 6,
+                "xp_reward": 6,
+                "silver_min": 120,
+                "silver_max": 144,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            },
+            {
+                "mission_code": "7-5",
+                "name": "Infiltration Node 7-5",
+                "energy_cost": 6,
+                "xp_reward": 6,
+                "silver_min": 120,
+                "silver_max": 144,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 8,
+        "title": "Operation 8: Baron's Gambit",
+        "clean_name": "Baron's Gambit",
+        "energy_cost": 7,
+        "xp_reward": 7,
+        "silver_min": 140,
+        "silver_max": 168,
+        "boss_name": "Baron von Strucker",
+        "boss_silver_reward": 14,
+        "missions": [
+            {
+                "mission_code": "8-1",
+                "name": "Infiltration Node 8-1",
+                "energy_cost": 7,
+                "xp_reward": 7,
+                "silver_min": 140,
+                "silver_max": 168,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "8-2",
+                "name": "Infiltration Node 8-2",
+                "energy_cost": 7,
+                "xp_reward": 7,
+                "silver_min": 140,
+                "silver_max": 168,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "8-3",
+                "name": "Infiltration Node 8-3",
+                "energy_cost": 7,
+                "xp_reward": 7,
+                "silver_min": 140,
+                "silver_max": 168,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "8-4",
+                "name": "Infiltration Node 8-4",
+                "energy_cost": 7,
+                "xp_reward": 7,
+                "silver_min": 140,
+                "silver_max": 168,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "8-5",
+                "name": "Infiltration Node 8-5",
+                "energy_cost": 7,
+                "xp_reward": 7,
+                "silver_min": 140,
+                "silver_max": 168,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 9,
+        "title": "Operation 9: Might and Fury",
+        "clean_name": "Might and Fury",
+        "energy_cost": 8,
+        "xp_reward": 8,
+        "silver_min": 160,
+        "silver_max": 192,
+        "boss_name": "Baron von Strucker",
+        "boss_silver_reward": 16,
+        "missions": [
+            {
+                "mission_code": "9-1",
+                "name": "Infiltration Node 9-1",
+                "energy_cost": 8,
+                "xp_reward": 8,
+                "silver_min": 160,
+                "silver_max": 192,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            },
+            {
+                "mission_code": "9-2",
+                "name": "Infiltration Node 9-2",
+                "energy_cost": 8,
+                "xp_reward": 8,
+                "silver_min": 160,
+                "silver_max": 192,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "9-3",
+                "name": "Infiltration Node 9-3",
+                "energy_cost": 8,
+                "xp_reward": 8,
+                "silver_min": 160,
+                "silver_max": 192,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "9-4",
+                "name": "Infiltration Node 9-4",
+                "energy_cost": 8,
+                "xp_reward": 8,
+                "silver_min": 160,
+                "silver_max": 192,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "9-5",
+                "name": "Infiltration Node 9-5",
+                "energy_cost": 8,
+                "xp_reward": 8,
+                "silver_min": 160,
+                "silver_max": 192,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 10,
+        "title": "Operation 10: Hunters",
+        "clean_name": "Hunters",
+        "energy_cost": 9,
+        "xp_reward": 9,
+        "silver_min": 180,
+        "silver_max": 216,
+        "boss_name": "Kraven",
+        "boss_silver_reward": 18,
+        "missions": [
+            {
+                "mission_code": "10-1",
+                "name": "Infiltration Node 10-1",
+                "energy_cost": 9,
+                "xp_reward": 9,
+                "silver_min": 180,
+                "silver_max": 216,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "10-2",
+                "name": "Infiltration Node 10-2",
+                "energy_cost": 9,
+                "xp_reward": 9,
+                "silver_min": 180,
+                "silver_max": 216,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "10-3",
+                "name": "Infiltration Node 10-3",
+                "energy_cost": 9,
+                "xp_reward": 9,
+                "silver_min": 180,
+                "silver_max": 216,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "10-4",
+                "name": "Infiltration Node 10-4",
+                "energy_cost": 9,
+                "xp_reward": 9,
+                "silver_min": 180,
+                "silver_max": 216,
+                "possible_drops": [
+                    "Daredevil"
+                ]
+            },
+            {
+                "mission_code": "10-5",
+                "name": "Infiltration Node 10-5",
+                "energy_cost": 9,
+                "xp_reward": 9,
+                "silver_min": 180,
+                "silver_max": 216,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 11,
+        "title": "Operation 11: Vanity Vanquished",
+        "clean_name": "Vanity Vanquished",
+        "energy_cost": 10,
+        "xp_reward": 10,
+        "silver_min": 200,
+        "silver_max": 240,
+        "boss_name": "Kraven",
+        "boss_silver_reward": 20,
+        "missions": [
+            {
+                "mission_code": "11-1",
+                "name": "Infiltration Node 11-1",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "11-2",
+                "name": "Infiltration Node 11-2",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "11-3",
+                "name": "Infiltration Node 11-3",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Daredevil"
+                ]
+            },
+            {
+                "mission_code": "11-4",
+                "name": "Infiltration Node 11-4",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "11-5",
+                "name": "Infiltration Node 11-5",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 12,
+        "title": "Operation 12: Day Walker",
+        "clean_name": "Day Walker",
+        "energy_cost": 11,
+        "xp_reward": 11,
+        "silver_min": 220,
+        "silver_max": 264,
+        "boss_name": "Morbius",
+        "boss_silver_reward": 22,
+        "missions": [
+            {
+                "mission_code": "12-1",
+                "name": "Infiltration Node 12-1",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "12-2",
+                "name": "Infiltration Node 12-2",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "12-3",
+                "name": "Infiltration Node 12-3",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Nova"
+                ]
+            },
+            {
+                "mission_code": "12-4",
+                "name": "Infiltration Node 12-4",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "12-5",
+                "name": "Infiltration Node 12-5",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Sif"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 13,
+        "title": "Operation 13: Put a Stake in it",
+        "clean_name": "Put a Stake in it",
+        "energy_cost": 12,
+        "xp_reward": 12,
+        "silver_min": 240,
+        "silver_max": 288,
+        "boss_name": "Morbius",
+        "boss_silver_reward": 24,
+        "missions": [
+            {
+                "mission_code": "13-1",
+                "name": "Infiltration Node 13-1",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "13-2",
+                "name": "Infiltration Node 13-2",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "13-3",
+                "name": "Infiltration Node 13-3",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "13-4",
+                "name": "Infiltration Node 13-4",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "13-5",
+                "name": "Infiltration Node 13-5",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Nova"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 14,
+        "title": "Operation 14: The Break In",
+        "clean_name": "The Break In",
+        "energy_cost": 10,
+        "xp_reward": 10,
+        "silver_min": 200,
+        "silver_max": 240,
+        "boss_name": "Taskmaster",
+        "boss_silver_reward": 26,
+        "missions": [
+            {
+                "mission_code": "14-1",
+                "name": "Infiltration Node 14-1",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "14-2",
+                "name": "Infiltration Node 14-2",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            },
+            {
+                "mission_code": "14-3",
+                "name": "Infiltration Node 14-3",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "14-4",
+                "name": "Infiltration Node 14-4",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Storm"
+                ]
+            },
+            {
+                "mission_code": "14-5",
+                "name": "Infiltration Node 14-5",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 15,
+        "title": "Operation 15: A Wider Conspiracy",
+        "clean_name": "A Wider Conspiracy",
+        "energy_cost": 11,
+        "xp_reward": 11,
+        "silver_min": 220,
+        "silver_max": 264,
+        "boss_name": "Taskmaster",
+        "boss_silver_reward": 28,
+        "missions": [
+            {
+                "mission_code": "15-1",
+                "name": "Infiltration Node 15-1",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "15-2",
+                "name": "Infiltration Node 15-2",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            },
+            {
+                "mission_code": "15-3",
+                "name": "Infiltration Node 15-3",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Storm"
+                ]
+            },
+            {
+                "mission_code": "15-4",
+                "name": "Infiltration Node 15-4",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            },
+            {
+                "mission_code": "15-5",
+                "name": "Infiltration Node 15-5",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Sif"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 16,
+        "title": "Operation 16: Caged Fury!",
+        "clean_name": "Caged Fury!",
+        "energy_cost": 12,
+        "xp_reward": 12,
+        "silver_min": 240,
+        "silver_max": 288,
+        "boss_name": "Bullseye",
+        "boss_silver_reward": 30,
+        "missions": [
+            {
+                "mission_code": "16-1",
+                "name": "Infiltration Node 16-1",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "16-2",
+                "name": "Infiltration Node 16-2",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "16-3",
+                "name": "Infiltration Node 16-3",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Archangel"
+                ]
+            },
+            {
+                "mission_code": "16-4",
+                "name": "Infiltration Node 16-4",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "16-5",
+                "name": "Infiltration Node 16-5",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 17,
+        "title": "Operation 17: My Fist... Your FACE!",
+        "clean_name": "My Fist... Your FACE!",
+        "energy_cost": 13,
+        "xp_reward": 13,
+        "silver_min": 260,
+        "silver_max": 312,
+        "boss_name": "Bullseye",
+        "boss_silver_reward": 32,
+        "missions": [
+            {
+                "mission_code": "17-1",
+                "name": "Infiltration Node 17-1",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "17-2",
+                "name": "Infiltration Node 17-2",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "17-3",
+                "name": "Infiltration Node 17-3",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "17-4",
+                "name": "Infiltration Node 17-4",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "17-5",
+                "name": "Infiltration Node 17-5",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Archangel"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 18,
+        "title": "Operation 18: Sentinel Search-and-Destroy",
+        "clean_name": "Sentinel Search-and-Destroy",
+        "energy_cost": 10,
+        "xp_reward": 10,
+        "silver_min": 200,
+        "silver_max": 240,
+        "boss_name": "Sentinel",
+        "boss_silver_reward": 34,
+        "missions": [
+            {
+                "mission_code": "18-1",
+                "name": "Infiltration Node 18-1",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "18-2",
+                "name": "Infiltration Node 18-2",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "18-3",
+                "name": "Infiltration Node 18-3",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "18-4",
+                "name": "Infiltration Node 18-4",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "18-5",
+                "name": "Infiltration Node 18-5",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Nighthawk"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 19,
+        "title": "Operation 19: Scientific Mystique",
+        "clean_name": "Scientific Mystique",
+        "energy_cost": 11,
+        "xp_reward": 11,
+        "silver_min": 220,
+        "silver_max": 264,
+        "boss_name": "Mystique",
+        "boss_silver_reward": 36,
+        "missions": [
+            {
+                "mission_code": "19-1",
+                "name": "Infiltration Node 19-1",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "19-2",
+                "name": "Infiltration Node 19-2",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "19-3",
+                "name": "Infiltration Node 19-3",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Silk Spider] Spider-Woman"
+                ]
+            },
+            {
+                "mission_code": "19-4",
+                "name": "Infiltration Node 19-4",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Ms. Marvel"
+                ]
+            },
+            {
+                "mission_code": "19-5",
+                "name": "Infiltration Node 19-5",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Angel"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 20,
+        "title": "Operation 20: Day at the Zoo",
+        "clean_name": "Day at the Zoo",
+        "energy_cost": 12,
+        "xp_reward": 12,
+        "silver_min": 240,
+        "silver_max": 288,
+        "boss_name": "Green Goblin",
+        "boss_silver_reward": 38,
+        "missions": [
+            {
+                "mission_code": "20-1",
+                "name": "Infiltration Node 20-1",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Valkyrie"
+                ]
+            },
+            {
+                "mission_code": "20-2",
+                "name": "Infiltration Node 20-2",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "20-3",
+                "name": "Infiltration Node 20-3",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Nighthawk"
+                ]
+            },
+            {
+                "mission_code": "20-4",
+                "name": "Infiltration Node 20-4",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Mockingbird"
+                ]
+            },
+            {
+                "mission_code": "20-5",
+                "name": "Infiltration Node 20-5",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 21,
+        "title": "Operation 21: Taking AIM",
+        "clean_name": "Taking AIM",
+        "energy_cost": 13,
+        "xp_reward": 13,
+        "silver_min": 260,
+        "silver_max": 312,
+        "boss_name": "MODOK",
+        "boss_silver_reward": 40,
+        "missions": [
+            {
+                "mission_code": "21-1",
+                "name": "Infiltration Node 21-1",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "21-2",
+                "name": "Infiltration Node 21-2",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Black Cat"
+                ]
+            },
+            {
+                "mission_code": "21-3",
+                "name": "Infiltration Node 21-3",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Angel"
+                ]
+            },
+            {
+                "mission_code": "21-4",
+                "name": "Infiltration Node 21-4",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "21-5",
+                "name": "Infiltration Node 21-5",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Silk Spider] Spider-Woman"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 22,
+        "title": "Operation 22: All An Illusion",
+        "clean_name": "All An Illusion",
+        "energy_cost": 10,
+        "xp_reward": 10,
+        "silver_min": 200,
+        "silver_max": 240,
+        "boss_name": "Mastermind",
+        "boss_silver_reward": 42,
+        "missions": [
+            {
+                "mission_code": "22-1",
+                "name": "Infiltration Node 22-1",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            },
+            {
+                "mission_code": "22-2",
+                "name": "Infiltration Node 22-2",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Angel"
+                ]
+            },
+            {
+                "mission_code": "22-3",
+                "name": "Infiltration Node 22-3",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "22-4",
+                "name": "Infiltration Node 22-4",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Hulkling"
+                ]
+            },
+            {
+                "mission_code": "22-5",
+                "name": "Infiltration Node 22-5",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 23,
+        "title": "Operation 23: Tunnel Vision",
+        "clean_name": "Tunnel Vision",
+        "energy_cost": 11,
+        "xp_reward": 11,
+        "silver_min": 220,
+        "silver_max": 264,
+        "boss_name": "Moleman",
+        "boss_silver_reward": 44,
+        "missions": [
+            {
+                "mission_code": "23-1",
+                "name": "Infiltration Node 23-1",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "23-2",
+                "name": "Infiltration Node 23-2",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            },
+            {
+                "mission_code": "23-3",
+                "name": "Infiltration Node 23-3",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Sign of Bad Luck] Black Cat"
+                ]
+            },
+            {
+                "mission_code": "23-4",
+                "name": "Infiltration Node 23-4",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Angel"
+                ]
+            },
+            {
+                "mission_code": "23-5",
+                "name": "Infiltration Node 23-5",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 24,
+        "title": "Operation 24: Vampire Jailbreak",
+        "clean_name": "Vampire Jailbreak",
+        "energy_cost": 12,
+        "xp_reward": 12,
+        "silver_min": 240,
+        "silver_max": 288,
+        "boss_name": "Morbius",
+        "boss_silver_reward": 46,
+        "missions": [
+            {
+                "mission_code": "24-1",
+                "name": "Infiltration Node 24-1",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "24-2",
+                "name": "Infiltration Node 24-2",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            },
+            {
+                "mission_code": "24-3",
+                "name": "Infiltration Node 24-3",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Sign of Bad Luck] Black Cat"
+                ]
+            },
+            {
+                "mission_code": "24-4",
+                "name": "Infiltration Node 24-4",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Human Torch"
+                ]
+            },
+            {
+                "mission_code": "24-5",
+                "name": "Infiltration Node 24-5",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 25,
+        "title": "Operation 25: Lesson Learned",
+        "clean_name": "Lesson Learned",
+        "energy_cost": 13,
+        "xp_reward": 13,
+        "silver_min": 260,
+        "silver_max": 312,
+        "boss_name": "Taskmaster",
+        "boss_silver_reward": 48,
+        "missions": [
+            {
+                "mission_code": "25-1",
+                "name": "Infiltration Node 25-1",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "25-2",
+                "name": "Infiltration Node 25-2",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            },
+            {
+                "mission_code": "25-3",
+                "name": "Infiltration Node 25-3",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Sif"
+                ]
+            },
+            {
+                "mission_code": "25-4",
+                "name": "Infiltration Node 25-4",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Iceman"
+                ]
+            },
+            {
+                "mission_code": "25-5",
+                "name": "Infiltration Node 25-5",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Hulkling"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 26,
+        "title": "Operation 26: Crime and...",
+        "clean_name": "Crime and...",
+        "energy_cost": 10,
+        "xp_reward": 10,
+        "silver_min": 200,
+        "silver_max": 240,
+        "boss_name": "Sandman",
+        "boss_silver_reward": 50,
+        "missions": [
+            {
+                "mission_code": "26-1",
+                "name": "Infiltration Node 26-1",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "[Child of Destiny] Hellcat"
+                ]
+            },
+            {
+                "mission_code": "26-2",
+                "name": "Infiltration Node 26-2",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Angel"
+                ]
+            },
+            {
+                "mission_code": "26-3",
+                "name": "Infiltration Node 26-3",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "[Krimmon's Host] Doctor Spectrum"
+                ]
+            },
+            {
+                "mission_code": "26-4",
+                "name": "Infiltration Node 26-4",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "[Dark Reign] Moon Stone"
+                ]
+            },
+            {
+                "mission_code": "26-5",
+                "name": "Infiltration Node 26-5",
+                "energy_cost": 10,
+                "xp_reward": 10,
+                "silver_min": 200,
+                "silver_max": 240,
+                "possible_drops": [
+                    "Wasp"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 27,
+        "title": "Operation 27: ...Punishment",
+        "clean_name": "...Punishment",
+        "energy_cost": 11,
+        "xp_reward": 11,
+        "silver_min": 220,
+        "silver_max": 264,
+        "boss_name": "Jigsaw",
+        "boss_silver_reward": 52,
+        "missions": [
+            {
+                "mission_code": "27-1",
+                "name": "Infiltration Node 27-1",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            },
+            {
+                "mission_code": "27-2",
+                "name": "Infiltration Node 27-2",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Krimmon's Host] Doctor Spectrum"
+                ]
+            },
+            {
+                "mission_code": "27-3",
+                "name": "Infiltration Node 27-3",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Human top] Whirlwind"
+                ]
+            },
+            {
+                "mission_code": "27-4",
+                "name": "Infiltration Node 27-4",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "Angel"
+                ]
+            },
+            {
+                "mission_code": "27-5",
+                "name": "Infiltration Node 27-5",
+                "energy_cost": 11,
+                "xp_reward": 11,
+                "silver_min": 220,
+                "silver_max": 264,
+                "possible_drops": [
+                    "[Child of Destiny] Hellcat"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 28,
+        "title": "Operation 28: Relics of Genosha I",
+        "clean_name": "Relics of Genosha I",
+        "energy_cost": 12,
+        "xp_reward": 12,
+        "silver_min": 240,
+        "silver_max": 288,
+        "boss_name": "Taskmaster",
+        "boss_silver_reward": 54,
+        "missions": [
+            {
+                "mission_code": "28-1",
+                "name": "Infiltration Node 28-1",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Krimmon's Host] Doctor Spectrum"
+                ]
+            },
+            {
+                "mission_code": "28-2",
+                "name": "Infiltration Node 28-2",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Child of Destiny] Hellcat"
+                ]
+            },
+            {
+                "mission_code": "28-3",
+                "name": "Infiltration Node 28-3",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Human Top] Whirlwind"
+                ]
+            },
+            {
+                "mission_code": "28-4",
+                "name": "Infiltration Node 28-4",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            },
+            {
+                "mission_code": "28-5",
+                "name": "Infiltration Node 28-5",
+                "energy_cost": 12,
+                "xp_reward": 12,
+                "silver_min": 240,
+                "silver_max": 288,
+                "possible_drops": [
+                    "Tigra"
+                ]
+            }
+        ]
+    },
+    {
+        "operation_id": 29,
+        "title": "Operation 29: Relics of Genosha II",
+        "clean_name": "Relics of Genosha II",
+        "energy_cost": 13,
+        "xp_reward": 13,
+        "silver_min": 260,
+        "silver_max": 312,
+        "boss_name": "Silver Samurai",
+        "boss_silver_reward": 500,
+        "missions": [
+            {
+                "mission_code": "29-1",
+                "name": "Infiltration Node 29-1",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "Vulture"
+                ]
+            },
+            {
+                "mission_code": "29-2",
+                "name": "Infiltration Node 29-2",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Child of Destiny] Hellcat"
+                ]
+            },
+            {
+                "mission_code": "29-3",
+                "name": "Infiltration Node 29-3",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Son of the Nexus] Speed"
+                ]
+            },
+            {
+                "mission_code": "29-4",
+                "name": "Infiltration Node 29-4",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Krimmon's Host] Doctor Spectrum"
+                ]
+            },
+            {
+                "mission_code": "29-5",
+                "name": "Infiltration Node 29-5",
+                "energy_cost": 13,
+                "xp_reward": 13,
+                "silver_min": 260,
+                "silver_max": 312,
+                "possible_drops": [
+                    "[Dark Reign] Moon Stone"
+                ]
+            }
+        ]
+    }
+]

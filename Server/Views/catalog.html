@@ -122,7 +122,7 @@
                     ${c.isLeader ? '<span class="mini-badge" style="color: var(--accent-gold); border-color: var(--accent-gold);">LEADER</span>' : ''}
                     ${(!c.isLeader && (c.inAtk || c.inDef)) ? '<span class="mini-badge" style="color: var(--hud-blue); border-color: var(--hud-blue);">DECKED</span>' : ''}
                     
-                    <div class="card-thumb-placeholder">🛡️</div>
+                    <div class="card-thumb-placeholder" style="background-image: url('/images/cards/${c.imageFile}'); background-size: cover; background-position: center;">${c.imageFile ? '' : '🛡️'}</div>
                     <div class="thumb-name">${c.title}</div>
                     <span class="thumb-sub">LVL ${c.level} // PWR ${c.cost}</span>
                 `;
@@ -143,6 +143,17 @@
             document.getElementById('modal-ability-title').textContent = card.abilityName.toUpperCase();
             document.getElementById('modal-ability-desc').textContent = card.abilityEffect;
             document.getElementById('modal-quote').textContent = `"${card.quote}"`;
+
+            const artworkThumb = document.getElementById('modal-artwork-thumb');
+            if (card.imageFile) {
+                artworkThumb.style.backgroundImage = `url('/images/cards/${card.imageFile}')`;
+                artworkThumb.style.backgroundSize = 'cover';
+                artworkThumb.style.backgroundPosition = 'center';
+                artworkThumb.textContent = '';
+            } else {
+                artworkThumb.style.backgroundImage = 'none';
+                artworkThumb.textContent = '🛡️';
+            }
 
             const btn = document.getElementById('leader-action-btn');
             if (card.isLeader) {
