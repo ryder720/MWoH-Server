@@ -15,6 +15,7 @@
     },
     "CardGrowth": {
       "DefaultMasteryPercentage": 100
-    }
+    },
+    "CommunityUrl": "https://github.com/ryder720/MWoH-Server"
   }
 }

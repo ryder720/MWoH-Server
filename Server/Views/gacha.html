@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Recruitment Mainframe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Neon custom styles for recruitment page */
+        .currency-bar {
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 2px solid var(--border-color);
+            padding: 10px 15px;
+            position: sticky;
+            top: 50px;
+            z-index: 90;
+            backdrop-filter: blur(8px);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .currency-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .currency-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .silver-dot {
+            background-color: var(--text-muted);
+            box-shadow: 0 0 6px rgba(156, 163, 175, 0.6);
+        }
+
+        .coin-dot {
+            background-color: var(--accent-gold);
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+        }
+
+        .banner-carousel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 10px 0;
+            width: 100%;
+        }
+
+        .gacha-banner-card {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .gacha-banner-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--theme-color, var(--hud-blue));
+        }
+
+        .banner-header {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .banner-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        .banner-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .rate-badge-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 4px 0;
+            border-top: 1px dashed rgba(255, 255, 255, 0.08);
+            padding-top: 10px;
+        }
+
+        .rate-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .actions-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .summon-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .btn-silver {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+        }
+
+        .btn-silver:active {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-coin {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: var(--accent-gold);
+        }
+
+        .btn-coin:active {
+            background: rgba(245, 158, 11, 0.25);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+
+        .btn-cost {
+            font-size: 9px;
+            opacity: 0.8;
+        }
+
+        /* Decryption overlay */
+        .decryption-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #030712;
+            z-index: 500;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .hud-scan-area {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .scan-ring {
+            position: absolute;
+            border: 2px dashed var(--hud-blue);
+            border-radius: 50%;
+            width: 100%;
+            height: 100%;
+            animation: spin 10s linear infinite;
+            filter: drop-shadow(0 0 8px var(--hud-blue-glow));
+        }
+
+        .scan-line {
+            position: absolute;
+            width: 90%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--hud-blue), transparent);
+            box-shadow: 0 0 8px var(--hud-blue);
+            animation: scanUpDown 2s ease-in-out infinite;
+        }
+
+        .decryption-status {
+            font-family: 'Space Mono', monospace;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .decryption-status h2 {
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: var(--hud-blue);
+            animation: pulse 1.5s infinite;
+        }
+
+        .decryption-progress {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Results Screen */
+        .results-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 7, 18, 0.98);
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 20px;
+            align-items: center;
+        }
+
+        .results-header {
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: var(--hud-green);
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .close-results-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 440px;
+            margin-bottom: 40px;
+        }
+
+        .results-grid.multi {
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* Mini card design for pulls */
+        .pulled-card-container {
+            background: rgba(6, 12, 24, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .pulled-card-container.legendary {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .pulled-card-container.super-rare {
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }
+
+        .pulled-card-container.rare {
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .pulled-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .pulled-card-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pulled-card-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 130px;
+        }
+
+        .pulled-card-variant {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: var(--text-muted);
+        }
+
+        .pulled-card-rarity {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .rarity-Normal { color: var(--text-muted); }
+        .rarity-Rare { color: var(--hud-blue); }
+        .rarity-Super-Rare { color: #c084fc; }
+        .rarity-Legendary { color: var(--accent-gold); }
+
+        .pulled-card-art {
+            height: 140px;
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.4) 0%, rgba(3, 7, 18, 0.9) 100%);
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pulled-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .pulled-card-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pulled-card-placeholder .art-icon {
+            font-size: 24px;
+        }
+
+        .pulled-card-placeholder .art-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .pulled-card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+            padding: 4px;
+            text-align: center;
+        }
+
+        .pulled-card-stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pulled-card-stat-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 6px;
+            color: var(--text-muted);
+        }
+
+        .pulled-card-stat-val {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+        }
+
+        /* Animations */
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes scanUpDown {
+            0%, 100% { top: 5%; }
+            50% { top: 90%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage" class="back-btn">&lt; DOSSIER</a>
+        <h1>RECRUITMENT</h1>
+        <div style="width: 70px;"></div> <!-- spacer -->
+    </div>
+
+    <!-- Currency bar -->
+    <div class="currency-bar">
+        <div class="currency-display">
+            <div class="currency-dot silver-dot"></div>
+            <span>SILVER:</span>
+            <span id="silverBalance" style="color: #ffffff;">{{silver}}</span>
+        </div>
+        <div class="currency-display">
+            <div class="currency-dot coin-dot"></div>
+            <span>COINS:</span>
+            <span id="coinBalance" style="color: var(--accent-gold);">{{mobaCoins}}</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section-hdr">// ACTIVE CLASSIFIED ARCHIVES</div>
+
+        <!-- Banner Carousel -->
+        <div class="banner-carousel" id="bannersContainer">
+            <!-- Dynamically populated from JS -->
+        </div>
+    </div>
+
+    <!-- Toast System -->
+    <div class="toast" id="systemToast">Deduction successful.</div>
+
+    <!-- Decryption Animation Overlay -->
+    <div class="decryption-overlay" id="decryptionOverlay">
+        <div class="hud-scan-area">
+            <div class="scan-ring"></div>
+            <div class="scan-line"></div>
+            <svg style="width: 60px; height: 60px; fill: var(--hud-blue); filter: drop-shadow(0 0 10px var(--hud-blue-glow));" viewBox="0 0 24 24">
+                <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm0 10h6c-.47 3.51-2.92 6.55-6 7.42V12H6V7.21l6-2.25V12z"/>
+            </svg>
+        </div>
+        <div class="decryption-status">
+            <h2 id="decryptionTitle">ESTABLISHING UPLINK...</h2>
+            <div class="decryption-progress" id="decryptionProgress">NODE DECRYPT PERCENT: 0%</div>
+        </div>
+    </div>
+
+    <!-- Results Display Overlay -->
+    <div class="results-overlay" id="resultsOverlay">
+        <div class="results-header">
+            <div class="results-title">// DECRYPTED SQUAD REINFORCEMENTS</div>
+            <button class="close-results-btn" onclick="closeResults()">DISMISS</button>
+        </div>
+        <div class="results-grid" id="resultsGrid">
+            <!-- Dynamically filled with pulled cards -->
+        </div>
+    </div>
+
+    <script>
+        // Seeded properties from ASP.NET server rendering
+        const activeBanners = {{gachaConfigJson}};
+        let currentSilver = parseInt("{{silver}}");
+        let currentMobaCoins = parseInt("{{mobaCoins}}");
+
+        // System elements
+        const bannersContainer = document.getElementById('bannersContainer');
+        const silverBalanceEl = document.getElementById('silverBalance');
+        const coinBalanceEl = document.getElementById('coinBalance');
+        const systemToast = document.getElementById('systemToast');
+        const decryptionOverlay = document.getElementById('decryptionOverlay');
+        const decryptionTitle = document.getElementById('decryptionTitle');
+        const decryptionProgress = document.getElementById('decryptionProgress');
+        const resultsOverlay = document.getElementById('resultsOverlay');
+        const resultsGrid = document.getElementById('resultsGrid');
+
+        // Formats balance to standard look (e.g. 100,000)
+        function formatBalance(num) {
+            return num.toLocaleString();
+        }
+
+        // Initialize display balances
+        silverBalanceEl.textContent = formatBalance(currentSilver);
+        coinBalanceEl.textContent = formatBalance(currentMobaCoins);
+
+        // Toast trigger
+        function showToast(message, isError = false) {
+            systemToast.textContent = message;
+            systemToast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            systemToast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            systemToast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            systemToast.classList.add('show');
+            setTimeout(() => {
+                systemToast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Render banners
+        function renderBanners() {
+            bannersContainer.innerHTML = '';
+            if (activeBanners.length === 0) {
+                bannersContainer.innerHTML = '<div style="text-align:center; font-family:\'Space Mono\',monospace; color:var(--text-muted); padding:30px;">No recruitment nodes active.</div>';
+                return;
+            }
+
+            activeBanners.forEach(pack => {
+                const card = document.createElement('div');
+                card.className = 'gacha-banner-card';
+                card.style.setProperty('--theme-color', pack.theme_color);
+
+                // Build rates row
+                let ratesHtml = '';
+                for (const [rarity, rate] of Object.entries(pack.rates)) {
+                    let rateColor = 'var(--text-muted)';
+                    if (rarity === 'Rare') rateColor = 'var(--hud-blue)';
+                    if (rarity === 'Super Rare' || rarity === 'High Rare' || rarity === 'SR') rateColor = '#c084fc';
+                    if (rarity === 'Legendary' || rarity === 'Legend') rateColor = 'var(--accent-gold)';
+
+                    ratesHtml += `<span class="rate-badge" style="color: ${rateColor};">${rarity}: ${rate}%</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="banner-header">
+                        <div class="banner-title" style="color: ${pack.theme_color};">${pack.name}</div>
+                        <div class="banner-desc">${pack.description}</div>
+                    </div>
+                    <div class="rate-badge-row">
+                        ${ratesHtml}
+                    </div>
+                    <div class="actions-group">
+                        <button class="summon-btn btn-silver" onclick="performRecruit(${pack.id}, 'Silver', 1, ${pack.cost_silver})">
+                            <span>1x Recruit</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_silver)} Silver</span>
+                        </button>
+                        <button class="summon-btn btn-silver" onclick="performRecruit(${pack.id}, 'Silver', 10, ${pack.cost_silver * 10})">
+                            <span>10x Squad</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_silver * 10)} Silver</span>
+                        </button>
+                        <button class="summon-btn btn-coin" onclick="performRecruit(${pack.id}, 'MobaCoin', 1, ${pack.cost_mobacoin})">
+                            <span>1x Elite</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_mobacoin)} Coins</span>
+                        </button>
+                        <button class="summon-btn btn-coin" onclick="performRecruit(${pack.id}, 'MobaCoin', 10, ${pack.cost_mobacoin * 10})">
+                            <span>10x Elite</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_mobacoin * 10)} Coins</span>
+                        </button>
+                    </div>
+                `;
+                bannersContainer.appendChild(card);
+            });
+        }
+
+        // Handle recruit transactions
+        function performRecruit(packId, currencyType, pullCount, cost) {
+            // Client balance pre-validation
+            if (currencyType === 'Silver') {
+                if (currentSilver < cost) {
+                    showToast('INSUFFICIENT CREDITS. TRANSACTION DENIED.', true);
+                    return;
+                }
+            } else {
+                if (currentMobaCoins < cost) {
+                    showToast('INSUFFICIENT COINS. TRANSACTION DENIED.', true);
+                    return;
+                }
+            }
+
+            // Start Decryption Simulation overlay
+            decryptionOverlay.style.display = 'flex';
+            decryptionTitle.textContent = 'SECURE LINK ESTABLISHED...';
+            decryptionProgress.textContent = 'NODE DECRYPT PERCENT: 0%';
+
+            // Run progression animation
+            let progress = 0;
+            const titles = [
+                'SECURE LINK ESTABLISHED...',
+                'BYPASSING COGNITIVE SAFEGUARDS...',
+                'EXTRACTING CRYPTOGRAPHIC BLUEPRINTS...',
+                'DECRYPTING ASSET VECTOR NODES...',
+                'COMITTING DATA BLOCKS...'
+            ];
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 8) + 4;
+                if (progress > 100) progress = 100;
+
+                decryptionProgress.textContent = `NODE DECRYPT PERCENT: ${progress}%`;
+                
+                const titleIndex = Math.min(Math.floor(progress / 21), titles.length - 1);
+                decryptionTitle.textContent = titles[titleIndex];
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 60);
+
+            // Execute Server AJAX Request
+            const params = new URLSearchParams();
+            params.append('pack_id', packId);
+            params.append('currency_type', currencyType);
+            params.append('pull_count', pullCount);
+
+            fetch('/ultimate/gacha/pull', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Wait for progress bar to finish before displaying results
+                const waitInterval = setInterval(() => {
+                    if (progress >= 100) {
+                        clearInterval(waitInterval);
+                        
+                        decryptionOverlay.style.display = 'none';
+
+                        if (data.success) {
+                            // Update balances
+                            currentSilver = data.newSilver;
+                            currentMobaCoins = data.newMobaCoins;
+                            silverBalanceEl.textContent = formatBalance(currentSilver);
+                            coinBalanceEl.textContent = formatBalance(currentMobaCoins);
+
+                            // Reveal pulled cards
+                            revealPulledCards(data.pulledCards);
+                            showToast(`Acquisition complete. ${pullCount} tactical blueprints downloaded.`);
+                        } else {
+                            showToast(data.message || 'Transaction aborted by server.', true);
+                        }
+                    }
+                }, 100);
+            })
+            .catch(err => {
+                clearInterval(interval);
+                decryptionOverlay.style.display = 'none';
+                showToast('UPLINK COLLAPSED. RETRY TRANSACTION.', true);
+                console.error(err);
+            });
+        }
+
+        // Render card asset grid in results overlay
+        function revealPulledCards(cards) {
+            resultsGrid.innerHTML = '';
+            
+            if (cards.length > 1) {
+                resultsGrid.classList.add('multi');
+            } else {
+                resultsGrid.classList.remove('multi');
+            }
+
+            cards.forEach(card => {
+                const item = document.createElement('div');
+                
+                // Set CSS rarity class
+                let rarityClass = 'normal';
+                let formattedRarity = card.rarity;
+                if (card.rarity === 'Super Rare' || card.rarity === 'SR' || card.rarity === 'High Rare') {
+                    rarityClass = 'super-rare';
+                    formattedRarity = 'SUPER RARE';
+                } else if (card.rarity === 'Legendary' || card.rarity === 'Legend') {
+                    rarityClass = 'legendary';
+                    formattedRarity = 'LEGENDARY';
+                } else if (card.rarity === 'Rare') {
+                    rarityClass = 'rare';
+                    formattedRarity = 'RARE';
+                } else {
+                    formattedRarity = 'NORMAL';
+                }
+
+                item.className = `pulled-card-container ${rarityClass}`;
+
+                // Image element or tactical layout placeholder
+                let artContent = '';
+                if (card.imageFile && card.imageFile !== '') {
+                    artContent = `<img src="/images/cards/${card.imageFile}" class="pulled-card-img" onerror="this.style.display='none'; document.getElementById('ph_${card.id}').style.display='flex';">`;
+                }
+                
+                // Placeholder fallback if image is missing/broken
+                const fallbackHtml = `
+                    <div class="pulled-card-placeholder" id="ph_${card.id}" style="${card.imageFile ? 'display:none;' : 'display:flex;'}">
+                        <span class="art-icon">👤</span>
+                        <span class="art-lbl">${card.alignment.toUpperCase()}</span>
+                    </div>
+                `;
+
+                item.innerHTML = `
+                    <div class="pulled-card-header">
+                        <div class="pulled-card-info">
+                            <span class="pulled-card-title">${card.title}</span>
+                            <span class="pulled-card-variant">${card.variant || 'Base Variant'}</span>
+                        </div>
+                        <span class="pulled-card-rarity rarity-${card.rarity.replace(' ', '-')}">${formattedRarity}</span>
+                    </div>
+                    <div class="pulled-card-art">
+                        ${artContent}
+                        ${fallbackHtml}
+                    </div>
+                    <div class="pulled-card-stats">
+                        <div class="pulled-card-stat-item">
+                            <span class="pulled-card-stat-lbl">ATK</span>
+                            <span class="pulled-card-stat-val" style="color: var(--accent-red);">${card.baseAtk}</span>
+                        </div>
+                        <div class="pulled-card-stat-item">
+                            <span class="pulled-card-stat-lbl">DEF</span>
+                            <span class="pulled-card-stat-val" style="color: var(--hud-green);">${card.baseDef}</span>
+                        </div>
+                    </div>
+                `;
+                resultsGrid.appendChild(item);
+            });
+
+            resultsOverlay.style.display = 'flex';
+        }
+
+        // Close results screen
+        function closeResults() {
+            resultsOverlay.style.display = 'none';
+        }
+
+        // Run
+        renderBanners();
+    </script>
+</body>
+</html>

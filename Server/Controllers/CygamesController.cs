@@ -184,6 +184,220 @@ namespace MwohServer.Controllers
 
             return Content(RenderTemplate("top.html", replacements), "text/html");
         }
+        // 5b. Redirect Community Button to default system browser
+        [HttpGet("community_redirect")]
+        public IActionResult RedirectToCommunity()
+        {
+            _logger.LogInformation($"[Cygames] RedirectToCommunity: Redirecting to {GameplaySettings.CommunityUrl}");
+            return Redirect(GameplaySettings.CommunityUrl);
+        }
+
+        // 5c. Serve customizable Gacha WebView
+        [HttpGet("gacha")]
+        public IActionResult ServeGacha()
+        {
+            _logger.LogInformation("[Cygames] ServeGacha called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
+
+            var mobaCoins = profile?.MobaCoinBalance ?? 0;
+            var silver = profile?.SilverBalance ?? 0;
+
+            var configPath = Path.Combine(Directory.GetCurrentDirectory(), "Config", "gacha_config.json");
+            var gachaConfigJson = "[]";
+            if (System.IO.File.Exists(configPath))
+            {
+                gachaConfigJson = System.IO.File.ReadAllText(configPath);
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "mobaCoins", mobaCoins.ToString() },
+                { "silver", silver.ToString() },
+                { "gachaConfigJson", gachaConfigJson }
+            };
+
+            return Content(RenderTemplate("gacha.html", replacements), "text/html");
+        }
+
+        // 5d. Handle Gacha pulls via AJAX
+        [HttpPost("gacha/pull")]
+        public IActionResult PullGacha()
+        {
+            _logger.LogInformation("[Cygames] PullGacha called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId, includeInventory: false);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile not found." });
+
+            // Parse parameters
+            int.TryParse(Request.Form["pack_id"].ToString(), out var packId);
+            if (packId == 0 && Request.Query.ContainsKey("pack_id"))
+            {
+                int.TryParse(Request.Query["pack_id"].ToString(), out packId);
+            }
+
+            string currencyType = Request.Form["currency_type"].ToString();
+            if (string.IsNullOrEmpty(currencyType) && Request.Query.ContainsKey("currency_type"))
+            {
+                currencyType = Request.Query["currency_type"].ToString();
+            }
+            if (string.IsNullOrEmpty(currencyType)) currencyType = "Silver";
+
+            int.TryParse(Request.Form["pull_count"].ToString(), out var pullCount);
+            if (pullCount == 0 && Request.Query.ContainsKey("pull_count"))
+            {
+                int.TryParse(Request.Query["pull_count"].ToString(), out pullCount);
+            }
+            if (pullCount <= 0) pullCount = 1;
+
+            var configPath = Path.Combine(Directory.GetCurrentDirectory(), "Config", "gacha_config.json");
+            if (!System.IO.File.Exists(configPath))
+            {
+                return Ok(new { success = false, message = "Gacha system is offline." });
+            }
+
+            var jsonText = System.IO.File.ReadAllText(configPath);
+            using var doc = JsonDocument.Parse(jsonText);
+            var packs = doc.RootElement.EnumerateArray().ToList();
+            var selectedPackNode = packs.FirstOrDefault(p => p.GetProperty("id").GetInt32() == packId);
+
+            if (selectedPackNode.ValueKind == JsonValueKind.Undefined)
+            {
+                return Ok(new { success = false, message = "Recruitment node not found." });
+            }
+
+            // Read costs
+            var costMobacoin = selectedPackNode.GetProperty("cost_mobacoin").GetInt32();
+            var costSilver = selectedPackNode.GetProperty("cost_silver").GetInt32();
+
+            var totalCost = (currencyType == "MobaCoin" ? costMobacoin : costSilver) * pullCount;
+
+            // Validate balance
+            if (currencyType == "MobaCoin")
+            {
+                if (profile.MobaCoinBalance < totalCost)
+                {
+                    return Ok(new { success = false, message = "Insufficient MobaCoins. Acquisition denied." });
+                }
+            }
+            else
+            {
+                if (profile.SilverBalance < totalCost)
+                {
+                    return Ok(new { success = false, message = "Insufficient Silver resources. Acquisition denied." });
+                }
+            }
+
+            // Verify inventory capacity (250 limit)
+            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
+            if (currentCardCount + pullCount > 250)
+            {
+                return Ok(new { success = false, message = "Inventory capacity reached. Clear squad space first." });
+            }
+
+            // Deduct cost
+            if (currencyType == "MobaCoin")
+            {
+                profile.MobaCoinBalance -= totalCost;
+            }
+            else
+            {
+                profile.SilverBalance -= totalCost;
+            }
+
+            // Get rates
+            var ratesNode = selectedPackNode.GetProperty("rates");
+            var ratesDict = new Dictionary<string, double>();
+            foreach (var prop in ratesNode.EnumerateObject())
+            {
+                ratesDict[prop.Name] = prop.Value.GetDouble();
+            }
+
+            // Roll cards and construct entity objects
+            var rand = new Random();
+            var rolledCards = new List<PlayerCard>();
+            
+            for (int i = 0; i < pullCount; i++)
+            {
+                var roll = rand.NextDouble() * 100.0;
+                var chosenRarity = "Normal";
+                double cumulative = 0.0;
+
+                foreach (var kvp in ratesDict)
+                {
+                    cumulative += kvp.Value;
+                    if (roll <= cumulative)
+                    {
+                        chosenRarity = kvp.Key;
+                        break;
+                    }
+                }
+
+                var rarityOptions = new List<string> { chosenRarity };
+                if (chosenRarity == "Super Rare") rarityOptions.Add("SR");
+                if (chosenRarity == "Legendary") rarityOptions.Add("Legend");
+
+                var templates = _dbContext.CardTemplates
+                    .AsEnumerable()
+                    .Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase))
+                    .ToList();
+
+                if (!templates.Any())
+                {
+                    templates = _dbContext.CardTemplates.ToList();
+                }
+
+                if (!templates.Any())
+                {
+                    return Ok(new { success = false, message = "No tactical asset blueprints in database." });
+                }
+
+                var chosenTemplate = templates[rand.Next(templates.Count)];
+
+                var newCard = new PlayerCard
+                {
+                    PlayerProfileId = profile.Id
+                };
+                newCard.InitializeStats(chosenTemplate, GameplaySettings.DefaultMasteryPercentage);
+                
+                // Track internally and save to EF Context
+                _dbContext.PlayerCards.Add(newCard);
+                rolledCards.Add(newCard);
+            }
+
+            // Save changes to populate all database IDs
+            _dbContext.SaveChanges();
+
+            // Build the output list using populated IDs and template properties
+            var responseCards = rolledCards.Select(c => new
+            {
+                id = c.Id,
+                templateId = c.CardTemplateId,
+                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                visualTitle = c.CardTemplate?.VisualTitle ?? "Hero",
+                variant = c.CardTemplate?.VariantName ?? "Base",
+                alignment = c.CardTemplate?.Alignment ?? "Speed",
+                rarity = c.CardTemplate?.Rarity ?? "Normal",
+                imageFile = c.CardTemplate?.ImageFileName ?? "",
+                baseAtk = c.CardTemplate?.BaseAtk ?? 1000,
+                baseDef = c.CardTemplate?.BaseDef ?? 1000,
+                maxAtk = c.CardTemplate?.MaxAtk ?? 4000,
+                maxDef = c.CardTemplate?.MaxDef ?? 4000,
+                powerRequirement = c.CardTemplate?.PowerRequirement ?? 5
+            }).ToList();
+
+            return Ok(new
+            {
+                success = true,
+                newMobaCoins = profile.MobaCoinBalance,
+                newSilver = profile.SilverBalance,
+                pulledCards = responseCards
+            });
+        }
+
         // 5. Stub for Local Push Notification settings to avoid client JSON array conversion crashes
         [HttpGet("nexus/register_local_push")]
         public IActionResult RegisterLocalPush()
@@ -608,6 +822,7 @@ namespace MwohServer.Controllers
         }
 
         [HttpGet("mypage/deck")]
+        [HttpGet("deck")]
         public IActionResult ServeDeckManagerPage()
         {
             _logger.LogInformation("[Cygames] ServeDeckManagerPage called.");
@@ -643,6 +858,7 @@ namespace MwohServer.Controllers
         }
 
         [HttpGet("mypage/catalog")]
+        [HttpGet("card_list")]
         public IActionResult ServeCardCatalogPage()
         {
             _logger.LogInformation("[Cygames] ServeCardCatalogPage called.");

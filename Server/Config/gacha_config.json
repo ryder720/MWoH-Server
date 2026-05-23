@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "Ultimate Card Pack",
+    "description": "Standard S.H.I.E.L.D. tactical recruitment nodes. Provides a balance of classic and tactical reinforcements.",
+    "cost_mobacoin": 300,
+    "cost_silver": 10000,
+    "theme_color": "#00d2ff",
+    "rates": {
+      "Normal": 70.0,
+      "Rare": 25.0,
+      "Super Rare": 4.0,
+      "Legendary": 1.0
+    }
+  },
+  {
+    "id": 2,
+    "name": "S.H.I.E.L.D. Elite Node",
+    "description": "High-priority classification recruitments. Enhanced chances to unlock Super Rare and Legendary tactical assets.",
+    "cost_mobacoin": 900,
+    "cost_silver": 30000,
+    "theme_color": "#ff007f",
+    "rates": {
+      "Normal": 40.0,
+      "Rare": 45.0,
+      "Super Rare": 12.0,
+      "Legendary": 3.0
+    }
+  }
+]

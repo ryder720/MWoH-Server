@@ -193,6 +193,7 @@ namespace MwohServer.Models
         public static int DefaultMasteryPercentage { get; set; } = 100;
         public static int DefaultAttackPower { get; set; } = 100;
         public static int DefaultDefensePower { get; set; } = 100;
+        public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
 
         public static void Load()
         {
@@ -235,6 +236,10 @@ namespace MwohServer.Models
                                 if (growthNode.TryGetProperty("DefaultMasteryPercentage", out var masteryProp))
                                     DefaultMasteryPercentage = masteryProp.GetInt32();
                             }
+                            if (gameplayNode.TryGetProperty("CommunityUrl", out var communityProp))
+                            {
+                                CommunityUrl = communityProp.GetString() ?? "https://github.com/ryder720/MWoH-Server";
+                            }
                         }
                     }
                 }
@@ -262,7 +267,8 @@ namespace MwohServer.Models
     },
     ""CardGrowth"": {
       ""DefaultMasteryPercentage"": 100
-    }
+    },
+    ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server""
   }
 }";
                 try
