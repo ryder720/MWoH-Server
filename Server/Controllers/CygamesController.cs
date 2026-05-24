@@ -28,6 +28,7 @@ namespace MwohServer.Controllers
         private readonly IMissionEngine _missionEngine;
         private readonly IItemLedger _itemLedger;
         private readonly ISessionGateway _sessionGateway;
+        private readonly IDeckManager _deckManager;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -37,7 +38,8 @@ namespace MwohServer.Controllers
             ICardGrowthEngine cardGrowthEngine,
             IMissionEngine missionEngine,
             IItemLedger itemLedger,
-            ISessionGateway sessionGateway)
+            ISessionGateway sessionGateway,
+            IDeckManager deckManager)
         {
             _logger = logger;
             _authService = authService;
@@ -47,6 +49,7 @@ namespace MwohServer.Controllers
             _missionEngine = missionEngine;
             _itemLedger = itemLedger;
             _sessionGateway = sessionGateway;
+            _deckManager = deckManager;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -870,9 +873,6 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile not found." });
-
             string mode = Request.Form["mode"].ToString();
             string cardIdsStr = Request.Form["card_ids"].ToString();
 
@@ -881,42 +881,13 @@ namespace MwohServer.Controllers
                                     .Where(id => id > 0)
                                     .ToList();
 
-            if (cardIds.Count > 5)
+            var result = _deckManager.SyncDeck(profileId, mode, cardIds);
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "Squad can have at most 5 cards." });
+                return Ok(new { success = false, message = result.Message });
             }
 
-            // Verify they belong to this profile
-            var validCards = profile.Cards.Where(c => cardIds.Contains(c.Id)).ToList();
-            if (validCards.Count != cardIds.Count)
-            {
-                return Ok(new { success = false, message = "One or more cards not found or unauthorized." });
-            }
-
-            // Verify cost capacity
-            var totalCost = validCards.Sum(c => c.CardTemplate?.PowerRequirement ?? 0);
-            var limit = mode == "attack" ? profile.AttackPower : profile.DefensePower;
-            if (totalCost > limit)
-            {
-                return Ok(new { success = false, message = "Clearance power requirement exceeds deck capacity!" });
-            }
-
-            // Update
-            foreach (var card in profile.Cards)
-            {
-                if (mode == "attack")
-                {
-                    card.IsInAttackDeck = cardIds.Contains(card.Id);
-                }
-                else
-                {
-                    card.IsInDefenseDeck = cardIds.Contains(card.Id);
-                }
-            }
-
-            _dbContext.SaveChanges();
-
-            return Ok(new { success = true, message = $"{mode.ToUpper()} squad configurations successfully synchronized!" });
+            return Ok(new { success = true, message = result.Message });
         }
 
         [HttpPost("mypage/set_leader")]
