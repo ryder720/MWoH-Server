@@ -35,6 +35,7 @@ builder.Services.AddDbContext<MwohDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IGachaSummoner, GachaSummoner>();
 builder.Services.AddScoped<ICardGrowthEngine, CardGrowthEngine>();
+builder.Services.AddScoped<IMissionEngine, MissionEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 // Load Gameplay Custom Configurations

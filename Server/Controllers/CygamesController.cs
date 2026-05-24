@@ -25,46 +25,22 @@ namespace MwohServer.Controllers
         private readonly MwohDbContext _dbContext;
         private readonly IGachaSummoner _gachaSummoner;
         private readonly ICardGrowthEngine _cardGrowthEngine;
-        private static readonly List<OperationBlueprint> _operations = new();
-
-        static CygamesController()
-        {
-            try
-            {
-                var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "Data", "operations_db.json");
-                if (!System.IO.File.Exists(jsonPath))
-                {
-                    jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "Tools", "Scraper", "operations_db.json");
-                }
-                if (!System.IO.File.Exists(jsonPath))
-                {
-                    jsonPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Tools", "Scraper", "operations_db.json");
-                }
-                if (System.IO.File.Exists(jsonPath))
-                {
-                    var jsonText = System.IO.File.ReadAllText(jsonPath);
-
-                    _operations = JsonSerializer.Deserialize<List<OperationBlueprint>>(jsonText, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower }) ?? new List<OperationBlueprint>();
-                }
-            }
-            catch
-            {
-                // Let it remain empty; fallback handled dynamically in endpoints
-            }
-        }
+        private readonly IMissionEngine _missionEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
             IAuthService authService, 
             MwohDbContext dbContext,
             IGachaSummoner gachaSummoner,
-            ICardGrowthEngine cardGrowthEngine)
+            ICardGrowthEngine cardGrowthEngine,
+            IMissionEngine missionEngine)
         {
             _logger = logger;
             _authService = authService;
             _dbContext = dbContext;
             _gachaSummoner = gachaSummoner;
             _cardGrowthEngine = cardGrowthEngine;
+            _missionEngine = missionEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -1109,29 +1085,10 @@ namespace MwohServer.Controllers
             if (profile == null) return RedirectToAction("ServeGameTopPage");
 
             var progressState = GetPlayerMissionProgress(profile);
-
-            // Seed progressive fallbacks if scraper JSON failed to load
-            if (_operations.Count == 0)
-            {
-                _logger.LogWarning("[Cygames] Operations registry empty. Re-seeding progressive defaults.");
-                for (int i = 1; i <= 29; i++)
-                {
-                    _operations.Add(new OperationBlueprint
-                    {
-                        OperationId = i,
-                        Title = $"Operation {i}: Secure Node {i}",
-                        CleanName = $"Secure Node {i}",
-                        EnergyCost = Math.Max(1, i / 2),
-                        XpReward = Math.Max(1, i / 2),
-                        SilverMin = i * 20,
-                        SilverMax = i * 24,
-                        BossName = "Sentinel Guard"
-                    });
-                }
-            }
+            var operations = _missionEngine.GetOperations();
 
             var opsHtmlList = new List<string>();
-            foreach (var op in _operations)
+            foreach (var op in operations)
             {
                 bool isUnlocked = op.OperationId <= progressState.UnlockedOperationId;
                 
@@ -1309,19 +1266,7 @@ namespace MwohServer.Controllers
 
             var progressState = GetPlayerMissionProgress(profile);
 
-            OperationBlueprint? activeOp = null;
-            MissionBlueprint? activeMission = null;
-
-            foreach (var op in _operations)
-            {
-                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
-                if (m != null)
-                {
-                    activeOp = op;
-                    activeMission = m;
-                    break;
-                }
-            }
+            var (activeOp, activeMission) = _missionEngine.GetMissionBlueprint(id);
 
             if (activeOp == null || activeMission == null)
             {
@@ -1366,131 +1311,26 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile not synced." });
-
-            var progressState = GetPlayerMissionProgress(profile);
-
-            OperationBlueprint? activeOp = null;
-            MissionBlueprint? activeMission = null;
-
-            foreach (var op in _operations)
+            var result = _missionEngine.Attack(profileId, id);
+            if (!result.Success)
             {
-                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
-                if (m != null)
+                if (result.Message.Contains("DEPLETED"))
                 {
-                    activeOp = op;
-                    activeMission = m;
-                    break;
+                    return Ok(new { success = false, message = result.Message });
                 }
-            }
-
-            if (activeOp == null || activeMission == null)
-            {
-                return BadRequest(new { success = false, message = "Mission blueprint mismatch." });
-            }
-
-            if (profile.EnergyCurrent < activeMission.EnergyCost)
-            {
-                return Ok(new
-                {
-                    success = false,
-                    message = "⚠️ DEPLOYMENT ENERGY DEPLETED // Sync items at S.H.I.E.L.D. depot."
-                });
-            }
-
-            profile.EnergyCurrent -= activeMission.EnergyCost;
-            progressState.ActiveMissionProgress = Math.Min(100, progressState.ActiveMissionProgress + 20);
-
-            var rand = new Random();
-            var silverGained = rand.Next(activeMission.SilverMin, activeMission.SilverMax + 1);
-            profile.SilverBalance += silverGained;
-
-            var xpGained = activeMission.XpReward;
-            profile.Experience += xpGained;
-
-            var levelUp = false;
-            while (true)
-            {
-                var nextExpNeeded = GameplaySettings.BaseXpRequirement + (profile.Level - 1) * GameplaySettings.XpIncrementPerLevel;
-                if (profile.Experience >= nextExpNeeded)
-                {
-                    profile.Experience -= nextExpNeeded;
-                    profile.Level++;
-                    profile.EnergyMax += GameplaySettings.EnergyMaxIncreasePerLevel;
-                    profile.EnergyCurrent = profile.EnergyMax;
-                    levelUp = true;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            var cardDropped = false;
-            var droppedCardName = "";
-
-            // Check if card inventory limit is reached
-            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            bool isInventoryFull = currentCardCount >= 250;
-
-            if (rand.Next(1, 101) <= 20 && activeMission.PossibleDrops.Count > 0)
-            {
-                var templateName = activeMission.PossibleDrops[rand.Next(activeMission.PossibleDrops.Count)];
-                var cardTemp = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == templateName);
-                if (cardTemp != null)
-                {
-                    if (isInventoryFull)
-                    {
-                        _logger.LogWarning($"[Cygames] Card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
-                    }
-                    else
-                    {
-                        cardDropped = true;
-                        droppedCardName = cardTemp.Title;
-
-                        var droppedCard = new PlayerCard
-                        {
-                            PlayerProfileId = profile.Id
-                        };
-                        droppedCard.InitializeStats(cardTemp, GameplaySettings.DefaultMasteryPercentage);
-                        _dbContext.PlayerCards.Add(droppedCard);
-                    }
-                }
-            }
-
-            SavePlayerMissionProgress(profile, progressState);
-            _dbContext.SaveChanges();
-
-            var logLines = new List<string>
-            {
-                $"DEPLOYED SQUAD DEEP INTO SECTOR {id}.",
-                $"DEFEATED HOSTILE ELEMENTS IN THE AREA.",
-                $"GAINED +{silverGained} SILVER AND +{xpGained} XP."
-            };
-            if (levelUp)
-            {
-                logLines.Add($"⚡ LEVEL UP! CLEARANCE LEVEL INCREMENTED TO {profile.Level}!");
-            }
-            if (cardDropped)
-            {
-                logLines.Add($"🎁 TRANSMISSION DECRYPTED: RECOVERED HERO ASSET {droppedCardName}!");
-            }
-            else if (isInventoryFull && activeMission.PossibleDrops.Count > 0)
-            {
-                logLines.Add($"⚠️ WARNING: INVENTORY EXCEEDS MAXIMUM SECURED FILES (250/250). NO HERO ASSETS RECOVERED!");
+                return BadRequest(new { success = false, message = result.Message });
             }
 
             return Ok(new
             {
                 success = true,
-                energyCurrent = profile.EnergyCurrent,
-                energyMax = profile.EnergyMax,
-                energyPct = (double)profile.EnergyCurrent / profile.EnergyMax * 100,
-                progressPct = progressState.ActiveMissionProgress,
-                cardDropped = cardDropped,
-                droppedCardName = droppedCardName,
-                logLines = logLines
+                energyCurrent = result.EnergyCurrent,
+                energyMax = result.EnergyMax,
+                energyPct = result.EnergyPct,
+                progressPct = result.ProgressPct,
+                cardDropped = result.CardDropped,
+                droppedCardName = result.DroppedCardName,
+                logLines = result.LogLines
             });
         }
 
@@ -1501,104 +1341,17 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
-
-            var progressState = GetPlayerMissionProgress(profile);
-
-            OperationBlueprint? activeOp = null;
-            MissionBlueprint? activeMission = null;
-
-            foreach (var op in _operations)
+            var result = _missionEngine.EngageBoss(profileId, id);
+            if (!result.Success)
             {
-                var m = op.Missions.FirstOrDefault(x => x.MissionCode == id);
-                if (m != null)
-                {
-                    activeOp = op;
-                    activeMission = m;
-                    break;
-                }
+                return BadRequest(new { success = false, message = result.Message });
             }
-
-            if (activeOp == null || activeMission == null)
-            {
-                return BadRequest(new { success = false, message = "Mission blueprint mismatch." });
-            }
-
-            var bossRewardTemplateName = activeMission.PossibleDrops.Count > 0 
-                ? activeMission.PossibleDrops[0] 
-                : "Spider-Man";
-
-            var rewardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == bossRewardTemplateName)
-                ?? _dbContext.CardTemplates.FirstOrDefault();
-
-            var droppedCardName = "";
-            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            bool isInventoryFull = currentCardCount >= 250;
-
-            if (rewardTemplate != null)
-            {
-                if (isInventoryFull)
-                {
-                    _logger.LogWarning($"[Cygames] Boss card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
-                }
-                else
-                {
-                    droppedCardName = rewardTemplate.Title;
-                    var bossRewardCard = new PlayerCard
-                    {
-                        PlayerProfileId = profile.Id
-                    };
-                    bossRewardCard.InitializeStats(rewardTemplate, GameplaySettings.DefaultMasteryPercentage);
-                    _dbContext.PlayerCards.Add(bossRewardCard);
-                }
-            }
-
-            profile.SilverBalance += activeOp.BossSilverReward;
-
-            if (!progressState.CompletedMissions.ContainsKey(id))
-            {
-                progressState.CompletedMissions.Add(id, 1);
-            }
-            else
-            {
-                progressState.CompletedMissions[id]++;
-            }
-
-            var mSubIndex = 1;
-            var parts = id.Split('-');
-            if (parts.Length > 1 && int.TryParse(parts[1], out int parsedIndex))
-            {
-                mSubIndex = parsedIndex;
-            }
-
-            if (activeOp.OperationId == progressState.UnlockedOperationId && mSubIndex == progressState.UnlockedMissionId)
-            {
-                if (mSubIndex < 5)
-                {
-                    progressState.UnlockedMissionId++;
-                }
-                else
-                {
-                    progressState.UnlockedOperationId = Math.Min(29, progressState.UnlockedOperationId + 1);
-                    progressState.UnlockedMissionId = 1;
-                }
-            }
-
-            progressState.ActiveMissionProgress = 0;
-
-            SavePlayerMissionProgress(profile, progressState);
-            _dbContext.SaveChanges();
-
-            var clearMessage = isInventoryFull
-                ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL (250/250) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
-                : $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
 
             return Ok(new
             {
                 success = true,
-                droppedCardName = droppedCardName,
-                message = clearMessage
+                droppedCardName = result.DroppedCardName,
+                message = result.Message
             });
         }
 
@@ -1623,34 +1376,7 @@ namespace MwohServer.Controllers
 
             if (profile != null)
             {
-                // Run Lazy Timed Energy Restoration
-                var now = DateTime.UtcNow;
-                var lastRecovery = DateTime.SpecifyKind(profile.LastEnergyRecoveryTime, DateTimeKind.Utc);
-
-                if (profile.EnergyCurrent < profile.EnergyMax)
-                {
-                    var secondsElapsed = (now - lastRecovery).TotalSeconds;
-                    var recoveryInterval = GameplaySettings.EnergyRecoveryIntervalSeconds;
-                    if (secondsElapsed >= recoveryInterval && recoveryInterval > 0)
-                    {
-                        var intervals = (int)(secondsElapsed / recoveryInterval);
-                        var restoredEnergy = intervals * GameplaySettings.EnergyRecoveryAmount;
-                        profile.EnergyCurrent = Math.Min(profile.EnergyMax, profile.EnergyCurrent + restoredEnergy);
-                        
-                        // Advance LastEnergyRecoveryTime by the exact intervals consumed
-                        profile.LastEnergyRecoveryTime = lastRecovery.AddSeconds(intervals * recoveryInterval);
-                        _dbContext.SaveChanges();
-                    }
-                }
-                else
-                {
-                    // Energy is already at or above max, keep the recovery time pinned to now
-                    if (lastRecovery < now)
-                    {
-                        profile.LastEnergyRecoveryTime = now;
-                        _dbContext.SaveChanges();
-                    }
-                }
+                _missionEngine.RestoreEnergy(profile);
             }
 
             return profile;
