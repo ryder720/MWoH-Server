@@ -37,6 +37,7 @@ builder.Services.AddScoped<IGachaSummoner, GachaSummoner>();
 builder.Services.AddScoped<ICardGrowthEngine, CardGrowthEngine>();
 builder.Services.AddScoped<IMissionEngine, MissionEngine>();
 builder.Services.AddScoped<IItemLedger, ItemLedger>();
+builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 // Load Gameplay Custom Configurations

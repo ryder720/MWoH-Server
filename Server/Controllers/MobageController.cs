@@ -15,11 +15,13 @@ namespace MwohServer.Controllers
     {
         private readonly ILogger<MobageController> _logger;
         private readonly IAuthService _authService;
+        private readonly ISessionGateway _sessionGateway;
 
-        public MobageController(ILogger<MobageController> logger, IAuthService authService)
+        public MobageController(ILogger<MobageController> logger, IAuthService authService, ISessionGateway sessionGateway)
         {
             _logger = logger;
             _authService = authService;
+            _sessionGateway = sessionGateway;
         }
 
         // 1. Stub Mobage SDK Social API: People `@me`
@@ -663,60 +665,10 @@ namespace MwohServer.Controllers
             return Ok(response);
         }
 
-        private string? ParseMobageOAuthToken()
-        {
-            if (Request.Headers.TryGetValue("Authorization", out var authHeaderValues))
-            {
-                var header = authHeaderValues.ToString();
-                if (header.StartsWith("OAuth ", StringComparison.OrdinalIgnoreCase))
-                {
-                    var parts = header.Substring(6).Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (var part in parts)
-                    {
-                        var kv = part.Split(new[] { '=' }, 2);
-                        if (kv.Length == 2)
-                        {
-                            var key = kv[0].Trim();
-                            var val = kv[1].Trim().Trim('"');
-                            if (key == "oauth_token")
-                            {
-                                return val;
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
         private UserAccount ResolveMobageUser()
         {
-            var user = (UserAccount?)null;
-            
-            // 1. Try OAuth Token from Authorization Header
-            var oauthToken = ParseMobageOAuthToken();
-            if (!string.IsNullOrEmpty(oauthToken))
-            {
-                user = _authService.GetUserByToken(oauthToken);
-            }
-            
-            // 2. Try Session Cookie
-            if (user == null)
-            {
-                var sessionId = Request.Cookies["sid"];
-                if (!string.IsNullOrEmpty(sessionId))
-                {
-                    user = _authService.GetUserBySessionId(sessionId);
-                }
-            }
-            
-            // 3. Fallback
-            if (user == null)
-            {
-                user = _authService.ValidateUser("testuser", "password");
-            }
-            
-            return user!;
+            var authHeader = Request.Headers.TryGetValue("Authorization", out var val) ? val.ToString() : null;
+            return _sessionGateway.ResolveContext(authHeader, Request.Cookies["sid"], null);
         }
 
         // 10. OpenSocial endpoint for AppData stubs (arbitrary client-side storage)
@@ -824,58 +776,27 @@ namespace MwohServer.Controllers
                 }
             }
 
-            // 3. Look up user account
-            var user = (UserAccount?)null;
-            if (!string.IsNullOrEmpty(authToken))
+            var result = _sessionGateway.Reestablish(gamertag, password, authToken);
+            if (result.Success)
             {
-                user = _authService.GetUserByToken(authToken);
-            }
-            else if (!string.IsNullOrEmpty(gamertag) && !string.IsNullOrEmpty(password))
-            {
-                user = _authService.ValidateUser(gamertag, password);
-            }
-
-            // Fallback to pre-seeded testuser in development if session is missing
-            if (user == null)
-            {
-                _logger.LogWarning("[Mobage] Session re-establishment lookup failed. Falling back to testuser.");
-                user = _authService.ValidateUser("testuser", "password");
-            }
-
-            if (user != null)
-            {
-                // Ensure active token and session ID are generated
-                if (string.IsNullOrEmpty(user.ActiveToken))
-                {
-                    _authService.GenerateToken(user);
-                }
-
-                if (user.Profile == null || string.IsNullOrEmpty(user.Profile.SessionId))
-                {
-                    _authService.GenerateSession(user);
-                }
-
                 // Set "sid" cookie in case native SDK syncs cookies with WebView
-                if (user.Profile != null)
+                Response.Cookies.Append("sid", result.SessionId, new Microsoft.AspNetCore.Http.CookieOptions
                 {
-                    Response.Cookies.Append("sid", user.Profile.SessionId, new Microsoft.AspNetCore.Http.CookieOptions
-                    {
-                        Path = "/",
-                        HttpOnly = false,
-                        Secure = false
-                    });
-                }
+                    Path = "/",
+                    HttpOnly = false,
+                    Secure = false
+                });
 
-                // 4. Return standard cryptographic token payload expected by Mobage SDK
+                // Return standard cryptographic token payload expected by Mobage SDK
                 var response = new
                 {
-                    auth_token = user.ActiveToken,
-                    oauth_token = user.ActiveToken,
+                    auth_token = result.ActiveToken,
+                    oauth_token = result.ActiveToken,
                     oauth_secret = "J7NgeGzFn6bjkuTm3pWh2cwm6EOgg", // Hardcoded token secret matching GAuthValidationFilter
-                    oauth2_token = user.ActiveToken
+                    oauth2_token = result.ActiveToken
                 };
 
-                _logger.LogInformation($"[Mobage] Session re-established for user '{user.Username}'. Token: {user.ActiveToken}");
+                _logger.LogInformation($"[Mobage] Session re-established for user '{result.Username}'. Token: {result.ActiveToken}");
                 return Ok(response);
             }
 

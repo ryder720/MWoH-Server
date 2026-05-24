@@ -27,6 +27,7 @@ namespace MwohServer.Controllers
         private readonly ICardGrowthEngine _cardGrowthEngine;
         private readonly IMissionEngine _missionEngine;
         private readonly IItemLedger _itemLedger;
+        private readonly ISessionGateway _sessionGateway;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -35,7 +36,8 @@ namespace MwohServer.Controllers
             IGachaSummoner gachaSummoner,
             ICardGrowthEngine cardGrowthEngine,
             IMissionEngine missionEngine,
-            IItemLedger itemLedger)
+            IItemLedger itemLedger,
+            ISessionGateway sessionGateway)
         {
             _logger = logger;
             _authService = authService;
@@ -44,6 +46,7 @@ namespace MwohServer.Controllers
             _cardGrowthEngine = cardGrowthEngine;
             _missionEngine = missionEngine;
             _itemLedger = itemLedger;
+            _sessionGateway = sessionGateway;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -84,21 +87,14 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] RequestTokenCredential Token: {oauthToken}, Verifier: {verifier}");
 
             // 1. First attempt to find the user via dynamic temporary token mapping
-            var user = _authService.GetAndConsumeUserByTemporaryToken(oauthToken);
+            var user = _sessionGateway.ExchangeTemporaryToken(oauthToken);
             
             // 2. Fallback to direct active token database search (compatibility fallback)
             if (user == null)
             {
-                user = _authService.GetUserByToken(oauthToken);
+                user = _sessionGateway.ResolveContext(null, null, oauthToken);
             }
             
-            // 3. Last fallback: testuser (development failsafe)
-            if (user == null)
-            {
-                _logger.LogWarning("[Cygames] Active token lookup failed. Falling back to testuser.");
-                user = _authService.ValidateUser("testuser", "password");
-            }
-
             string sessionId = "sess_dev_default_session_id";
             if (user != null)
             {
@@ -302,31 +298,8 @@ namespace MwohServer.Controllers
 
         private UserAccount ResolveCurrentUser()
         {
-            var user = (UserAccount?)null;
-            
-            // 1. Try GAuth Token
-            if (HttpContext.Items.TryGetValue("GAuthToken", out var tokenObj) && tokenObj is string gauthToken)
-            {
-                user = _authService.GetUserByToken(gauthToken);
-            }
-            
-            // 2. Try Session Cookie
-            if (user == null)
-            {
-                var sessionId = Request.Cookies["sid"];
-                if (!string.IsNullOrEmpty(sessionId))
-                {
-                    user = _authService.GetUserBySessionId(sessionId);
-                }
-            }
-            
-            // 3. Fallback
-            if (user == null)
-            {
-                user = _authService.ValidateUser("testuser", "password");
-            }
-            
-            return user!;
+            var gauthToken = HttpContext.Items.TryGetValue("GAuthToken", out var tokenObj) ? tokenObj as string : null;
+            return _sessionGateway.ResolveContext(null, Request.Cookies["sid"], gauthToken);
         }
 
         [HttpPost("item/get_item_list")]
