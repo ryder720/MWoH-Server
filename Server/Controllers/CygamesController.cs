@@ -727,6 +727,49 @@ namespace MwohServer.Controllers
             return RedirectToAction("ServeEnhancementForgePage");
         }
 
+        [HttpGet("shop")]
+        [HttpGet("trade_response/trade_list_advance")]
+        [HttpGet("wish")]
+        [HttpGet("friend")]
+        [HttpGet("rareparts")]
+        [HttpGet("search_users")]
+        [HttpGet("results")]
+        [HttpGet("archive")]
+        [HttpGet("advise/index/top")]
+        [HttpGet("nexus/portal")]
+        public IActionResult ServeStubPortal()
+        {
+            _logger.LogInformation($"[Cygames] ServeStubPortal called for Path: {Request.Path}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+
+            var pathName = Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? "system";
+            var displayName = pathName.ToLower() switch
+            {
+                "shop" => "S.H.I.E.L.D. SUPPLY DEPOT & MARKET",
+                "trade_list_advance" => "AGENCY TRADING CENTER",
+                "wish" => "BLUEPRINT ASSET WISHLIST",
+                "friend" => "S.H.I.E.L.D. ALLIES & CO-OP NETWORK",
+                "rareparts" => "TECH PARTS SYNTHESIZER",
+                "search_users" => "ACTIVE SQUAD ARCHIVES",
+                "results" => "BATTLE RECORDS & DECLASSIFIED FILES",
+                "archive" => "HERO CODEX & ENCYCLOPEDIA",
+                "top" => "AGENT HANDBOOK & FAQ PROTOCOLS",
+                "portal" => "GLOBAL NEXUS THREAT CORE",
+                _ => "RESTRICTED SUB-LINK SECURE PORTAL"
+            };
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "portalName", displayName },
+                { "agentName", profile?.Nickname ?? user.Username },
+                { "level", (profile?.Level ?? 1).ToString() }
+            };
+
+            return Content(RenderTemplate("stub_portal.html", replacements), "text/html");
+        }
+
         [HttpGet("mypage/enhance")]
         public IActionResult ServeEnhancementForgePage()
         {

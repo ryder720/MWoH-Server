@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Secure Terminal | Standby</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .radar-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin: 30px auto;
+            border-radius: 50%;
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.03) 0%, transparent 70%);
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        .radar-sweep {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(from 0deg, rgba(245, 158, 11, 0.15) 0deg, transparent 90deg, transparent 360deg);
+            border-radius: 50%;
+            animation: sweep 3s linear infinite;
+        }
+        .radar-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed rgba(245, 158, 11, 0.15);
+        }
+        .radar-ring-1 { width: 40px; height: 40px; }
+        .radar-ring-2 { width: 80px; height: 80px; }
+        .radar-ring-3 { width: 110px; height: 110px; }
+        
+        .radar-blip {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent-gold);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--accent-gold);
+            animation: blink 1.5s ease-out infinite;
+        }
+        .blip-1 { top: 35px; left: 80px; animation-delay: 0.2s; }
+        .blip-2 { top: 90px; left: 45px; animation-delay: 0.8s; }
+
+        @keyframes sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+        
+        .terminal-standby-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.15);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            max-width: 440px;
+            margin: 20px auto;
+        }
+        
+        .warn-hdr {
+            color: var(--accent-gold);
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+            animation: pulse-border 2s infinite;
+        }
+        
+        .dismiss-btn {
+            display: inline-block;
+            margin-top: 25px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            padding: 10px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .dismiss-btn:active {
+            transform: scale(0.97);
+            background: var(--accent-gold);
+            color: #080c14;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <h1>PORTAL SYSTEM</h1>
+        <div class="agent-badge">{{agentName}} [LVL {{level}}]</div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 15px;">
+        <div class="terminal-standby-card">
+            <div class="warn-hdr">// ACCESS STANDBY — SECURE LINK</div>
+            
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; margin: 15px 0 5px 0;">
+                {{portalName}}
+            </h2>
+            
+            <div class="radar-container">
+                <div class="radar-sweep"></div>
+                <div class="radar-ring radar-ring-1"></div>
+                <div class="radar-ring radar-ring-2"></div>
+                <div class="radar-ring radar-ring-3"></div>
+                <div class="radar-blip blip-1"></div>
+                <div class="radar-blip blip-2"></div>
+            </div>
+
+            <p style="font-size: 12px; color: #94a3b8; line-height: 1.6; max-width: 340px; margin: 0 auto;">
+                Agent, this sub-link requires higher clearance levels or active server synchronization. The S.H.I.E.L.D. mainframe is compiling coordinates for this operational sector.
+            </p>
+
+            <a href="/ultimate/menu" class="dismiss-btn">&lt; DISMISS & RETURN</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        // SYSTEM SYNC: ACTIVE STANDBY
+    </div>
+</body>
+</html>

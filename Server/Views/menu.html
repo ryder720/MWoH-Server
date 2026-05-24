@@ -3,46 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S.H.I.E.L.D. Tactical Hub</title>
+    <title>S.H.I.E.L.D. Tactical Hub | Menu</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Scoped Compact Side-Menu Overrides */
+        .division-section {
+            margin-bottom: 18px;
+        }
+        
+        .division-header {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        .division-header.active-core {
+            background: rgba(0, 240, 255, 0.06);
+            border-left: 3px solid var(--hud-blue);
+            color: var(--hud-blue);
+            border-top: 1px solid rgba(0, 240, 255, 0.1);
+            border-right: 1px solid rgba(0, 240, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.05);
+        }
+        
+        .division-header.active-intel {
+            background: rgba(16, 185, 129, 0.06);
+            border-left: 3px solid #10b981;
+            color: #10b981;
+            border-top: 1px solid rgba(16, 185, 129, 0.1);
+            border-right: 1px solid rgba(16, 185, 129, 0.05);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.05);
+        }
+        
+        .division-header.active-depot {
+            background: rgba(245, 158, 11, 0.06);
+            border-left: 3px solid var(--accent-gold);
+            color: var(--accent-gold);
+            border-top: 1px solid rgba(245, 158, 11, 0.1);
+            border-right: 1px solid rgba(245, 158, 11, 0.05);
+            border-bottom: 1px solid rgba(245, 158, 11, 0.05);
+        }
+        
+        .compact-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+        }
+        
+        .compact-btn {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 4px;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .compact-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0) 100%);
+            z-index: 1;
+        }
+        
+        .compact-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .btn-icon {
+            font-size: 18px;
+            margin-bottom: 4px;
+            transition: transform 0.2s ease;
+        }
+        
+        .compact-btn:active .btn-icon {
+            transform: scale(1.1);
+        }
+        
+        .btn-text {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #e2e8f0;
+            text-align: center;
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        /* Tactical Core Buttons */
+        .compact-btn.core-btn {
+            border-color: rgba(0, 240, 255, 0.2);
+            background: rgba(13, 20, 35, 0.45);
+        }
+        .compact-btn.core-btn:active {
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+        .compact-btn.core-btn .btn-text {
+            color: #e0f2fe;
+        }
+        .compact-btn.core-btn.span-2 {
+            grid-column: span 2;
+            flex-direction: row;
+            gap: 8px;
+            padding: 10px 12px;
+            justify-content: flex-start;
+        }
+        .compact-btn.core-btn.span-2 .btn-icon {
+            margin-bottom: 0;
+        }
+        
+        /* Alliance Intel Buttons */
+        .compact-btn.intel-btn {
+            border-color: rgba(16, 185, 129, 0.2);
+            background: rgba(13, 35, 25, 0.25);
+        }
+        .compact-btn.intel-btn:active {
+            border-color: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+        .compact-btn.intel-btn .btn-text {
+            color: #d1fae5;
+        }
+        .compact-btn.intel-btn.span-3 {
+            grid-column: span 3;
+            flex-direction: row;
+            gap: 10px;
+            padding: 10px 12px;
+            justify-content: flex-start;
+        }
+        .compact-btn.intel-btn.span-3 .btn-icon {
+            margin-bottom: 0;
+        }
+        
+        /* Depot & Utility Buttons */
+        .compact-btn.depot-btn {
+            border-color: rgba(245, 158, 11, 0.2);
+            background: rgba(35, 25, 13, 0.25);
+        }
+        .compact-btn.depot-btn:active {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+        .compact-btn.depot-btn .btn-text {
+            color: #fef3c7;
+        }
+    </style>
 </head>
-<body>
+<body class="webview-body">
     <div class="header">
         <h1>S.H.I.E.L.D. HUB</h1>
         <div class="agent-badge">{{agentName}} [LVL {{level}}]</div>
     </div>
 
-    <div class="menu-grid">
-        <a href="/ultimate" class="menu-btn">
-            <span class="menu-icon">📡</span>
-            <span class="menu-title">COMMAND</span>
-            <span class="menu-subtitle">Tactical Mainframe</span>
-        </a>
+    <!-- Scrolling content frame to avoid overflow bounds -->
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px; overflow-y: auto; height: calc(100vh - 100px); box-sizing: border-box;">
+        
+        <!-- DIVISION 1: TACTICAL OPERATIONS -->
+        <div class="division-section">
+            <div class="division-header active-core">
+                <span class="header-icon">📡</span> CORE OPERATIONS
+            </div>
+            <div class="compact-grid">
+                <a href="/ultimate" class="compact-btn core-btn span-2" id="btn-command">
+                    <span class="btn-icon">💻</span>
+                    <span class="btn-text">COMMAND MAINFRAME</span>
+                </a>
+                <a href="/ultimate/mypage" class="compact-btn core-btn" id="btn-dossier">
+                    <span class="btn-icon">👤</span>
+                    <span class="btn-text">DOSSIER</span>
+                </a>
+                
+                <a href="/ultimate/mypage/missions" class="compact-btn core-btn" id="btn-missions">
+                    <span class="btn-icon">⚔️</span>
+                    <span class="btn-text">MISSIONS</span>
+                </a>
+                <a href="/ultimate/gacha" class="compact-btn core-btn" id="btn-summon">
+                    <span class="btn-icon">🎟️</span>
+                    <span class="btn-text">SUMMON</span>
+                </a>
+                <a href="/ultimate/mypage/deck" class="compact-btn core-btn" id="btn-deck">
+                    <span class="btn-icon">🛡️</span>
+                    <span class="btn-text">SQUAD DECK</span>
+                </a>
+                
+                <a href="/ultimate/card_list" class="compact-btn core-btn" id="btn-catalog">
+                    <span class="btn-icon">🗂️</span>
+                    <span class="btn-text">CATALOG</span>
+                </a>
+                <a href="/ultimate/item" class="compact-btn core-btn span-2" id="btn-items">
+                    <span class="btn-icon">🎒</span>
+                    <span class="btn-text">ISO-8 SUPPLY DEPOT</span>
+                </a>
+            </div>
+        </div>
 
-        <a href="/ultimate/mypage" class="menu-btn">
-            <span class="menu-icon">👤</span>
-            <span class="menu-title">DOSSIER</span>
-            <span class="menu-subtitle">Agent Dossier & Squads</span>
-        </a>
+        <!-- DIVISION 2: CO-OP & INTELLIGENCE -->
+        <div class="division-section">
+            <div class="division-header active-intel">
+                <span class="header-icon">👥</span> ALLIANCE & INTEL
+            </div>
+            <div class="compact-grid">
+                <a href="/ultimate/friend" class="compact-btn intel-btn" id="btn-allies">
+                    <span class="btn-icon">🤝</span>
+                    <span class="btn-text">ALLIES</span>
+                </a>
+                <a href="/ultimate/search_users" class="compact-btn intel-btn" id="btn-search">
+                    <span class="btn-icon">🔍</span>
+                    <span class="btn-text">SEARCH</span>
+                </a>
+                <a href="/ultimate/results" class="compact-btn intel-btn" id="btn-records">
+                    <span class="btn-icon">📊</span>
+                    <span class="btn-text">RECORDS</span>
+                </a>
+                <a href="/ultimate/archive" class="compact-btn intel-btn span-3" id="btn-codex">
+                    <span class="btn-icon">📖</span>
+                    <span class="btn-text">DECLASSIFIED HERO CODEX ARCHIVE</span>
+                </a>
+            </div>
+        </div>
 
-        <a href="/ultimate/item/index" class="menu-btn items-btn">
-            <span class="menu-icon">🎒</span>
-            <span class="menu-title">ITEMS</span>
-            <span class="menu-subtitle">Depot & ISO-8 Supply</span>
-        </a>
-
-        <a href="/ultimate/gacha" class="menu-btn">
-            <span class="menu-icon">🎟️</span>
-            <span class="menu-title">SUMMON</span>
-            <span class="menu-subtitle">Recruit Hero Assets</span>
-        </a>
-
-        <a href="/ultimate/mypage/missions" class="menu-btn">
-            <span class="menu-icon">⚔️</span>
-            <span class="menu-title">MISSIONS</span>
-            <span class="menu-subtitle">Secure ISO-8 Nodes</span>
-        </a>
+        <!-- DIVISION 3: DEPOT & UTILITIES -->
+        <div class="division-section" style="margin-bottom: 40px;">
+            <div class="division-header active-depot">
+                <span class="header-icon">🛒</span> FIELD SUPPLY & UTILITIES
+            </div>
+            <div class="compact-grid">
+                <a href="/ultimate/nexus/portal" class="compact-btn depot-btn" id="btn-nexus">
+                    <span class="btn-icon">⚡</span>
+                    <span class="btn-text">NEXUS</span>
+                </a>
+                <a href="/ultimate/shop" class="compact-btn depot-btn" id="btn-shop">
+                    <span class="btn-icon">🛒</span>
+                    <span class="btn-text">SHOP</span>
+                </a>
+                <a href="/ultimate/trade_response/trade_list_advance" class="compact-btn depot-btn" id="btn-trade">
+                    <span class="btn-icon">⚖️</span>
+                    <span class="btn-text">TRADE</span>
+                </a>
+                
+                <a href="/ultimate/rareparts" class="compact-btn depot-btn" id="btn-rareparts">
+                    <span class="btn-icon">⚙️</span>
+                    <span class="btn-text">RARE PARTS</span>
+                </a>
+                <a href="/ultimate/wish" class="compact-btn depot-btn" id="btn-wishlist">
+                    <span class="btn-icon">🌟</span>
+                    <span class="btn-text">WISHLIST</span>
+                </a>
+                <a href="/ultimate/advise/index/top" class="compact-btn depot-btn" id="btn-handbook">
+                    <span class="btn-icon">📙</span>
+                    <span class="btn-text">HANDBOOK</span>
+                </a>
+            </div>
+        </div>
 
     </div>
 
