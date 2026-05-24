@@ -39,6 +39,7 @@ builder.Services.AddScoped<IMissionEngine, MissionEngine>();
 builder.Services.AddScoped<IItemLedger, ItemLedger>();
 builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<IDeckManager, DeckManager>();
+builder.Services.AddScoped<ILeaderManager, LeaderManager>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 // Load Gameplay Custom Configurations

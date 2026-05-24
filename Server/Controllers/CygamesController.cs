@@ -29,6 +29,7 @@ namespace MwohServer.Controllers
         private readonly IItemLedger _itemLedger;
         private readonly ISessionGateway _sessionGateway;
         private readonly IDeckManager _deckManager;
+        private readonly ILeaderManager _leaderManager;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -39,7 +40,8 @@ namespace MwohServer.Controllers
             IMissionEngine missionEngine,
             IItemLedger itemLedger,
             ISessionGateway sessionGateway,
-            IDeckManager deckManager)
+            IDeckManager deckManager,
+            ILeaderManager leaderManager)
         {
             _logger = logger;
             _authService = authService;
@@ -50,6 +52,7 @@ namespace MwohServer.Controllers
             _itemLedger = itemLedger;
             _sessionGateway = sessionGateway;
             _deckManager = deckManager;
+            _leaderManager = leaderManager;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -897,27 +900,16 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile not found." });
-
             int.TryParse(Request.Form["card_id"].ToString(), out var cardId);
             if (cardId <= 0) return Ok(new { success = false, message = "Missing card_id." });
 
-            var targetCard = profile.Cards.FirstOrDefault(c => c.Id == cardId);
-            if (targetCard == null)
+            var result = _leaderManager.DesignateLeader(profileId, cardId);
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "Card not found or unauthorized." });
+                return Ok(new { success = false, message = result.Message });
             }
 
-            // Update leader status
-            foreach (var card in profile.Cards)
-            {
-                card.IsLeader = (card.Id == cardId);
-            }
-
-            _dbContext.SaveChanges();
-
-            return Ok(new { success = true, message = "S.H.I.E.L.D. representative leader successfully designated!" });
+            return Ok(new { success = true, message = result.Message });
         }
 
         [HttpPost("mypage/enhance_card")]
