@@ -261,7 +261,246 @@ app.Use(async (context, next) =>
 // Map controllers (Handles /ultimate/* Cygames APIs and /* Mobage platform endpoints)
 app.MapControllers();
 
+// Start background Admin Console CLI loop
+AdminConsoleEngine.Start(app);
+
 app.Run();
+
+public static class AdminConsoleEngine
+{
+    public static void Start(WebApplication app)
+    {
+        Console.WriteLine("[Admin Console] Developer Command Terminal initialized. Type 'help' for options.");
+        
+        System.Threading.Tasks.Task.Run(() =>
+        {
+            while (true)
+            {
+                try
+                {
+                    var line = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    
+                    using (var scope = app.Services.CreateScope())
+                    {
+                        var dbContext = scope.ServiceProvider.GetRequiredService<MwohDbContext>();
+                        ExecuteCommand(line.Trim(), dbContext);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Admin Console] Terminal error: {ex.Message}");
+                }
+            }
+        });
+    }
+
+    private static void ExecuteCommand(string commandLine, MwohDbContext db)
+    {
+        var args = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (args.Length == 0) return;
+
+        var primary = args[0].ToLower();
+
+        if (primary == "help")
+        {
+            Console.WriteLine("\n=== S.H.I.E.L.D. COMMAND TERMINAL ===");
+            Console.WriteLine("  help                                           - Display help details");
+            Console.WriteLine("  status                                         - Show active server/DB metrics");
+            Console.WriteLine("  reload                                         - Reload gameplay & gacha configurations");
+            Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
+            Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
+            Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling\n");
+            return;
+        }
+
+        if (primary == "status")
+        {
+            var profiles = db.Profiles.Count();
+            var cards = db.PlayerCards.Count();
+            var items = db.PlayerInventoryItems.Count();
+            Console.WriteLine($"[Admin Console] Status Check:");
+            Console.WriteLine($"  - Total Profiles Registered: {profiles}");
+            Console.WriteLine($"  - Total Cards in Stock: {cards}");
+            Console.WriteLine($"  - Total Items Seeded: {items}");
+            return;
+        }
+
+        if (primary == "reload")
+        {
+            MwohServer.Models.GameplaySettings.Load();
+            Console.WriteLine("[Admin Console] Reloaded gameplay_settings.json configuration successfully.");
+            return;
+        }
+
+        // Handles user-specific commands: <username> <action> <args...>
+        if (args.Length < 3)
+        {
+            Console.WriteLine($"[Admin Console] Unknown or malformed command. Type 'help' for instructions.");
+            return;
+        }
+
+        var username = args[0];
+        var action = args[1].ToLower();
+
+        var user = db.Users.Include(u => u.Profile).FirstOrDefault(u => u.Username.ToLower() == username.ToLower());
+        if (user == null || user.Profile == null)
+        {
+            Console.WriteLine($"[Admin Console] Error: Player '{username}' not found.");
+            return;
+        }
+
+        var profile = user.Profile;
+
+        if (action == "addcurrency")
+        {
+            if (args.Length < 4)
+            {
+                Console.WriteLine("[Admin Console] Error: Syntax is '<username> addcurrency <silver|mobacoin> <amount>'");
+                return;
+            }
+
+            var currencyType = args[2].ToLower();
+            if (currencyType != "silver" && currencyType != "mobacoin")
+            {
+                Console.WriteLine("[Admin Console] Error: Currency type must be 'silver' or 'mobacoin'.");
+                return;
+            }
+
+            if (!long.TryParse(args[3], out long amount))
+            {
+                Console.WriteLine("[Admin Console] Error: Amount must be a valid integer.");
+                return;
+            }
+
+            if (currencyType == "silver")
+            {
+                long current = profile.SilverBalance;
+                long next = current + amount;
+                if (next > 999999999)
+                {
+                    Console.WriteLine($"[Admin Console] Error: Operation rejected. Overflows maximum capacity (999,999,999).");
+                    return;
+                }
+                if (next < 0)
+                {
+                    Console.WriteLine($"[Admin Console] Error: Operation rejected. Underflows below zero.");
+                    return;
+                }
+                profile.SilverBalance = next;
+                db.SaveChanges();
+                Console.WriteLine($"[Admin Console] Success: Granted {amount:N0} Silver to '{profile.Nickname}'. New Balance: {profile.SilverBalance:N0}");
+            }
+            else // mobacoin
+            {
+                long current = profile.MobaCoinBalance;
+                long next = current + amount;
+                if (next > 999999999)
+                {
+                    Console.WriteLine($"[Admin Console] Error: Operation rejected. Overflows maximum capacity (999,999,999).");
+                    return;
+                }
+                if (next < 0)
+                {
+                    Console.WriteLine($"[Admin Console] Error: Operation rejected. Underflows below zero.");
+                    return;
+                }
+                profile.MobaCoinBalance = next;
+                db.SaveChanges();
+                Console.WriteLine($"[Admin Console] Success: Granted {amount:N0} MobaCoins to '{profile.Nickname}'. New Balance: {profile.MobaCoinBalance:N0}");
+            }
+        }
+        else if (action == "addcard")
+        {
+            if (!int.TryParse(args[2], out int templateId))
+            {
+                Console.WriteLine("[Admin Console] Error: TemplateId must be an integer.");
+                return;
+            }
+
+            var template = db.CardTemplates.FirstOrDefault(t => t.Id == templateId);
+            if (template == null)
+            {
+                Console.WriteLine($"[Admin Console] Error: Card template ID {templateId} does not exist in database.");
+                return;
+            }
+
+            // Count current cards to verify inventory cap
+            var cardCount = db.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
+            if (cardCount >= 250)
+            {
+                Console.WriteLine($"[Admin Console] Warning: Player stock is at capacity ({cardCount}/250). Card added regardless by override.");
+            }
+
+            var level = 1;
+            if (args.Length >= 4 && int.TryParse(args[3], out int parsedLvl))
+            {
+                level = Math.Clamp(parsedLvl, 1, 100);
+            }
+
+            var mastery = 0;
+            if (args.Length >= 5 && int.TryParse(args[4], out int parsedMst))
+            {
+                mastery = Math.Clamp(parsedMst, 0, template.MaxMastery <= 0 ? 100 : template.MaxMastery);
+            }
+
+            // Interpolate stats based on level
+            var maxLevel = 100;
+            var progress = maxLevel > 1 ? (double)(level - 1) / (maxLevel - 1) : 0.0;
+            var baseAtk = template.BaseAtk;
+            var baseDef = template.BaseDef;
+            var maxAtk = template.MaxAtk;
+            var maxDef = template.MaxDef;
+            var newBaseAtk = (int)Math.Round(baseAtk + (maxAtk - baseAtk) * progress);
+            var newBaseDef = (int)Math.Round(baseDef + (maxDef - baseDef) * progress);
+
+            var maxMastery = template.MaxMastery <= 0 ? 100 : template.MaxMastery;
+            var activeMasteryAtk = maxMastery > 0 ? (template.MasteryBonusAtk * mastery) / maxMastery : 0;
+            var activeMasteryDef = maxMastery > 0 ? (template.MasteryBonusDef * mastery) / maxMastery : 0;
+
+            var newCard = new MwohServer.Models.PlayerCard
+            {
+                PlayerProfileId = profile.Id,
+                CardTemplateId = templateId,
+                CurrentLevel = level,
+                CurrentMastery = mastery,
+                CurrentAtk = newBaseAtk + activeMasteryAtk,
+                CurrentDef = newBaseDef + activeMasteryDef,
+                AbilityLevel = 1,
+                FusionBonusAtk = 0,
+                FusionBonusDef = 0
+            };
+
+            db.PlayerCards.Add(newCard);
+            db.SaveChanges();
+
+            Console.WriteLine($"[Admin Console] Success: Spawned '{template.Title}' [LVL {level}, MST {mastery}%] for '{profile.Nickname}'.");
+        }
+        else if (action == "setlevel")
+        {
+            if (!int.TryParse(args[2], out int newLvl) || newLvl < 1 || newLvl > 200)
+            {
+                Console.WriteLine("[Admin Console] Error: Level must be an integer between 1 and 200.");
+                return;
+            }
+
+            profile.Level = newLvl;
+            
+            // Auto-scale Max Stamina dynamically
+            var baseEnergy = 50;
+            var energyMax = baseEnergy + (newLvl * MwohServer.Models.GameplaySettings.EnergyMaxIncreasePerLevel);
+            profile.EnergyMax = energyMax;
+            profile.EnergyCurrent = energyMax; // Refill energy fully
+            
+            db.SaveChanges();
+            Console.WriteLine($"[Admin Console] Success: Set level of '{profile.Nickname}' to {newLvl}. Max Energy scaled to {energyMax}.");
+        }
+        else
+        {
+            Console.WriteLine($"[Admin Console] Unknown action '{action}'. Type 'help' for options.");
+        }
+    }
+}
 
 public class DualWriter : TextWriter
 {
