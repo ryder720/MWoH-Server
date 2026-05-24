@@ -26,6 +26,7 @@ namespace MwohServer.Controllers
         private readonly IGachaSummoner _gachaSummoner;
         private readonly ICardGrowthEngine _cardGrowthEngine;
         private readonly IMissionEngine _missionEngine;
+        private readonly IItemLedger _itemLedger;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -33,7 +34,8 @@ namespace MwohServer.Controllers
             MwohDbContext dbContext,
             IGachaSummoner gachaSummoner,
             ICardGrowthEngine cardGrowthEngine,
-            IMissionEngine missionEngine)
+            IMissionEngine missionEngine,
+            IItemLedger itemLedger)
         {
             _logger = logger;
             _authService = authService;
@@ -41,6 +43,7 @@ namespace MwohServer.Controllers
             _gachaSummoner = gachaSummoner;
             _cardGrowthEngine = cardGrowthEngine;
             _missionEngine = missionEngine;
+            _itemLedger = itemLedger;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -332,10 +335,7 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
             
-            var inventory = _dbContext.PlayerInventoryItems
-                .Include(pi => pi.ItemTemplate)
-                .Where(pi => pi.PlayerProfileId == profileId)
-                .ToList();
+            var inventory = _itemLedger.GetInventory(profileId);
                 
             var responseList = inventory.Select(pi => new
             {
@@ -395,58 +395,25 @@ namespace MwohServer.Controllers
                 return BadRequest(new { success = false, message = "Missing item_id parameter." });
             }
 
-            var invItem = _dbContext.PlayerInventoryItems
-                .Include(pi => pi.ItemTemplate)
-                .FirstOrDefault(pi => pi.PlayerProfileId == profileId && pi.ItemTemplateId == itemId);
-                
-            if (invItem == null || invItem.Quantity <= 0)
+            var result = _itemLedger.UseItem(profileId, itemId);
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "Insufficient item quantity." });
+                return Ok(new { success = false, message = result.Message });
             }
-            
-            var profile = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
-            if (profile == null)
-            {
-                return NotFound();
-            }
-
-            // Apply item effect
-            string message = "";
-            if (invItem.ItemTemplate!.Type == "EnergyRestorative")
-            {
-                int refill = (profile.EnergyMax * invItem.ItemTemplate.EffectValue) / 100;
-                profile.EnergyCurrent = Math.Min(profile.EnergyMax, profile.EnergyCurrent + refill);
-                message = $"Energy restored by {refill} points!";
-            }
-            else if (invItem.ItemTemplate.Type == "AttackPowerRestorative")
-            {
-                message = "Combat attack power fully replenished!";
-            }
-            else if (invItem.ItemTemplate.Type == "DefensePowerRestorative")
-            {
-                message = "Combat defense power fully replenished!";
-            }
-            else if (invItem.ItemTemplate.Type == "MasteryIso8")
-            {
-                message = "ISO-8 synthesized card mastery incremented successfully!";
-            }
-            
-            invItem.Quantity--;
-            _dbContext.SaveChanges();
             
             return Ok(new
             {
                 success = true,
-                message = message,
+                message = result.Message,
                 item_id = itemId,
-                remaining_quantity = invItem.Quantity,
+                remaining_quantity = result.RemainingQuantity,
                 player_status = new
                 {
-                    level = profile.Level,
-                    energy_max = profile.EnergyMax,
-                    energy_current = profile.EnergyCurrent,
-                    silver = profile.SilverBalance,
-                    mobacoin = profile.MobaCoinBalance
+                    level = result.Level,
+                    energy_max = result.EnergyMax,
+                    energy_current = result.EnergyCurrent,
+                    silver = result.Silver,
+                    mobacoin = result.MobaCoin
                 }
             });
         }
