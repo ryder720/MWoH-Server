@@ -882,6 +882,25 @@ namespace MwohServer.Controllers
             return Unauthorized();
         }
 
+        [HttpGet("community/{*path}")]
+        public IActionResult ServeCommunityPage(string? path = null)
+        {
+            _logger.LogInformation($"[Mobage] ServeCommunityPage called for path: {path}");
+            
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "Views", "community.html");
+            if (!System.IO.File.Exists(filePath))
+            {
+                return NotFound("Community page template not found.");
+            }
+
+            var html = System.IO.File.ReadAllText(filePath);
+            
+            // Replace placeholder for community URL
+            html = html.Replace("{{communityUrl}}", GameplaySettings.CommunityUrl);
+            
+            return Content(html, "text/html");
+        }
+
         private string GetStatusHtml(string title, string message, string actionUrl, string buttonText, bool isError)
         {
             var accentColor = isError ? "var(--accent-red)" : "var(--accent-gold)";
