@@ -33,6 +33,7 @@ builder.Services.AddDbContext<MwohDbContext>(options =>
 
 // Register Custom Services and Filters
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IGachaSummoner, GachaSummoner>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 // Load Gameplay Custom Configurations

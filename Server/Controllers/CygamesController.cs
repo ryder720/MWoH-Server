@@ -23,6 +23,7 @@ namespace MwohServer.Controllers
         private readonly ILogger<CygamesController> _logger;
         private readonly IAuthService _authService;
         private readonly MwohDbContext _dbContext;
+        private readonly IGachaSummoner _gachaSummoner;
         private static readonly List<OperationBlueprint> _operations = new();
 
         static CygamesController()
@@ -51,12 +52,16 @@ namespace MwohServer.Controllers
             }
         }
 
-        public CygamesController(ILogger<CygamesController> logger, IAuthService authService, MwohDbContext dbContext)
-
+        public CygamesController(
+            ILogger<CygamesController> logger, 
+            IAuthService authService, 
+            MwohDbContext dbContext,
+            IGachaSummoner gachaSummoner)
         {
             _logger = logger;
             _authService = authService;
             _dbContext = dbContext;
+            _gachaSummoner = gachaSummoner;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -229,9 +234,6 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId, includeInventory: false);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile not found." });
-
             // Parse parameters
             int.TryParse(Request.Form["pack_id"].ToString(), out var packId);
             if (packId == 0 && Request.Query.ContainsKey("pack_id"))
@@ -253,126 +255,16 @@ namespace MwohServer.Controllers
             }
             if (pullCount <= 0) pullCount = 1;
 
-            var configPath = Path.Combine(Directory.GetCurrentDirectory(), "Config", "gacha_config.json");
-            if (!System.IO.File.Exists(configPath))
+            // Delegate execution to the deep Gacha Summoning Engine
+            var result = _gachaSummoner.Pull(profileId, packId, currencyType, pullCount);
+
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "Gacha system is offline." });
+                return Ok(new { success = false, message = result.Message });
             }
 
-            var jsonText = System.IO.File.ReadAllText(configPath);
-            using var doc = JsonDocument.Parse(jsonText);
-            var packs = doc.RootElement.EnumerateArray().ToList();
-            var selectedPackNode = packs.FirstOrDefault(p => p.GetProperty("id").GetInt32() == packId);
-
-            if (selectedPackNode.ValueKind == JsonValueKind.Undefined)
-            {
-                return Ok(new { success = false, message = "Recruitment node not found." });
-            }
-
-            // Read costs
-            var costMobacoin = selectedPackNode.GetProperty("cost_mobacoin").GetInt32();
-            var costSilver = selectedPackNode.GetProperty("cost_silver").GetInt32();
-
-            var totalCost = (currencyType == "MobaCoin" ? costMobacoin : costSilver) * pullCount;
-
-            // Validate balance
-            if (currencyType == "MobaCoin")
-            {
-                if (profile.MobaCoinBalance < totalCost)
-                {
-                    return Ok(new { success = false, message = "Insufficient MobaCoins. Acquisition denied." });
-                }
-            }
-            else
-            {
-                if (profile.SilverBalance < totalCost)
-                {
-                    return Ok(new { success = false, message = "Insufficient Silver resources. Acquisition denied." });
-                }
-            }
-
-            // Verify inventory capacity (250 limit)
-            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            if (currentCardCount + pullCount > 250)
-            {
-                return Ok(new { success = false, message = "Inventory capacity reached. Clear squad space first." });
-            }
-
-            // Deduct cost
-            if (currencyType == "MobaCoin")
-            {
-                profile.MobaCoinBalance -= totalCost;
-            }
-            else
-            {
-                profile.SilverBalance -= totalCost;
-            }
-
-            // Get rates
-            var ratesNode = selectedPackNode.GetProperty("rates");
-            var ratesDict = new Dictionary<string, double>();
-            foreach (var prop in ratesNode.EnumerateObject())
-            {
-                ratesDict[prop.Name] = prop.Value.GetDouble();
-            }
-
-            // Roll cards and construct entity objects
-            var rand = new Random();
-            var rolledCards = new List<PlayerCard>();
-            
-            for (int i = 0; i < pullCount; i++)
-            {
-                var roll = rand.NextDouble() * 100.0;
-                var chosenRarity = "Normal";
-                double cumulative = 0.0;
-
-                foreach (var kvp in ratesDict)
-                {
-                    cumulative += kvp.Value;
-                    if (roll <= cumulative)
-                    {
-                        chosenRarity = kvp.Key;
-                        break;
-                    }
-                }
-
-                var rarityOptions = new List<string> { chosenRarity };
-                if (chosenRarity == "Super Rare") rarityOptions.Add("SR");
-                if (chosenRarity == "Legendary") rarityOptions.Add("Legend");
-
-                var templates = _dbContext.CardTemplates
-                    .AsEnumerable()
-                    .Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase))
-                    .ToList();
-
-                if (!templates.Any())
-                {
-                    templates = _dbContext.CardTemplates.ToList();
-                }
-
-                if (!templates.Any())
-                {
-                    return Ok(new { success = false, message = "No tactical asset blueprints in database." });
-                }
-
-                var chosenTemplate = templates[rand.Next(templates.Count)];
-
-                var newCard = new PlayerCard
-                {
-                    PlayerProfileId = profile.Id
-                };
-                newCard.InitializeStats(chosenTemplate, GameplaySettings.DefaultMasteryPercentage);
-                
-                // Track internally and save to EF Context
-                _dbContext.PlayerCards.Add(newCard);
-                rolledCards.Add(newCard);
-            }
-
-            // Save changes to populate all database IDs
-            _dbContext.SaveChanges();
-
-            // Build the output list using populated IDs and template properties
-            var responseCards = rolledCards.Select(c => new
+            // Map output cards safely
+            var responseCards = result.PulledCards.Select(c => new
             {
                 id = c.Id,
                 templateId = c.CardTemplateId,
@@ -392,8 +284,8 @@ namespace MwohServer.Controllers
             return Ok(new
             {
                 success = true,
-                newMobaCoins = profile.MobaCoinBalance,
-                newSilver = profile.SilverBalance,
+                newMobaCoins = result.NewMobaCoins,
+                newSilver = result.NewSilver,
                 pulledCards = responseCards
             });
         }

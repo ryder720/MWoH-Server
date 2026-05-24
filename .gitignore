@@ -52,3 +52,6 @@ latest_run.log
 # Operating System files
 .DS_Store
 Thumbs.db
+
+# Agents
+.agents/
