@@ -14,7 +14,7 @@
       "DefensePower": 100
     },
     "CardGrowth": {
-      "DefaultMasteryPercentage": 100,
+      "DefaultMasteryPercentage": 0,
       "MasteryGainPerMissionClick": 1,
       "MasteryGainPerPvPBattle": 5
     },
