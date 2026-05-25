@@ -317,7 +317,8 @@ public static class AdminConsoleEngine
             Console.WriteLine("  reload                                         - Reload gameplay & gacha configurations");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
-            Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling\n");
+            Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
+            Console.WriteLine("  <username> resetattributes                     - Revert agent parameters and refund Attribute Points\n");
             return;
         }
 
@@ -341,7 +342,7 @@ public static class AdminConsoleEngine
         }
 
         // Handles user-specific commands: <username> <action> <args...>
-        if (args.Length < 3)
+        if (args.Length < 2)
         {
             Console.WriteLine($"[Admin Console] Unknown or malformed command. Type 'help' for instructions.");
             return;
@@ -419,6 +420,11 @@ public static class AdminConsoleEngine
         }
         else if (action == "addcard")
         {
+            if (args.Length < 3)
+            {
+                Console.WriteLine("[Admin Console] Error: Syntax is '<username> addcard <templateId> [lvl] [mst]'");
+                return;
+            }
             if (!int.TryParse(args[2], out int templateId))
             {
                 Console.WriteLine("[Admin Console] Error: TemplateId must be an integer.");
@@ -485,7 +491,7 @@ public static class AdminConsoleEngine
         }
         else if (action == "setlevel")
         {
-            if (!int.TryParse(args[2], out int newLvl) || newLvl < 1 || newLvl > 200)
+            if (args.Length < 3 || !int.TryParse(args[2], out int newLvl) || newLvl < 1 || newLvl > 200)
             {
                 Console.WriteLine("[Admin Console] Error: Level must be an integer between 1 and 200.");
                 return;
@@ -501,6 +507,28 @@ public static class AdminConsoleEngine
             
             db.SaveChanges();
             Console.WriteLine($"[Admin Console] Success: Set level of '{profile.Nickname}' to {newLvl}. Max Energy scaled to {energyMax}.");
+        }
+        else if (action == "resetattributes")
+        {
+            var isTestAgent = profile.Id == 1;
+            var baselineEnergy = isTestAgent ? 120 : 100;
+            var baselineAttack = isTestAgent ? 180 : 100;
+            var baselineDefense = isTestAgent ? 150 : 100;
+            var initialStatPoints = isTestAgent ? 15 : 0;
+            
+            var earnedPoints = 3 * (profile.Level - 1);
+            var totalRefundedPoints = initialStatPoints + earnedPoints;
+            
+            profile.EnergyMax = baselineEnergy;
+            profile.EnergyCurrent = baselineEnergy;
+            profile.AttackPower = baselineAttack;
+            profile.DefensePower = baselineDefense;
+            profile.StatPoints = totalRefundedPoints;
+            
+            db.SaveChanges();
+            Console.WriteLine($"[Admin Console] Success: Reset Attribute Points for player '{profile.Nickname}'.");
+            Console.WriteLine($"  - Reverted baselines: Energy {baselineEnergy}, Attack Power {baselineAttack}, Defense Power {baselineDefense}.");
+            Console.WriteLine($"  - Refunded Total Attribute Points: {totalRefundedPoints} PTS.");
         }
         else
         {
