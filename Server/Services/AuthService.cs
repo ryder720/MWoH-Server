@@ -61,7 +61,8 @@ namespace MwohServer.Services
                     UserAccountId = account.Id,
                     Nickname = account.Username,
                     PlayerIdString = (100000 + account.Id).ToString(),
-                    SessionId = sessionId
+                    SessionId = sessionId,
+                    StatPoints = 0
                 };
                 _dbContext.Profiles.Add(account.Profile);
             }
@@ -104,7 +105,8 @@ namespace MwohServer.Services
                 MobaCoinBalance = 10000,
                 SilverBalance = 50000,
                 PlayerIdString = (100000 + newUser.Id).ToString(),
-                SessionId = ""
+                SessionId = "",
+                StatPoints = 0
             };
 
             newUser.Profile = profile;

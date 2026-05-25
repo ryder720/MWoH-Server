@@ -6,6 +6,211 @@
     <title>S.H.I.E.L.D. Agent dossier</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Custom CSS for S.H.I.E.L.D. Stat Points Allocation Panel */
+        .allocation-panel {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .allocation-hdr {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        .allocation-sub {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .alloc-points-label {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        
+        .alloc-points-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #0f172a;
+            background: var(--accent-gold);
+            padding: 4px 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+        
+        .allocation-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .allocation-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: background 0.2s ease;
+        }
+        
+        .allocation-row:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+        
+        .alloc-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-width: 60%;
+        }
+        
+        .alloc-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #cbd5e1;
+            letter-spacing: 0.02em;
+        }
+        
+        .alloc-desc {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.75rem;
+            color: #64748b;
+            line-height: 1.2;
+        }
+        
+        .alloc-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .alloc-current-val {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95rem;
+            color: #94a3b8;
+            min-width: 28px;
+            text-align: center;
+        }
+        
+        .alloc-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+        
+        .alloc-btn:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #cbd5e1;
+            color: #ffffff;
+        }
+        
+        .alloc-btn:active:not(:disabled) {
+            transform: scale(0.9);
+        }
+        
+        .alloc-btn:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+        }
+        
+        .alloc-added-val {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: #475569;
+            min-width: 24px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .allocation-actions {
+            display: flex;
+            justify-content: center;
+        }
+        
+        .alloc-action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.8), rgba(245, 158, 11, 0.6));
+            border: 1px solid var(--accent-gold);
+            color: #0f172a;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+        }
+        
+        .alloc-action-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, var(--accent-gold), rgba(245, 158, 11, 0.8));
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.45);
+            transform: translateY(-1px);
+        }
+        
+        .alloc-action-btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+        
+        .alloc-action-btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        .alloc-feedback-msg {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 12px;
+            padding: 8px;
+            border-radius: 4px;
+            animation: pulseFeedback 2s infinite ease-in-out;
+        }
+        
+        @keyframes pulseFeedback {
+            0%, 100% { opacity: 0.85; }
+            50% { opacity: 0.5; }
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -62,6 +267,68 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Stat Allocation Panel -->
+        <div id="stat-allocation-panel" class="profile-panel allocation-panel" style="display: none; border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);">
+            <div class="allocation-hdr">// S.H.I.E.L.D. AGENT DEVELOPMENT CORE</div>
+            <div class="allocation-sub">
+                <span class="alloc-points-label">UNALLOCATED PROTOCOL POINTS:</span>
+                <span id="alloc-points-val" class="alloc-points-badge">{{statPoints}} PTS</span>
+            </div>
+            
+            <div class="allocation-rows">
+                <!-- Energy row -->
+                <div class="allocation-row">
+                    <div class="alloc-info">
+                        <span class="alloc-title">🔋 MAXIMUM ENERGY</span>
+                        <span class="alloc-desc">Increases maximum energy for sector campaign deployments.</span>
+                    </div>
+                    <div class="alloc-controls">
+                       <span id="energy-current-lbl" class="alloc-current-val">{{energyMax}}</span>
+                       <button class="alloc-btn btn-minus" onclick="adjustAllocation('energy', -1)">-</button>
+                       <span id="energy-alloc-lbl" class="alloc-added-val">+0</span>
+                       <button class="alloc-btn btn-plus" onclick="adjustAllocation('energy', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Attack Power row -->
+                <div class="allocation-row">
+                    <div class="alloc-info">
+                        <span class="alloc-title">⚡ ATTACK POWER</span>
+                        <span class="alloc-desc">Increases maximum Attack Power capacity for active lineups.</span>
+                    </div>
+                    <div class="alloc-controls">
+                       <span id="attack-current-lbl" class="alloc-current-val">{{attackCapacity}}</span>
+                       <button class="alloc-btn btn-minus" onclick="adjustAllocation('attack', -1)">-</button>
+                       <span id="attack-alloc-lbl" class="alloc-added-val">+0</span>
+                       <button class="alloc-btn btn-plus" onclick="adjustAllocation('attack', 1)">+</button>
+                    </div>
+                </div>
+
+                <!-- Defense Power row -->
+                <div class="allocation-row">
+                    <div class="alloc-info">
+                        <span class="alloc-title">🛡️ DEFENSE POWER</span>
+                        <span class="alloc-desc">Increases maximum Defense Power capacity for active lineups.</span>
+                    </div>
+                    <div class="alloc-controls">
+                       <span id="defense-current-lbl" class="alloc-current-val">{{defenseCapacity}}</span>
+                       <button class="alloc-btn btn-minus" onclick="adjustAllocation('defense', -1)">-</button>
+                       <span id="defense-alloc-lbl" class="alloc-added-val">+0</span>
+                       <button class="alloc-btn btn-plus" onclick="adjustAllocation('defense', 1)">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="allocation-actions">
+                <button id="alloc-apply-btn" class="alloc-action-btn cta-btn-glow" onclick="submitAllocations()">
+                    APPLY DOSSIER ALLOCATIONS
+                </button>
+            </div>
+            
+            <div id="alloc-feedback" class="alloc-feedback-msg" style="display: none;"></div>
         </div>
 
         <!-- Leader Card Showcase -->
@@ -166,6 +433,181 @@
                 setInterval(tickEnergy, 1000);
                 tickEnergy();
             }
+        })();
+    </script>
+
+    <!-- Interactive Stat Allocation System -->
+    <script>
+        (function() {
+            let availablePoints = parseInt("{{statPoints}}") || 0;
+            
+            if (availablePoints > 0) {
+                document.getElementById("stat-allocation-panel").style.display = "block";
+            }
+
+            const allocations = {
+                energy: 0,
+                attack: 0,
+                defense: 0
+            };
+
+            window.adjustAllocation = function(stat, amount) {
+                if (amount > 0 && availablePoints <= 0) return;
+                if (amount < 0 && allocations[stat] <= 0) return;
+
+                allocations[stat] += amount;
+                availablePoints -= amount;
+
+                // Update UI badges
+                document.getElementById("alloc-points-val").textContent = `${availablePoints} PTS`;
+                document.getElementById(`${stat}-alloc-lbl`).textContent = `+${allocations[stat]}`;
+                
+                // Color coordination for added values
+                const lbl = document.getElementById(`${stat}-alloc-lbl`);
+                if (allocations[stat] > 0) {
+                    lbl.style.color = "var(--hud-blue)";
+                    lbl.style.textShadow = "0 0 6px rgba(0, 240, 255, 0.35)";
+                } else {
+                    lbl.style.color = "#475569";
+                    lbl.style.textShadow = "none";
+                }
+
+                updateButtons();
+            };
+
+            function updateButtons() {
+                // Disable minus buttons if allocation is 0
+                document.querySelectorAll(".btn-minus").forEach((btn, idx) => {
+                    const stats = ['energy', 'attack', 'defense'];
+                    const stat = stats[idx];
+                    btn.disabled = allocations[stat] <= 0;
+                });
+
+                // Disable plus buttons if available points is 0
+                document.querySelectorAll(".btn-plus").forEach(btn => {
+                    btn.disabled = availablePoints <= 0;
+                });
+
+                // Disable apply button if total allocation is 0
+                const totalAllocated = Object.values(allocations).reduce((a, b) => a + b, 0);
+                document.getElementById("alloc-apply-btn").disabled = totalAllocated <= 0;
+            }
+
+            window.submitAllocations = async function() {
+                const totalAllocated = Object.values(allocations).reduce((a, b) => a + b, 0);
+                if (totalAllocated <= 0) return;
+
+                const btn = document.getElementById("alloc-apply-btn");
+                const feedback = document.getElementById("alloc-feedback");
+                
+                btn.disabled = true;
+                feedback.style.display = "block";
+                feedback.style.color = "var(--accent-gold)";
+                feedback.style.background = "rgba(245, 158, 11, 0.05)";
+                feedback.style.border = "1px solid rgba(245, 158, 11, 0.1)";
+                feedback.textContent = "SYNCHRONIZING PARAMETERS WITH S.H.I.E.L.D. DATABASE...";
+
+                try {
+                    const formData = new FormData();
+                    formData.append("energy", allocations.energy);
+                    formData.append("attack", allocations.attack);
+                    formData.append("defense", allocations.defense);
+
+                    const response = await fetch("/ultimate/mypage/allocate_points", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        feedback.style.color = "var(--hud-green)";
+                        feedback.style.background = "rgba(16, 185, 129, 0.05)";
+                        feedback.style.border = "1px solid rgba(16, 185, 129, 0.1)";
+                        feedback.textContent = "TRANSMISSION COMPLETE. DOSSIER SUCCESSFULLY COMPILED!";
+
+                        setTimeout(() => {
+                            // Update page stats instantly
+                            availablePoints = result.remainingStatPoints;
+                            document.getElementById("alloc-points-val").textContent = `${availablePoints} PTS`;
+                            
+                            // Reset local allocations
+                            allocations.energy = 0;
+                            allocations.attack = 0;
+                            allocations.defense = 0;
+                            
+                            document.getElementById("energy-alloc-lbl").textContent = "+0";
+                            document.getElementById("attack-alloc-lbl").textContent = "+0";
+                            document.getElementById("defense-alloc-lbl").textContent = "+0";
+
+                            // Color resets
+                            document.getElementById("energy-alloc-lbl").style.color = "#475569";
+                            document.getElementById("attack-alloc-lbl").style.color = "#475569";
+                            document.getElementById("defense-alloc-lbl").style.color = "#475569";
+
+                            // Update main Profile energy reserves bar
+                            const energyValEl = document.getElementById("energy-val");
+                            if (energyValEl) {
+                                energyValEl.textContent = `${result.newEnergyCurrent} / ${result.newEnergyMax}`;
+                                const energyBar = document.getElementById("energy-bar");
+                                if (energyBar) {
+                                    const pct = Math.min(100, (result.newEnergyCurrent * 100) / result.newEnergyMax);
+                                    energyBar.style.width = `${pct}%`;
+                                }
+                            }
+
+                            // Update current labels inside allocation controls
+                            document.getElementById("energy-current-lbl").textContent = result.newEnergyMax;
+                            document.getElementById("attack-current-lbl").textContent = result.newAttackCapacity;
+                            document.getElementById("defense-current-lbl").textContent = result.newDefenseCapacity;
+
+                            // Update active lineups loads
+                            const deckRows = document.querySelectorAll(".deck-row");
+                            if (deckRows.length >= 2) {
+                                // Attack squad capacity
+                                const atkLoadCap = deckRows[0].querySelector(".deck-cost-val");
+                                if (atkLoadCap) {
+                                    const parts = atkLoadCap.textContent.split('/');
+                                    if (parts.length >= 2) {
+                                        atkLoadCap.textContent = `${parts[0].trim()} / ${result.newAttackCapacity}`;
+                                    }
+                                }
+                                // Defense squad capacity
+                                const defLoadCap = deckRows[1].querySelector(".deck-cost-val");
+                                if (defLoadCap) {
+                                    const parts = defLoadCap.textContent.split('/');
+                                    if (parts.length >= 2) {
+                                        defLoadCap.textContent = `${parts[0].trim()} / ${result.newDefenseCapacity}`;
+                                    }
+                                }
+                            }
+
+                            // Hide panel completely if all points spent
+                            if (availablePoints <= 0) {
+                                document.getElementById("stat-allocation-panel").style.display = "none";
+                            } else {
+                                updateButtons();
+                            }
+                            
+                            feedback.style.display = "none";
+                            btn.disabled = false;
+                        }, 1200);
+                    } else {
+                        feedback.style.color = "#ef4444";
+                        feedback.style.background = "rgba(239, 68, 68, 0.05)";
+                        feedback.style.border = "1px solid rgba(239, 68, 68, 0.1)";
+                        feedback.textContent = `CRITICAL FAILURE: ${result.message.toUpperCase()}`;
+                        btn.disabled = false;
+                    }
+                } catch (e) {
+                    feedback.style.color = "#ef4444";
+                    feedback.style.background = "rgba(239, 68, 68, 0.05)";
+                    feedback.style.border = "1px solid rgba(239, 68, 68, 0.1)";
+                    feedback.textContent = "CRITICAL BATTLE NETWORK SYNC INTERRUPT ERROR.";
+                    btn.disabled = false;
+                }
+            };
+
+            updateButtons();
         })();
     </script>
 </body>

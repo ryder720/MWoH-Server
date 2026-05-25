@@ -79,7 +79,8 @@ namespace MwohServer.Data
                 MobaCoinBalance = 999999,
                 SilverBalance = 1000000,
                 PlayerIdString = "123456",
-                SessionId = "test_session_67890"
+                SessionId = "test_session_67890",
+                StatPoints = 15
             });
         }
     }

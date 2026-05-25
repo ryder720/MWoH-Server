@@ -630,9 +630,12 @@ namespace MwohServer.Controllers
                 { "attackDeckCount", attackDeckCount.ToString() },
                 { "attackDeckCost", attackDeckCost.ToString() },
                 { "attackPower", attackPower.ToString("N0") },
+                { "attackCapacity", profile.AttackPower.ToString() },
                 { "defenseDeckCount", defenseDeckCount.ToString() },
                 { "defenseDeckCost", defenseDeckCost.ToString() },
-                { "defensePower", defensePower.ToString("N0") }
+                { "defensePower", defensePower.ToString("N0") },
+                { "defenseCapacity", profile.DefensePower.ToString() },
+                { "statPoints", profile.StatPoints.ToString() }
             };
 
             return Content(RenderTemplate("mypage.html", replacements), "text/html");
@@ -934,6 +937,63 @@ namespace MwohServer.Controllers
             }
 
             return Ok(new { success = true, message = result.Message });
+        }
+
+        [HttpPost("mypage/allocate_points")]
+        public IActionResult AllocateStatPoints()
+        {
+            _logger.LogInformation("[Cygames] AllocateStatPoints called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null)
+            {
+                return Ok(new { success = false, message = "Profile not synced." });
+            }
+
+            int.TryParse(Request.Form["energy"].ToString(), out var energyPoints);
+            int.TryParse(Request.Form["attack"].ToString(), out var attackPoints);
+            int.TryParse(Request.Form["defense"].ToString(), out var defensePoints);
+
+            var totalAllocated = energyPoints + attackPoints + defensePoints;
+            if (totalAllocated <= 0)
+            {
+                return Ok(new { success = false, message = "Allocated points must be greater than zero." });
+            }
+
+            if (totalAllocated > profile.StatPoints)
+            {
+                return Ok(new { success = false, message = "Allocated points exceed available unallocated S.H.I.E.L.D. points." });
+            }
+
+            // Deduct and apply stat increments
+            profile.StatPoints -= totalAllocated;
+            profile.EnergyMax += energyPoints;
+            profile.EnergyCurrent += energyPoints;
+            profile.AttackPower += attackPoints;
+            profile.DefensePower += defensePoints;
+
+            try
+            {
+                _dbContext.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Cygames] Failed to save stat point allocations to SQLite.");
+                return Ok(new { success = false, message = "Database write error occurred." });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = "S.H.I.E.L.D. Agent parameters successfully updated and synced!",
+                remainingStatPoints = profile.StatPoints,
+                newEnergyMax = profile.EnergyMax,
+                newEnergyCurrent = profile.EnergyCurrent,
+                newAttackCapacity = profile.AttackPower,
+                newDefenseCapacity = profile.DefensePower
+            });
         }
 
         [HttpPost("mypage/set_leader")]

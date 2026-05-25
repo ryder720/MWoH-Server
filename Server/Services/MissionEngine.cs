@@ -201,7 +201,7 @@ namespace MwohServer.Services
                 {
                     profile.Experience -= nextExpNeeded;
                     profile.Level++;
-                    profile.EnergyMax += GameplaySettings.EnergyMaxIncreasePerLevel;
+                    profile.StatPoints += 3;
                     profile.EnergyCurrent = profile.EnergyMax;
                     levelUp = true;
                 }

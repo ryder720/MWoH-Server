@@ -52,6 +52,8 @@ namespace MwohServer.Models
         
         public string SessionId { get; set; } = "";
         
+        public int StatPoints { get; set; } = 0;
+        
         public string MissionProgressJson { get; set; } = "{\"UnlockedOperationId\":1,\"UnlockedMissionId\":1,\"ActiveMissionId\":1,\"ActiveMissionProgress\":0}";
 
         public DateTime LastEnergyRecoveryTime { get; set; } = DateTime.UtcNow;
