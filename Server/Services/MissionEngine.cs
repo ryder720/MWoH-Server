@@ -194,20 +194,33 @@ namespace MwohServer.Services
             profile.Experience += xpGained;
 
             var levelUp = false;
-            while (true)
+            if (profile.Level >= 200)
             {
-                var nextExpNeeded = GameplaySettings.BaseXpRequirement + (profile.Level - 1) * GameplaySettings.XpIncrementPerLevel;
-                if (profile.Experience >= nextExpNeeded)
+                profile.Experience = 0;
+            }
+            else
+            {
+                while (profile.Level < 200)
                 {
-                    profile.Experience -= nextExpNeeded;
-                    profile.Level++;
-                    profile.StatPoints += 3;
-                    profile.EnergyCurrent = profile.EnergyMax;
-                    levelUp = true;
-                }
-                else
-                {
-                    break;
+                    var nextExpNeeded = GameplaySettings.BaseXpRequirement + (profile.Level - 1) * GameplaySettings.XpIncrementPerLevel;
+                    if (profile.Experience >= nextExpNeeded)
+                    {
+                        profile.Experience -= nextExpNeeded;
+                        profile.Level++;
+                        profile.StatPoints += 3;
+                        profile.EnergyCurrent = profile.EnergyMax;
+                        levelUp = true;
+
+                        if (profile.Level >= 200)
+                        {
+                            profile.Experience = 0;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
 
