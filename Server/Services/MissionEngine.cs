@@ -255,6 +255,33 @@ namespace MwohServer.Services
                 }
             }
 
+            // ── Card Mastery Grinding ────────────────────────────────────────────────
+            // Cards that are active in the Attack Deck or designated as squad leader
+            // gain mastery experience every time the player clicks through a mission.
+            var masteryGained = 0;
+            foreach (var card in profile.Cards)
+            {
+                if (!card.IsInAttackDeck && !card.IsLeader) continue;
+                if (card.CardTemplate == null) continue;
+
+                var maxMastery = card.CardTemplate.MaxMastery;
+                if (maxMastery <= 0) maxMastery = 100;
+
+                if (card.CurrentMastery < maxMastery)
+                {
+                    card.CurrentMastery = Math.Min(maxMastery,
+                        card.CurrentMastery + GameplaySettings.MasteryGainPerMissionClick);
+                    card.RecalculateStats();
+                    masteryGained++;
+                }
+            }
+
+            if (masteryGained > 0)
+            {
+                _logger.LogDebug("[MissionEngine] Mastery incremented for {Count} active card(s) on profile {Id}.", masteryGained, profileId);
+            }
+            // ────────────────────────────────────────────────────────────────────────
+
             SavePlayerMissionProgress(profile, progressState);
             _dbContext.SaveChanges();
 

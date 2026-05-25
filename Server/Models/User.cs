@@ -149,6 +149,41 @@ namespace MwohServer.Models
             CurrentAtk = template.BaseAtk + activeMasteryAtk;
             CurrentDef = template.BaseDef + activeMasteryDef;
         }
+
+        /// <summary>
+        /// Re-interpolates CurrentAtk / CurrentDef from level progress, current mastery, and
+        /// any fusion bonus already stored on this card. Call this after incrementing CurrentMastery.
+        /// </summary>
+        public void RecalculateStats()
+        {
+            if (CardTemplate == null) return;
+
+            int maxLevel = CardTemplate.Rarity switch
+            {
+                "Common" or "Normal"          => 30,
+                "High Normal" or "Uncommon"   => 40,
+                "Rare"                        => 50,
+                "High Rare"                   => 60,
+                "Super Rare"                  => 70,
+                "Ultra Rare"                  => 80,
+                "Legend" or "Legendary"       => 90,
+                "Special Legend"              => 100,
+                _                             => 50
+            };
+
+            var progress = maxLevel > 1 ? (double)(CurrentLevel - 1) / (maxLevel - 1) : 0.0;
+            var newBaseAtk = (int)Math.Round(CardTemplate.BaseAtk + (CardTemplate.MaxAtk - CardTemplate.BaseAtk) * progress);
+            var newBaseDef = (int)Math.Round(CardTemplate.BaseDef + (CardTemplate.MaxDef - CardTemplate.BaseDef) * progress);
+
+            var maxMastery = CardTemplate.MaxMastery;
+            if (maxMastery <= 0) maxMastery = 100;
+
+            var activeMasteryAtk = maxMastery > 0 ? (CardTemplate.MasteryBonusAtk * CurrentMastery) / maxMastery : 0;
+            var activeMasteryDef = maxMastery > 0 ? (CardTemplate.MasteryBonusDef * CurrentMastery) / maxMastery : 0;
+
+            CurrentAtk = newBaseAtk + activeMasteryAtk + FusionBonusAtk;
+            CurrentDef = newBaseDef + activeMasteryDef + FusionBonusDef;
+        }
     }
 
     // Static item metadata parsed from Wiki listings or preloaded catalog
@@ -193,6 +228,8 @@ namespace MwohServer.Models
         public static int XpIncrementPerLevel { get; set; } = 500;
         public static int EnergyMaxIncreasePerLevel { get; set; } = 2;
         public static int DefaultMasteryPercentage { get; set; } = 100;
+        public static int MasteryGainPerMissionClick { get; set; } = 1;
+        public static int MasteryGainPerPvPBattle { get; set; } = 5;
         public static int DefaultAttackPower { get; set; } = 100;
         public static int DefaultDefensePower { get; set; } = 100;
         public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
@@ -237,6 +274,10 @@ namespace MwohServer.Models
                             {
                                 if (growthNode.TryGetProperty("DefaultMasteryPercentage", out var masteryProp))
                                     DefaultMasteryPercentage = masteryProp.GetInt32();
+                                if (growthNode.TryGetProperty("MasteryGainPerMissionClick", out var gainClickProp))
+                                    MasteryGainPerMissionClick = gainClickProp.GetInt32();
+                                if (growthNode.TryGetProperty("MasteryGainPerPvPBattle", out var gainPvpProp))
+                                    MasteryGainPerPvPBattle = gainPvpProp.GetInt32();
                             }
                             if (gameplayNode.TryGetProperty("CommunityUrl", out var communityProp))
                             {

@@ -14,7 +14,9 @@
       "DefensePower": 100
     },
     "CardGrowth": {
-      "DefaultMasteryPercentage": 100
+      "DefaultMasteryPercentage": 100,
+      "MasteryGainPerMissionClick": 1,
+      "MasteryGainPerPvPBattle": 5
     },
     "CommunityUrl": "https://github.com/ryder720/MWoH-Server"
   }
