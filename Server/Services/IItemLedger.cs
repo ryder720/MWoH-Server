@@ -6,7 +6,7 @@ namespace MwohServer.Services
     public interface IItemLedger
     {
         List<PlayerInventoryItem> GetInventory(int profileId);
-        ItemUseResult UseItem(int profileId, int itemId);
+        ItemUseResult UseItem(int profileId, int itemId, int targetCardId = 0);
     }
 
     public class ItemUseResult
@@ -19,5 +19,6 @@ namespace MwohServer.Services
         public int EnergyCurrent { get; set; }
         public long Silver { get; set; }
         public long MobaCoin { get; set; }
+        public object? UpdatedCard { get; set; }
     }
 }

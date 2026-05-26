@@ -6,6 +6,194 @@
     <title>S.H.I.E.L.D. Items Depot</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Premium Card Selection Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(3, 7, 18, 0.95);
+            z-index: 500;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-container {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 18px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--hud-blue);
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .modal-close-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .modal-subheader {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 10px 18px;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .card-selection-list {
+            padding: 15px 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        /* Card list item designs */
+        .select-card-row {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .select-card-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 240, 255, 0.3);
+        }
+
+        .select-card-art {
+            width: 48px;
+            height: 48px;
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.9) 100%);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .select-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .select-card-ph {
+            font-size: 16px;
+        }
+
+        .select-card-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .select-card-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .select-card-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .select-card-rarity {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 800;
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .select-card-metrics {
+            display: flex;
+            gap: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+        }
+
+        .select-card-metric-val {
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .select-card-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--hud-blue);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .select-card-btn:hover {
+            background: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+        }
+
+        .select-card-btn:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
 </head>
 <body>
     <div class="header">
@@ -29,28 +217,158 @@
         {{itemsHtml}}
     </div>
 
+    <!-- Targeted Card Selection Modal -->
+    <div class="modal-overlay" id="cardSelectModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">// SELECT TARGET HERO ASSET</div>
+                <button class="modal-close-btn" onclick="closeModal()">DISMISS</button>
+            </div>
+            <div class="modal-subheader" id="modalSubheader">Apply Serum or Iso-8 to enhance active combatants.</div>
+            <div class="card-selection-list" id="cardSelectionList">
+                <!-- Dynamically populated card rows -->
+            </div>
+        </div>
+    </div>
+
     <div class="toast" id="refill-toast">ISO-8 CONSUMED: Status secured</div>
 
     <script>
-        function showToast(message) {
+        const userCards = {{cardsJson}};
+        let activeItemId = 0;
+        let activeItemType = '';
+        let activeUseBtn = null;
+
+        const modal = document.getElementById('cardSelectModal');
+        const cardSelectionList = document.getElementById('cardSelectionList');
+        const modalSubheader = document.getElementById('modalSubheader');
+
+        function showToast(message, isError = false) {
             const toast = document.getElementById('refill-toast');
             toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
             toast.classList.add('show');
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 2500);
         }
 
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
         function useItem(itemId, btn) {
+            const type = btn.getAttribute('data-type') || 'EnergyRestorative';
+            
+            // If it is a targeted booster serum, prompt for card target selection first
+            if (type === 'LevelUpSerum' || type === 'MasteryIso8') {
+                activeItemId = itemId;
+                activeItemType = type;
+                activeUseBtn = btn;
+                openCardSelector(type);
+                return;
+            }
+
+            // Otherwise, run standard restorative immediately
             btn.disabled = true;
             btn.textContent = "...";
+
+            executeItemConsumption(itemId, 0, btn);
+        }
+
+        function openCardSelector(type) {
+            modalSubheader.textContent = type === 'LevelUpSerum' 
+                ? '🧪 Select a Hero card to boost by +3 levels.' 
+                : '🧪 Select a Hero card to apply mastery points.';
+                
+            renderCardList();
+            modal.style.display = 'flex';
+        }
+
+        function renderCardList() {
+            cardSelectionList.innerHTML = '';
+            
+            if (userCards.length === 0) {
+                cardSelectionList.innerHTML = '<div style="text-align:center; font-family:\'Space Mono\',monospace; color:var(--text-muted); padding:30px;">No Hero assets located in S.H.I.E.L.D. database.</div>';
+                return;
+            }
+
+            userCards.forEach(card => {
+                const row = document.createElement('div');
+                row.className = 'select-card-row';
+
+                let isMaxed = false;
+                let progressText = '';
+                if (activeItemType === 'LevelUpSerum') {
+                    isMaxed = card.level >= card.levelMax;
+                    progressText = `LV: <span class="select-card-metric-val">${card.level}/${card.levelMax}</span>`;
+                } else if (activeItemType === 'MasteryIso8') {
+                    isMaxed = card.masteryCur >= card.masteryMax;
+                    progressText = `MASTERY: <span class="select-card-metric-val">${card.masteryCur}/${card.masteryMax}</span>`;
+                }
+
+                // CSS rarity color
+                let rarityColor = 'var(--text-muted)';
+                if (card.rarity === 'Rare') rarityColor = 'var(--hud-blue)';
+                if (card.rarity === 'Super Rare' || card.rarity === 'High Rare' || card.rarity === 'SR') rarityColor = '#c084fc';
+                if (card.rarity === 'Legendary' || card.rarity === 'Legend') rarityColor = 'var(--accent-gold)';
+
+                // Image element or fallback icon
+                let imageHtml = '';
+                if (card.imageFile && card.imageFile !== '') {
+                    imageHtml = `<img src="/images/cards/${card.imageFile}" class="select-card-img" onerror="this.style.display='none'; document.getElementById('sel_ph_${card.id}').style.display='flex';">`;
+                }
+
+                const fallbackHtml = `
+                    <div class="select-card-ph" id="sel_ph_${card.id}" style="${card.imageFile ? 'display:none;' : 'display:flex;'}">👤</div>
+                `;
+
+                row.innerHTML = `
+                    <div class="select-card-art">
+                        ${imageHtml}
+                        ${fallbackHtml}
+                    </div>
+                    <div class="select-card-info">
+                        <div class="select-card-name-row">
+                            <span class="select-card-name">${card.title}</span>
+                            <span class="select-card-rarity" style="color: ${rarityColor};">${card.rarity.toUpperCase()}</span>
+                        </div>
+                        <div class="select-card-metrics">
+                            <span>${progressText}</span>
+                            <span>ATK: <span class="select-card-metric-val" style="color: var(--accent-red);">${card.atk}</span></span>
+                            <span>DEF: <span class="select-card-metric-val" style="color: var(--hud-green);">${card.def}</span></span>
+                        </div>
+                    </div>
+                    <button class="select-card-btn" ${isMaxed ? 'disabled' : ''} onclick="applySerumToCard(${card.id}, this)">
+                        ${isMaxed ? 'MAXED' : 'APPLY'}
+                    </button>
+                `;
+                cardSelectionList.appendChild(row);
+            });
+        }
+
+        function applySerumToCard(cardId, btn) {
+            btn.disabled = true;
+            btn.textContent = "...";
+
+            executeItemConsumption(activeItemId, cardId, btn);
+        }
+
+        function executeItemConsumption(itemId, targetCardId, triggerBtn) {
+            const params = new URLSearchParams();
+            params.append('item_id', itemId);
+            if (targetCardId > 0) {
+                params.append('target_card_id', targetCardId);
+            }
 
             fetch('/ultimate/item/use_item', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: 'item_id=' + itemId
+                body: params
             })
             .then(res => res.json())
             .then(data => {
@@ -60,11 +378,9 @@
                     qtyEl.textContent = 'x' + data.remaining_quantity;
                     
                     if (data.remaining_quantity <= 0) {
-                        btn.style.display = 'none';
+                        if (activeUseBtn) activeUseBtn.style.display = 'none';
                         qtyEl.style.color = '#475569';
-                    } else {
-                        btn.disabled = false;
-                        btn.textContent = 'USE';
+                        closeModal();
                     }
 
                     // Dynamically update energy bar if applicable
@@ -77,18 +393,38 @@
                         document.getElementById('energy-bar').style.width = pct + '%';
                     }
 
+                    // Update local card roster copy and animate modal refresh
+                    if (data.updatedCard) {
+                        const localCard = userCards.find(c => c.id === data.updatedCard.id);
+                        if (localCard) {
+                            localCard.level = data.updatedCard.level;
+                            localCard.atk = data.updatedCard.atk;
+                            localCard.def = data.updatedCard.def;
+                            localCard.masteryCur = data.updatedCard.masteryCur;
+                        }
+                        
+                        // Re-render card modal roster list to show new metrics
+                        if (modal.style.display === 'flex' || modal.style.display === 'block') {
+                            renderCardList();
+                        }
+                    }
+
                     showToast(data.message || 'ISO-8 secured and applied successfully!');
                 } else {
-                    btn.disabled = false;
-                    btn.textContent = 'USE';
-                    alert(data.message || 'Consumption failed.');
+                    if (triggerBtn) {
+                        triggerBtn.disabled = false;
+                        triggerBtn.textContent = targetCardId > 0 ? 'APPLY' : 'USE';
+                    }
+                    showToast(data.message || 'Consumption failed.', true);
                 }
             })
             .catch(err => {
-                btn.disabled = false;
-                btn.textContent = 'USE';
+                if (triggerBtn) {
+                    triggerBtn.disabled = false;
+                    triggerBtn.textContent = targetCardId > 0 ? 'APPLY' : 'USE';
+                }
                 console.error(err);
-                alert('Connection failure to secure terminal node.');
+                showToast('UPLINK COLLAPSED. RETRY TRANSACTION.', true);
             });
         }
     </script>

@@ -27,7 +27,7 @@ namespace MwohServer.Services
                 .ToList();
         }
 
-        public ItemUseResult UseItem(int profileId, int itemId)
+        public ItemUseResult UseItem(int profileId, int itemId, int targetCardId = 0)
         {
             var invItem = _dbContext.PlayerInventoryItems
                 .Include(pi => pi.ItemTemplate)
@@ -46,6 +46,8 @@ namespace MwohServer.Services
 
             // Apply item effect based on template classification
             string message = "";
+            object? updatedCard = null;
+
             if (invItem.ItemTemplate!.Type == "EnergyRestorative")
             {
                 int refill = (profile.EnergyMax * invItem.ItemTemplate.EffectValue) / 100;
@@ -60,9 +62,85 @@ namespace MwohServer.Services
             {
                 message = "Combat defense power fully replenished!";
             }
+            else if (invItem.ItemTemplate.Type == "LevelUpSerum")
+            {
+                if (targetCardId == 0)
+                {
+                    return new ItemUseResult { Success = false, Message = "Please select a target card to boost." };
+                }
+
+                var card = _dbContext.PlayerCards
+                    .Include(pc => pc.CardTemplate)
+                    .FirstOrDefault(pc => pc.PlayerProfileId == profileId && pc.Id == targetCardId);
+
+                if (card == null)
+                {
+                    return new ItemUseResult { Success = false, Message = "Target card not located in catalog." };
+                }
+
+                int maxLevel = card.GetMaxLevel();
+                if (card.CurrentLevel >= maxLevel)
+                {
+                    return new ItemUseResult { Success = false, Message = $"⚠️ CAP REACHED // {card.CardTemplate?.Title} is already at its rarity clearance limit (Lv. {maxLevel})." };
+                }
+
+                int boost = invItem.ItemTemplate.EffectValue > 0 ? invItem.ItemTemplate.EffectValue : 3;
+                int oldLevel = card.CurrentLevel;
+                card.CurrentLevel = Math.Min(maxLevel, card.CurrentLevel + boost);
+                int levelsGained = card.CurrentLevel - oldLevel;
+
+                card.RecalculateStats();
+
+                message = $"🧪 SERUM INJECTED // {card.CardTemplate?.Title} boosted by +{levelsGained} level(s)!";
+                updatedCard = new
+                {
+                    id = card.Id,
+                    level = card.CurrentLevel,
+                    atk = card.CurrentAtk,
+                    def = card.CurrentDef,
+                    masteryCur = card.CurrentMastery
+                };
+            }
             else if (invItem.ItemTemplate.Type == "MasteryIso8")
             {
-                message = "ISO-8 synthesized card mastery incremented successfully!";
+                if (targetCardId == 0)
+                {
+                    return new ItemUseResult { Success = false, Message = "Please select a target card to apply mastery." };
+                }
+
+                var card = _dbContext.PlayerCards
+                    .Include(pc => pc.CardTemplate)
+                    .FirstOrDefault(pc => pc.PlayerProfileId == profileId && pc.Id == targetCardId);
+
+                if (card == null)
+                {
+                    return new ItemUseResult { Success = false, Message = "Target card not located in catalog." };
+                }
+
+                int maxMastery = card.CardTemplate?.MaxMastery ?? 100;
+                if (maxMastery <= 0) maxMastery = 100;
+
+                if (card.CurrentMastery >= maxMastery)
+                {
+                    return new ItemUseResult { Success = false, Message = $"⚠️ CAP REACHED // {card.CardTemplate?.Title} has already reached maximum mastery ({maxMastery})." };
+                }
+
+                int gain = invItem.ItemTemplate.EffectValue > 0 ? invItem.ItemTemplate.EffectValue : 10;
+                int oldMastery = card.CurrentMastery;
+                card.CurrentMastery = Math.Min(maxMastery, card.CurrentMastery + gain);
+                int masteryGained = card.CurrentMastery - oldMastery;
+
+                card.RecalculateStats();
+
+                message = $"🧪 ISO-8 SYNTHESISED // {card.CardTemplate?.Title} mastery increased by +{masteryGained}!";
+                updatedCard = new
+                {
+                    id = card.Id,
+                    level = card.CurrentLevel,
+                    atk = card.CurrentAtk,
+                    def = card.CurrentDef,
+                    masteryCur = card.CurrentMastery
+                };
             }
 
             // Decrement ledger stock count
@@ -80,7 +158,8 @@ namespace MwohServer.Services
                 EnergyMax = profile.EnergyMax,
                 EnergyCurrent = profile.EnergyCurrent,
                 Silver = profile.SilverBalance,
-                MobaCoin = profile.MobaCoinBalance
+                MobaCoin = profile.MobaCoinBalance,
+                UpdatedCard = updatedCard
             };
         }
     }

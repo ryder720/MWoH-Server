@@ -151,14 +151,12 @@ namespace MwohServer.Models
         }
 
         /// <summary>
-        /// Re-interpolates CurrentAtk / CurrentDef from level progress, current mastery, and
-        /// any fusion bonus already stored on this card. Call this after incrementing CurrentMastery.
+        /// Retrieves the maximum level limit for this card's rarity.
         /// </summary>
-        public void RecalculateStats()
+        public int GetMaxLevel()
         {
-            if (CardTemplate == null) return;
-
-            int maxLevel = CardTemplate.Rarity switch
+            if (CardTemplate == null) return 50;
+            return CardTemplate.Rarity switch
             {
                 "Common" or "Normal"          => 30,
                 "High Normal" or "Uncommon"   => 40,
@@ -170,7 +168,17 @@ namespace MwohServer.Models
                 "Special Legend"              => 100,
                 _                             => 50
             };
+        }
 
+        /// <summary>
+        /// Re-interpolates CurrentAtk / CurrentDef from level progress, current mastery, and
+        /// any fusion bonus already stored on this card. Call this after incrementing CurrentMastery.
+        /// </summary>
+        public void RecalculateStats()
+        {
+            if (CardTemplate == null) return;
+
+            int maxLevel = GetMaxLevel();
             var progress = maxLevel > 1 ? (double)(CurrentLevel - 1) / (maxLevel - 1) : 0.0;
             var newBaseAtk = (int)Math.Round(CardTemplate.BaseAtk + (CardTemplate.MaxAtk - CardTemplate.BaseAtk) * progress);
             var newBaseDef = (int)Math.Round(CardTemplate.BaseDef + (CardTemplate.MaxDef - CardTemplate.BaseDef) * progress);

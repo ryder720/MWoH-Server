@@ -353,15 +353,21 @@ namespace MwohServer.Controllers
             var profileId = user.Profile?.Id ?? 1;
             
             int itemId = 0;
+            int targetCardId = 0;
             if (Request.HasFormContentType)
             {
                 var form = await Request.ReadFormAsync();
                 int.TryParse(form["item_id"].ToString(), out itemId);
+                int.TryParse(form["target_card_id"].ToString(), out targetCardId);
             }
             
             if (itemId == 0 && Request.Query.TryGetValue("item_id", out var qVal))
             {
                 int.TryParse(qVal.ToString(), out itemId);
+            }
+            if (targetCardId == 0 && Request.Query.TryGetValue("target_card_id", out var qCardVal))
+            {
+                int.TryParse(qCardVal.ToString(), out targetCardId);
             }
             
             if (itemId == 0)
@@ -377,6 +383,10 @@ namespace MwohServer.Controllers
                         {
                             itemId = prop.GetInt32();
                         }
+                        if (doc.RootElement.TryGetProperty("target_card_id", out var cardProp))
+                        {
+                            targetCardId = cardProp.GetInt32();
+                        }
                     }
                 }
                 catch {}
@@ -387,7 +397,7 @@ namespace MwohServer.Controllers
                 return BadRequest(new { success = false, message = "Missing item_id parameter." });
             }
 
-            var result = _itemLedger.UseItem(profileId, itemId);
+            var result = _itemLedger.UseItem(profileId, itemId, targetCardId);
             if (!result.Success)
             {
                 return Ok(new { success = false, message = result.Message });
@@ -399,6 +409,7 @@ namespace MwohServer.Controllers
                 message = result.Message,
                 item_id = itemId,
                 remaining_quantity = result.RemainingQuantity,
+                updatedCard = result.UpdatedCard,
                 player_status = new
                 {
                     level = result.Level,
@@ -457,6 +468,7 @@ namespace MwohServer.Controllers
                         "EnergyRestorative" => "⚡",
                         "AttackPowerRestorative" => "🔥",
                         "DefensePowerRestorative" => "🛡️",
+                        "LevelUpSerum" => "🧪",
                         "MasteryIso8" => "🧪",
                         _ => "📦"
                     };
@@ -466,12 +478,13 @@ namespace MwohServer.Controllers
                         "EnergyRestorative" => "#00f0ff",
                         "AttackPowerRestorative" => "#ef4444",
                         "DefensePowerRestorative" => "#10b981",
+                        "LevelUpSerum" => "#a855f7",
                         "MasteryIso8" => "#a5b4fc",
                         _ => "#f59e0b"
                     };
 
-                    var useButton = temp.Type.EndsWith("Restorative") 
-                        ? $"<button class='use-btn' onclick='useItem({temp.Id}, this)'>USE</button>"
+                    var useButton = (temp.Type.EndsWith("Restorative") || temp.Type == "LevelUpSerum" || temp.Type == "MasteryIso8") 
+                        ? $"<button class='use-btn' data-type='{temp.Type}' onclick='useItem({temp.Id}, this)'>USE</button>"
                         : "<span class='passive-badge'>STOCK</span>";
 
                     itemsHtml += $"""
@@ -498,6 +511,24 @@ namespace MwohServer.Controllers
                 itemsHtml = "<div class='no-items'>No item allocations located in tactical mainframe.</div>";
             }
 
+            var cardsList = profile?.Cards.Select(c => new
+            {
+                id = c.Id,
+                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                visualTitle = c.CardTemplate?.VisualTitle ?? "Hero",
+                variant = c.CardTemplate?.VariantName ?? "Base",
+                alignment = c.CardTemplate?.Alignment ?? "Speed",
+                rarity = c.CardTemplate?.Rarity ?? "Normal",
+                level = c.CurrentLevel,
+                levelMax = c.GetMaxLevel(),
+                atk = c.CurrentAtk,
+                def = c.CurrentDef,
+                masteryCur = c.CurrentMastery,
+                masteryMax = c.CardTemplate?.MaxMastery ?? 100,
+                imageFile = c.CardTemplate?.ImageFileName ?? ""
+            }).ToList() ?? new();
+            var cardsJson = JsonSerializer.Serialize(cardsList);
+
             var energyPct = energyMax > 0 ? (energyCur * 100) / energyMax : 0;
 
             var replacements = new Dictionary<string, string>
@@ -505,7 +536,8 @@ namespace MwohServer.Controllers
                 { "energyCur", energyCur.ToString() },
                 { "energyMax", energyMax.ToString() },
                 { "energyPct", energyPct.ToString() },
-                { "itemsHtml", itemsHtml }
+                { "itemsHtml", itemsHtml },
+                { "cardsJson", cardsJson }
             };
 
             return Content(RenderTemplate("item.html", replacements), "text/html");

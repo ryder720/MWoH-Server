@@ -349,6 +349,24 @@ namespace MwohServer.Data
                         string description = itemElement.GetProperty("description").GetString() ?? "";
                         string type = itemElement.GetProperty("type").GetString() ?? "General";
                         int effectValue = itemElement.GetProperty("effect_value").GetInt32();
+
+                        // Override scraped classifications to enable interactive item features
+                        if (name.Contains("Level Up ISO-8 Serum", StringComparison.OrdinalIgnoreCase))
+                        {
+                            type = "LevelUpSerum";
+                            effectValue = 3;
+                        }
+                        else if (name.Equals("Mastery Iso-8", StringComparison.OrdinalIgnoreCase))
+                        {
+                            type = "MasteryIso8";
+                            effectValue = 10;
+                        }
+                        else if (name.Equals("Cosmic Canister", StringComparison.OrdinalIgnoreCase))
+                        {
+                            type = "MasteryIso8";
+                            effectValue = 1;
+                        }
+
                         string imageUrl = itemElement.GetProperty("image_url").GetString() ?? "";
                         
                         string imageFileName = "";
