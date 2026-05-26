@@ -64,6 +64,7 @@ namespace MwohServer.Models
 
         public DateTime? LastRemovalTime { get; set; }
         public int RemovalsInLast24Hours { get; set; } = 0;
+        public int RallyPoints { get; set; } = 0;
         
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
@@ -83,6 +84,19 @@ namespace MwohServer.Models
         // Navigation properties
         public PlayerProfile? Profile { get; set; }
         public PlayerProfile? MemberProfile { get; set; }
+    }
+
+    public class RallyLog
+    {
+        [Key]
+        public int Id { get; set; }
+        public int SenderProfileId { get; set; }
+        public int ReceiverProfileId { get; set; }
+        public DateTime RalliedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation properties
+        public PlayerProfile? SenderProfile { get; set; }
+        public PlayerProfile? ReceiverProfile { get; set; }
     }
 
     // Static card metadata parsed from Wiki scraping JSON

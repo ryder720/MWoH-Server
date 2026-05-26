@@ -195,6 +195,62 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (ShieldTeamMembers table): {ex.Message}");
     }
 
+    // 2d. Migrate Profiles - Add RallyPoints column if missing
+    try
+    {
+        var hasRallyPoints = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Profiles);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString() == "RallyPoints")
+                    {
+                        hasRallyPoints = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!hasRallyPoints)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN RallyPoints INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added RallyPoints column to Profiles.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Profiles RallyPoints field): {ex.Message}");
+    }
+
+    // 2e. Create RallyLogs table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS RallyLogs (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SenderProfileId INTEGER NOT NULL,
+                ReceiverProfileId INTEGER NOT NULL,
+                RalliedAt TEXT NOT NULL,
+                FOREIGN KEY (SenderProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE,
+                FOREIGN KEY (ReceiverProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured RallyLogs table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (RallyLogs table): {ex.Message}");
+    }
+
     // 3. Migrate CardTemplates - Add MaxMastery column if missing
     try
     {

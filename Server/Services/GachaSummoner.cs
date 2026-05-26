@@ -72,7 +72,20 @@ namespace MwohServer.Services
             int totalCost = 0;
             PlayerInventoryItem? ticketInventoryItem = null;
 
-            if (currencyType == "Ticket")
+            if (currencyType == "Rally")
+            {
+                if (!selectedPackNode.TryGetProperty("cost_rally", out var costRallyProp))
+                {
+                    return new GachaResult { Success = false, Message = "Rally currency not supported for this recruitment node." };
+                }
+                int costRally = costRallyProp.GetInt32();
+                totalCost = costRally * pullCount;
+                if (profile.RallyPoints < totalCost)
+                {
+                    return new GachaResult { Success = false, Message = "Insufficient Rally Points. Co-op rally required." };
+                }
+            }
+            else if (currencyType == "Ticket")
             {
                 if (ticketItemId == 0 || costTicket == 0)
                 {
@@ -92,20 +105,30 @@ namespace MwohServer.Services
             }
             else
             {
-                var costMobacoin = selectedPackNode.GetProperty("cost_mobacoin").GetInt32();
-                var costSilver = selectedPackNode.GetProperty("cost_silver").GetInt32();
-                totalCost = (currencyType == "MobaCoin" ? costMobacoin : costSilver) * pullCount;
+                int costMobacoin = 0;
+                int costSilver = 0;
+                if (selectedPackNode.TryGetProperty("cost_mobacoin", out var mobacoinProp)) costMobacoin = mobacoinProp.GetInt32();
+                if (selectedPackNode.TryGetProperty("cost_silver", out var silverProp)) costSilver = silverProp.GetInt32();
 
-                // Validate balance
                 if (currencyType == "MobaCoin")
                 {
+                    if (costMobacoin <= 0)
+                    {
+                        return new GachaResult { Success = false, Message = "MobaCoin currency not supported for this recruitment node." };
+                    }
+                    totalCost = costMobacoin * pullCount;
                     if (profile.MobaCoinBalance < totalCost)
                     {
                         return new GachaResult { Success = false, Message = "Insufficient MobaCoins. Acquisition denied." };
                     }
                 }
-                else
+                else // Silver
                 {
+                    if (costSilver <= 0)
+                    {
+                        return new GachaResult { Success = false, Message = "Silver currency not supported for this recruitment node." };
+                    }
+                    totalCost = costSilver * pullCount;
                     if (profile.SilverBalance < totalCost)
                     {
                         return new GachaResult { Success = false, Message = "Insufficient Silver resources. Acquisition denied." };
@@ -121,7 +144,11 @@ namespace MwohServer.Services
             }
 
             // Deduct cost
-            if (currencyType == "Ticket")
+            if (currencyType == "Rally")
+            {
+                profile.RallyPoints -= totalCost;
+            }
+            else if (currencyType == "Ticket")
             {
                 if (ticketInventoryItem != null)
                 {
@@ -221,6 +248,7 @@ namespace MwohServer.Services
                 Success = true,
                 NewMobaCoins = profile.MobaCoinBalance,
                 NewSilver = profile.SilverBalance,
+                NewRallyPoints = profile.RallyPoints,
                 PulledCards = rolledCards
             };
         }

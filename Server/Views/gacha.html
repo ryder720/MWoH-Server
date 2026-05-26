@@ -47,6 +47,11 @@
             box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
         }
 
+        .rally-dot {
+            background-color: #abef0e;
+            box-shadow: 0 0 6px rgba(171, 239, 14, 0.8);
+        }
+
         .banner-carousel {
             display: flex;
             flex-direction: column;
@@ -173,6 +178,19 @@
         .btn-ticket:active {
             background: rgba(0, 210, 255, 0.25);
             box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
+
+        .btn-rally {
+            background: rgba(171, 239, 14, 0.1);
+            border-color: rgba(171, 239, 14, 0.45);
+            color: #abef0e;
+            grid-column: span 2;
+            box-shadow: 0 0 10px rgba(171, 239, 14, 0.1);
+        }
+
+        .btn-rally:active:not(:disabled) {
+            background: rgba(171, 239, 14, 0.25);
+            box-shadow: 0 0 15px rgba(171, 239, 14, 0.35);
         }
 
         .btn-cost {
@@ -475,6 +493,11 @@
             <span>COINS:</span>
             <span id="coinBalance" style="color: var(--accent-gold);">{{mobaCoins}}</span>
         </div>
+        <div class="currency-display">
+            <div class="currency-dot rally-dot"></div>
+            <span>RALLY:</span>
+            <span id="rallyBalance" style="color: #abef0e; text-shadow: 0 0 6px rgba(171,239,14,0.3);">{{rallyPoints}}</span>
+        </div>
     </div>
 
     <div class="container">
@@ -520,12 +543,14 @@
         const activeBanners = {{gachaConfigJson}};
         let currentSilver = parseInt("{{silver}}");
         let currentMobaCoins = parseInt("{{mobaCoins}}");
+        let currentRallyPoints = parseInt("{{rallyPoints}}");
         const userTickets = {{ticketsJson}};
 
         // System elements
         const bannersContainer = document.getElementById('bannersContainer');
         const silverBalanceEl = document.getElementById('silverBalance');
         const coinBalanceEl = document.getElementById('coinBalance');
+        const rallyBalanceEl = document.getElementById('rallyBalance');
         const systemToast = document.getElementById('systemToast');
         const decryptionOverlay = document.getElementById('decryptionOverlay');
         const decryptionTitle = document.getElementById('decryptionTitle');
@@ -541,6 +566,7 @@
         // Initialize display balances
         silverBalanceEl.textContent = formatBalance(currentSilver);
         coinBalanceEl.textContent = formatBalance(currentMobaCoins);
+        if (rallyBalanceEl) rallyBalanceEl.textContent = formatBalance(currentRallyPoints);
 
         // Toast trigger
         function showToast(message, isError = false) {
@@ -590,15 +616,20 @@
                     `;
                 }
 
-                card.innerHTML = `
-                    <div class="banner-header">
-                        <div class="banner-title" style="color: ${pack.theme_color};">${pack.name}</div>
-                        <div class="banner-desc">${pack.description}</div>
-                    </div>
-                    <div class="rate-badge-row">
-                        ${ratesHtml}
-                    </div>
-                    <div class="actions-group">
+                let actionsHtml = '';
+                if (pack.cost_rally) {
+                    actionsHtml = `
+                        <button class="summon-btn btn-rally" onclick="performRecruit(${pack.id}, 'Rally', 1, ${pack.cost_rally})">
+                            <span>1x S.H.I.E.L.D. Summon</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_rally)} Rally Points</span>
+                        </button>
+                        <button class="summon-btn btn-rally" onclick="performRecruit(${pack.id}, 'Rally', 10, ${pack.cost_rally * 10})" style="margin-top: 8px;">
+                            <span>10x Co-op Squad summon</span>
+                            <span class="btn-cost">${formatBalance(pack.cost_rally * 10)} Rally Points</span>
+                        </button>
+                    `;
+                } else {
+                    actionsHtml = `
                         <button class="summon-btn btn-silver" onclick="performRecruit(${pack.id}, 'Silver', 1, ${pack.cost_silver})">
                             <span>1x Recruit</span>
                             <span class="btn-cost">${formatBalance(pack.cost_silver)} Silver</span>
@@ -616,6 +647,19 @@
                             <span class="btn-cost">${formatBalance(pack.cost_mobacoin * 10)} Coins</span>
                         </button>
                         ${ticketHtml}
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="banner-header">
+                        <div class="banner-title" style="color: ${pack.theme_color};">${pack.name}</div>
+                        <div class="banner-desc">${pack.description}</div>
+                    </div>
+                    <div class="rate-badge-row">
+                        ${ratesHtml}
+                    </div>
+                    <div class="actions-group">
+                        ${actionsHtml}
                     </div>
                 `;
                 bannersContainer.appendChild(card);
@@ -625,7 +669,12 @@
         // Handle recruit transactions
         function performRecruit(packId, currencyType, pullCount, cost, ticketItemId = 0) {
             // Client balance pre-validation
-            if (currencyType === 'Silver') {
+            if (currencyType === 'Rally') {
+                if (currentRallyPoints < cost) {
+                    showToast('INSUFFICIENT RALLY POINTS. CO-OP RALLY REQUIRED.', true);
+                    return;
+                }
+            } else if (currencyType === 'Silver') {
                 if (currentSilver < cost) {
                     showToast('INSUFFICIENT CREDITS. TRANSACTION DENIED.', true);
                     return;
@@ -700,6 +749,10 @@
                             currentMobaCoins = data.newMobaCoins;
                             silverBalanceEl.textContent = formatBalance(currentSilver);
                             coinBalanceEl.textContent = formatBalance(currentMobaCoins);
+                            if (data.newRallyPoints !== undefined) {
+                                currentRallyPoints = data.newRallyPoints;
+                                if (rallyBalanceEl) rallyBalanceEl.textContent = formatBalance(currentRallyPoints);
+                            }
 
                             // Update ticket inventories and refresh buttons reactively
                             if (data.newTickets) {

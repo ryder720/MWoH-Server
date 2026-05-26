@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Agent Dossier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Scoped visual overrides for premium agent dossier */
+        .dossier-panel {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(15px);
+            margin: 15px auto;
+            width: 100%;
+            max-width: 440px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dossier-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: linear-gradient(90deg, var(--hud-blue), #abef0e);
+        }
+
+        /* Dossier Header */
+        .dossier-header-sec {
+            text-align: center;
+            width: 100%;
+            border-bottom: 1px dashed rgba(255,255,255,0.08);
+            padding-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .agent-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .badge-accepted {
+            color: #34d399;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-none {
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .badge-pending {
+            color: var(--accent-gold);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .agent-dossier-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .agent-dossier-id {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* Leader card visualization */
+        .dossier-avatar-container {
+            width: 180px;
+            height: 240px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: border-color 0.3s ease;
+        }
+
+        .avatar-rarity-super-rare {
+            border-color: #a855f7;
+            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+        }
+
+        .avatar-rarity-legendary {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .dossier-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .dossier-avatar-ph {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dossier-avatar-ph span {
+            font-size: 48px;
+            opacity: 0.3;
+        }
+
+        .dossier-avatar-ph label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Leader Card Info */
+        .dossier-leader-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .dossier-leader-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.25px;
+        }
+
+        .dossier-leader-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+
+        /* Parameters Panel */
+        .parameters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            background: rgba(3, 7, 18, 0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .parameter-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 4px;
+        }
+
+        .parameter-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .parameter-val {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        /* Rally Button Panel */
+        .rally-action-sec {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .big-rally-btn {
+            width: 100%;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            background: linear-gradient(135deg, rgba(171, 239, 14, 0.15) 0%, rgba(171, 239, 14, 0.4) 100%);
+            border: 1.5px solid rgba(171, 239, 14, 0.6);
+            color: #abef0e;
+            box-shadow: 0 4px 15px rgba(171, 239, 14, 0.15);
+        }
+
+        .big-rally-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(171, 239, 14, 0.3) 0%, rgba(171, 239, 14, 0.65) 100%);
+            box-shadow: 0 0 25px rgba(171, 239, 14, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .big-rally-btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .big-rally-btn:disabled {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .cooldown-clock {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/friend" class="back-btn">&lt; SQUAD</a>
+        <h1>AGENT DOSSIER</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 480px; margin: 0 auto 10px auto;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">OPERATIVE IDENTITY</span>
+                <span class="hud-val" style="font-size:14px; color:#ffffff;">{{currentPlayerName}}</span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">RALLY POINTS BALANCE</span>
+                <span class="hud-val" style="font-size:14px; color:#abef0e; text-shadow:0 0 8px rgba(171,239,14,0.2);">🟢 <span id="rally-points-val">{{rallyPoints}}</span> RP</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dossier-panel">
+        <div class="dossier-header-sec">
+            <span id="relationship-badge" class="agent-badge">PENDING UPLINK</span>
+            <div class="agent-dossier-title">{{agentName}}</div>
+            <div class="agent-dossier-id">SECURE CLASSIFICATION ID: {{playerIdString}}</div>
+        </div>
+
+        <div id="avatar-card" class="dossier-avatar-container">
+            <!-- Dynamic Avatar Content -->
+        </div>
+
+        <div class="dossier-leader-info">
+            <div class="dossier-leader-name">{{leaderName}}</div>
+            <div class="dossier-leader-sub">
+                <span style="color:var(--accent-gold);">{{leaderRarity}}</span>
+                <span>/</span>
+                <span style="color:var(--hud-blue);">{{leaderAlignment}}</span>
+            </div>
+        </div>
+
+        <div class="parameters-grid">
+            <div class="parameter-item">
+                <span class="parameter-lbl">AGENT LVL</span>
+                <span class="parameter-val" style="color: var(--hud-blue);">{{level}}</span>
+            </div>
+            <div class="parameter-item">
+                <span class="parameter-lbl">COMBAT ATK</span>
+                <span class="parameter-val" style="color: var(--accent-red);">{{leaderAtk}}</span>
+            </div>
+            <div class="parameter-item">
+                <span class="parameter-lbl">COMBAT DEF</span>
+                <span class="parameter-val" style="color: var(--hud-green);">{{leaderDef}}</span>
+            </div>
+        </div>
+
+        <div class="rally-action-sec">
+            <button id="rally-agent-btn" class="big-rally-btn" onclick="triggerRally()">
+                🟢 RALLY AGENT
+            </button>
+            <div id="cooldown-timer" class="cooldown-clock">RALLY TRANSMISSION READY</div>
+        </div>
+    </div>
+
+    <div class="toast" id="dossier-toast">ESTABLISHING TRANSMISSION</div>
+
+    <script>
+        // Seed parameters from controller
+        const agentId = parseInt("{{agentId}}");
+        const status = "{{relationshipStatus}}";
+        const isRaritySr = "{{leaderRarity}}".includes("Super Rare") || "{{leaderRarity}}" === "SR" || "{{leaderRarity}}".includes("High Rare");
+        const isRarityLegendary = "{{leaderRarity}}".includes("Legendary") || "{{leaderRarity}}" === "Legend";
+        const imageFile = "{{leaderImage}}";
+
+        let rallyCooldownActive = "{{rallyCooldownActive}}" === "true";
+        let cooldownText = "{{cooldownText}}";
+
+        // Bind relationship badge styles
+        const badgeEl = document.getElementById('relationship-badge');
+        if (status === 'Accepted') {
+            badgeEl.className = 'agent-badge badge-accepted';
+            badgeEl.textContent = 'S.H.I.E.L.D. Team Member';
+        } else if (status === 'PendingSent' || status === 'PendingReceived') {
+            badgeEl.className = 'agent-badge badge-pending';
+            badgeEl.textContent = 'Connection Proposal Pending';
+        } else {
+            badgeEl.className = 'agent-badge badge-none';
+            badgeEl.textContent = 'External Agency Operative';
+        }
+
+        // Bind card avatar styles
+        const avatarEl = document.getElementById('avatar-card');
+        if (isRarityLegendary) {
+            avatarEl.classList.add('avatar-rarity-legendary');
+        } else if (isRaritySr) {
+            avatarEl.classList.add('avatar-rarity-super-rare');
+        }
+
+        // Populate Avatar Card image
+        if (imageFile && imageFile !== "" && imageFile !== "Standard_Shield") {
+            avatarEl.innerHTML = `<img src="/images/cards/${imageFile}.jpg" class="dossier-avatar-img" onerror="this.outerHTML='<div class=\\'dossier-avatar-ph\\'><span>👤</span><label>{{leaderAlignment}}</label></div>';">`;
+        } else {
+            avatarEl.innerHTML = `<div class="dossier-avatar-ph"><span>👤</span><label>{{leaderAlignment}}</label></div>`;
+        }
+
+        // Initialize Cooldown states
+        const btnEl = document.getElementById('rally-agent-btn');
+        const clockEl = document.getElementById('cooldown-timer');
+
+        function updateRallyUIState() {
+            if (rallyCooldownActive) {
+                btnEl.disabled = true;
+                btnEl.innerHTML = '🚫 RALLIED';
+                clockEl.textContent = `COOLDOWN LOCKED // RE-ESTABLISH IN ${cooldownText}`;
+            } else {
+                btnEl.disabled = false;
+                btnEl.innerHTML = '🟢 RALLY AGENT';
+                clockEl.textContent = 'RALLY TRANSMISSION READY';
+            }
+        }
+
+        updateRallyUIState();
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('dossier-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        function triggerRally() {
+            btnEl.disabled = true;
+            const originalText = btnEl.innerHTML;
+            btnEl.innerHTML = '...';
+
+            const params = new URLSearchParams();
+            params.append('targetId', agentId);
+
+            fetch('/ultimate/friend/rally', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message);
+                    
+                    // Set cooldown locks
+                    rallyCooldownActive = true;
+                    cooldownText = "23h 59m";
+                    updateRallyUIState();
+
+                    // Dynamically update the Rally Points balance HUD
+                    if (data.newRallyPoints !== undefined) {
+                        const balanceEl = document.getElementById('rally-points-val');
+                        if (balanceEl) balanceEl.textContent = data.newRallyPoints;
+                    }
+                } else {
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = originalText;
+                    showToast(data.message || "Failed to establish rally transmission.", true);
+                }
+            })
+            .catch(err => {
+                btnEl.disabled = false;
+                btnEl.innerHTML = originalText;
+                console.error(err);
+                showToast("SCANNER UPLINK COLLAPSED. RETRY TRANSMISSION.", true);
+            });
+        }
+    </script>
+</body>
+</html>

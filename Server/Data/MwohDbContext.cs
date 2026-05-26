@@ -12,6 +12,7 @@ namespace MwohServer.Data
         public DbSet<ItemTemplate> ItemTemplates => Set<ItemTemplate>();
         public DbSet<PlayerInventoryItem> PlayerInventoryItems => Set<PlayerInventoryItem>();
         public DbSet<ShieldTeamMember> ShieldTeamMembers => Set<ShieldTeamMember>();
+        public DbSet<RallyLog> RallyLogs => Set<RallyLog>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -39,6 +40,19 @@ namespace MwohServer.Data
                 .HasOne(m => m.MemberProfile)
                 .WithMany()
                 .HasForeignKey(m => m.MemberProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure RallyLog relationships
+            modelBuilder.Entity<RallyLog>()
+                .HasOne(r => r.SenderProfile)
+                .WithMany()
+                .HasForeignKey(r => r.SenderProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RallyLog>()
+                .HasOne(r => r.ReceiverProfile)
+                .WithMany()
+                .HasForeignKey(r => r.ReceiverProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configure one-to-many relationship between Profile and PlayerCards

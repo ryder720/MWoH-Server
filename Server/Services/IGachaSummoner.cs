@@ -14,6 +14,7 @@ namespace MwohServer.Services
         public string Message { get; set; } = string.Empty;
         public long NewMobaCoins { get; set; }
         public long NewSilver { get; set; }
+        public int NewRallyPoints { get; set; }
         public List<PlayerCard> PulledCards { get; set; } = new();
     }
 }

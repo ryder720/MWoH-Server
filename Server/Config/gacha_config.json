@@ -30,5 +30,18 @@
       "Super Rare": 12.0,
       "Legendary": 3.0
     }
+  },
+  {
+    "id": 3,
+    "name": "S.H.I.E.L.D. Rally Pack",
+    "description": "Recruit squad assets using co-op Rally Points earned from proposing and receiving rallies from fellow agents.",
+    "cost_rally": 200,
+    "theme_color": "#abef0e",
+    "rates": {
+      "Normal": 75.0,
+      "Rare": 20.0,
+      "Super Rare": 4.5,
+      "Legendary": 0.5
+    }
   }
 ]

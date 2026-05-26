@@ -283,6 +283,29 @@
             border: 1px dashed rgba(255, 255, 255, 0.05);
             border-radius: 12px;
         }
+
+        .action-btn.rally-btn {
+            background: linear-gradient(135deg, rgba(171, 239, 14, 0.1) 0%, rgba(171, 239, 14, 0.3) 100%);
+            border: 1px solid rgba(171, 239, 14, 0.5);
+            color: #abef0e;
+            box-shadow: 0 0 10px rgba(171, 239, 14, 0.1);
+        }
+
+        .action-btn.rally-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(171, 239, 14, 0.25) 0%, rgba(171, 239, 14, 0.45) 100%);
+            box-shadow: 0 0 15px rgba(171, 239, 14, 0.35);
+        }
+
+        .agent-name-link {
+            text-decoration: none;
+            color: #ffffff;
+            transition: color 0.15s ease;
+        }
+
+        .agent-name-link:hover {
+            color: var(--hud-blue);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -302,6 +325,16 @@
             <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
                 <span class="hud-lbl">ACTIVE SQUAD STRENGTH</span>
                 <span class="hud-val" style="font-size:14px; color:var(--accent-gold);"><span id="roster-count">{{teamCount}}</span> / {{maxCapacity}} AGENTS</span>
+            </div>
+        </div>
+        <div class="status-row" style="margin-bottom: 0; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">CO-OP CURRENCY</span>
+                <span class="hud-val" style="font-size:14px; color:#abef0e; text-shadow: 0 0 8px rgba(171,239,14,0.2);">🟢 <span id="rally-points-val">{{rallyPoints}}</span> RALLY POINTS</span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURE STATUS</span>
+                <span class="hud-val" style="font-size:12px; color:#10b981; font-family:'Space Mono', monospace;">TRANSMITTING</span>
             </div>
         </div>
     </div>
@@ -353,6 +386,7 @@
         let activeTeam = {{activeTeamJson}};
         let receivedInvites = {{receivedInvitesJson}};
         let sentInvites = {{sentInvitesJson}};
+        let ralliedIds = {{ralliedIdsJson}};
 
         function showToast(message, isError = false) {
             const toast = document.getElementById('friend-toast');
@@ -393,20 +427,26 @@
             activeTeam.forEach(agent => {
                 const card = document.createElement('div');
                 card.className = 'agent-card accepted';
+                const isRallied = ralliedIds.includes(agent.id);
+                const rallyBtnHtml = isRallied 
+                    ? `<button class="action-btn rally-btn" disabled>RALLIED</button>`
+                    : `<button class="action-btn rally-btn" onclick="executeQuickRally(${agent.id}, this)">RALLY</button>`;
+
                 card.innerHTML = `
                     <div class="agent-avatar-container">
                         ${agent.leaderImage ? `<img src="/images/cards/${agent.leaderImage}.jpg" class="agent-avatar-img" onerror="this.outerHTML='<span class=\\'agent-avatar-ph\\'>👤</span>';">` : `<span class="agent-avatar-ph">👤</span>`}
                         <span class="agent-level-badge">LV ${agent.level}</span>
                     </div>
                     <div class="agent-info">
-                        <span class="agent-name">${agent.nickname}</span>
+                        <span class="agent-name"><a href="/ultimate/mypage/agent/${agent.id}" class="agent-name-link">${agent.nickname}</a></span>
                         <div class="agent-sub">
                             <span>🛡️ Representative Leader: ${agent.leaderName}</span>
                             <span>⚡ Combat stats: ATK ${agent.leaderAtk.toLocaleString()} / DEF ${agent.leaderDef.toLocaleString()}</span>
                             <span>🔑 ID: ${agent.playerId}</span>
                         </div>
                     </div>
-                    <div class="agent-actions">
+                    <div class="agent-actions" style="flex-direction:row; gap:8px;">
+                        ${rallyBtnHtml}
                         <button class="action-btn remove-btn" onclick="removeMember(${agent.id}, this)">Dismiss</button>
                     </div>
                 `;
@@ -431,7 +471,7 @@
                             <span class="agent-level-badge">LV ${agent.level}</span>
                         </div>
                         <div class="agent-info">
-                            <span class="agent-name">${agent.nickname}</span>
+                            <span class="agent-name"><a href="/ultimate/mypage/agent/${agent.id}" class="agent-name-link">${agent.nickname}</a></span>
                             <div class="agent-sub">
                                 <span>🛡️ Leader Card: ${agent.leaderName}</span>
                                 <span>🔑 ID: ${agent.playerId}</span>
@@ -462,7 +502,7 @@
                             <span class="agent-level-badge">LV ${agent.level}</span>
                         </div>
                         <div class="agent-info">
-                            <span class="agent-name">${agent.nickname}</span>
+                            <span class="agent-name"><a href="/ultimate/mypage/agent/${agent.id}" class="agent-name-link">${agent.nickname}</a></span>
                             <div class="agent-sub">
                                 <span>🛡️ Leader Card: ${agent.leaderName}</span>
                                 <span>🔑 ID: ${agent.playerId}</span>
@@ -509,6 +549,11 @@
                         actionHtml = `<button class="action-btn propose-btn" onclick="proposeMember(${agent.id}, this)">Propose Team</button>`;
                     }
 
+                    const isRallied = agent.isRallied || ralliedIds.includes(agent.id);
+                    const rallyBtnHtml = isRallied 
+                        ? `<button class="action-btn rally-btn" disabled>RALLIED</button>`
+                        : `<button class="action-btn rally-btn" onclick="executeQuickRally(${agent.id}, this)">RALLY</button>`;
+
                     const card = document.createElement('div');
                     card.className = 'agent-card';
                     card.innerHTML = `
@@ -517,13 +562,14 @@
                             <span class="agent-level-badge">LV ${agent.level}</span>
                         </div>
                         <div class="agent-info">
-                            <span class="agent-name">${agent.nickname}</span>
+                            <span class="agent-name"><a href="/ultimate/mypage/agent/${agent.id}" class="agent-name-link">${agent.nickname}</a></span>
                             <div class="agent-sub">
                                 <span>🛡️ Leader Card: ${agent.leaderName}</span>
                                 <span>🔑 ID: ${agent.playerId}</span>
                             </div>
                         </div>
-                        <div class="agent-actions">
+                        <div class="agent-actions" style="flex-direction:row; gap:8px;">
+                            ${rallyBtnHtml}
                             ${actionHtml}
                         </div>
                     `;
@@ -533,6 +579,44 @@
             .catch(err => {
                 console.error(err);
                 container.innerHTML = `<div class="empty-placeholder" style="color:#ef4444;">📡 SCANNER UPLINK INTERRUPTED. RETRY ACTION.</div>`;
+            });
+        }
+
+        function executeQuickRally(targetId, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('targetId', targetId);
+
+            fetch('/ultimate/friend/rally', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || "Rally successful!");
+                    btn.textContent = "RALLIED";
+                    btn.disabled = true;
+                    if (data.newRallyPoints !== undefined) {
+                        const balanceEl = document.getElementById('rally-points-val');
+                        if (balanceEl) balanceEl.textContent = data.newRallyPoints;
+                    }
+                    ralliedIds.push(targetId);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Rally failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
             });
         }
 
@@ -553,10 +637,7 @@
             .then(data => {
                 if (data.success) {
                     showToast(data.message || "Proposal sent successfully!");
-                    // Refresh sent list by fetching redirects or updating directly
                     btn.outerHTML = `<span style="font-family:'Space Mono',monospace; font-size:8px; color:var(--accent-gold); font-weight:700;">PENDING SENT</span>`;
-                    
-                    // Reload indices silently
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
                     btn.disabled = false;

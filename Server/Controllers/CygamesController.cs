@@ -192,6 +192,7 @@ namespace MwohServer.Controllers
 
             var mobaCoins = profile?.MobaCoinBalance ?? 0;
             var silver = profile?.SilverBalance ?? 0;
+            var rallyPoints = profile?.RallyPoints ?? 0;
 
             var configPath = Path.Combine(Directory.GetCurrentDirectory(), "Config", "gacha_config.json");
             var gachaConfigJson = "[]";
@@ -210,6 +211,7 @@ namespace MwohServer.Controllers
             {
                 { "mobaCoins", mobaCoins.ToString() },
                 { "silver", silver.ToString() },
+                { "rallyPoints", rallyPoints.ToString() },
                 { "gachaConfigJson", gachaConfigJson },
                 { "ticketsJson", ticketsJson }
             };
@@ -282,6 +284,7 @@ namespace MwohServer.Controllers
                 success = true,
                 newMobaCoins = result.NewMobaCoins,
                 newSilver = result.NewSilver,
+                newRallyPoints = result.NewRallyPoints,
                 pulledCards = responseCards,
                 newTickets = updatedTicketsDict
             });
@@ -1234,6 +1237,12 @@ namespace MwohServer.Controllers
                 }
             }
 
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var recentlyRalliedIds = _dbContext.RallyLogs
+                .Where(r => r.SenderProfileId == profile.Id && r.RalliedAt >= cutoff)
+                .Select(r => r.ReceiverProfileId)
+                .ToList();
+
             var replacements = new Dictionary<string, string>
             {
                 { "agentName", profile.Nickname },
@@ -1243,7 +1252,9 @@ namespace MwohServer.Controllers
                 { "maxCapacity", maxCapacity.ToString() },
                 { "activeTeamJson", System.Text.Json.JsonSerializer.Serialize(teamProfiles) },
                 { "receivedInvitesJson", System.Text.Json.JsonSerializer.Serialize(incomingProfiles) },
-                { "sentInvitesJson", System.Text.Json.JsonSerializer.Serialize(outgoingProfiles) }
+                { "sentInvitesJson", System.Text.Json.JsonSerializer.Serialize(outgoingProfiles) },
+                { "ralliedIdsJson", System.Text.Json.JsonSerializer.Serialize(recentlyRalliedIds) },
+                { "rallyPoints", profile.RallyPoints.ToString() }
             };
 
             return Content(RenderTemplate("friend.html", replacements), "text/html");
@@ -1276,6 +1287,8 @@ namespace MwohServer.Controllers
                 .ToList();
 
             var responseList = new List<object>();
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+
             foreach (var r in searchResults)
             {
                 var leaderCard = r.Cards.FirstOrDefault(c => c.IsLeader) ?? r.Cards.FirstOrDefault();
@@ -1297,6 +1310,9 @@ namespace MwohServer.Controllers
                     }
                 }
 
+                var isRallied = _dbContext.RallyLogs
+                    .Any(rl => rl.SenderProfileId == profile.Id && rl.ReceiverProfileId == r.Id && rl.RalliedAt >= cutoff);
+
                 responseList.Add(new
                 {
                     id = r.Id,
@@ -1305,11 +1321,85 @@ namespace MwohServer.Controllers
                     playerId = r.PlayerIdString,
                     leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
                     leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield",
-                    friendshipStatus = status
+                    friendshipStatus = status,
+                    isRallied = isRallied
                 });
             }
 
             return Ok(responseList);
+        }
+
+        [HttpPost("friend/rally")]
+        public IActionResult RallyAgent([FromForm] int targetId)
+        {
+            _logger.LogInformation($"[Cygames] RallyAgent called for targetId: {targetId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            
+            var sender = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
+            var receiver = _dbContext.Profiles.FirstOrDefault(p => p.Id == targetId);
+
+            if (sender == null) return BadRequest("Sender profile not found.");
+            if (receiver == null) return BadRequest("Target profile not found.");
+            if (sender.Id == receiver.Id) return BadRequest("You cannot rally yourself, Agent!");
+
+            // Check standard 24h cooldown
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var existingRally = _dbContext.RallyLogs
+                .FirstOrDefault(rl => rl.SenderProfileId == sender.Id && rl.ReceiverProfileId == receiver.Id && rl.RalliedAt >= cutoff);
+
+            if (existingRally != null)
+            {
+                var timeRemaining = existingRally.RalliedAt.AddHours(24) - DateTime.UtcNow;
+                var hours = (int)timeRemaining.TotalHours;
+                var minutes = timeRemaining.Minutes;
+                return Ok(new
+                {
+                    success = false,
+                    message = $"Cooldown active. You can rally this agent again in {hours}h {minutes}m."
+                });
+            }
+
+            // Determine if they are S.H.I.E.L.D. Team members
+            var isFriend = _dbContext.ShieldTeamMembers
+                .Any(m => m.Status == "Accepted" &&
+                         ((m.ProfileId == sender.Id && m.MemberProfileId == receiver.Id) ||
+                          (m.ProfileId == receiver.Id && m.MemberProfileId == sender.Id)));
+
+            int senderPoints = isFriend ? 20 : 10;
+            int receiverPoints = isFriend ? 10 : 5;
+
+            // Update points
+            sender.RallyPoints += senderPoints;
+            receiver.RallyPoints += receiverPoints;
+
+            // Log rally activity
+            var log = new RallyLog
+            {
+                SenderProfileId = sender.Id,
+                ReceiverProfileId = receiver.Id,
+                RalliedAt = DateTime.UtcNow
+            };
+            _dbContext.RallyLogs.Add(log);
+
+            try
+            {
+                _dbContext.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Cygames] Failed to process rally point transaction.");
+                return Ok(new { success = false, message = "Database error occurred during rally point credit." });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Successfully rallied {receiver.Nickname}! You gained +{senderPoints} Rally Points. {receiver.Nickname} gained +{receiverPoints}.",
+                senderPoints = senderPoints,
+                receiverPoints = receiverPoints,
+                newRallyPoints = sender.RallyPoints
+            });
         }
 
         [HttpPost("friend/propose")]
@@ -2158,6 +2248,84 @@ namespace MwohServer.Controllers
                 message = result.Message,
                 logLines = result.LogLines
             });
+        }
+
+        [HttpGet("mypage/agent/{id}")]
+        public IActionResult ServeAgentDossier(int id)
+        {
+            _logger.LogInformation($"[Cygames] ServeAgentDossier called for agent id: {id}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var currentPlayer = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (currentPlayer == null) return RedirectToAction("ServeGameTopPage");
+
+            var targetPlayer = _dbContext.Profiles
+                .Include(p => p.Cards)
+                    .ThenInclude(c => c.CardTemplate)
+                .FirstOrDefault(p => p.Id == id);
+
+            if (targetPlayer == null) return NotFound("Agent dossier not found in S.H.I.E.L.D. database.");
+
+            // Self redirection if clicking own agent dossier
+            if (targetPlayer.Id == currentPlayer.Id)
+            {
+                return Redirect("/ultimate/friend");
+            }
+
+            var leaderCard = targetPlayer.Cards.FirstOrDefault(c => c.IsLeader) ?? targetPlayer.Cards.FirstOrDefault();
+
+            // Determine relationship status
+            var relation = _dbContext.ShieldTeamMembers
+                .FirstOrDefault(m => (m.ProfileId == currentPlayer.Id && m.MemberProfileId == targetPlayer.Id) || 
+                                     (m.ProfileId == targetPlayer.Id && m.MemberProfileId == currentPlayer.Id));
+
+            string status = "None";
+            if (relation != null)
+            {
+                if (relation.Status == "Accepted")
+                {
+                    status = "Accepted";
+                }
+                else if (relation.Status == "Pending")
+                {
+                    status = relation.ProfileId == currentPlayer.Id ? "PendingSent" : "PendingReceived";
+                }
+            }
+
+            // Check rally cooldown
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var lastRally = _dbContext.RallyLogs
+                .FirstOrDefault(rl => rl.SenderProfileId == currentPlayer.Id && rl.ReceiverProfileId == targetPlayer.Id && rl.RalliedAt >= cutoff);
+
+            bool cooldownActive = lastRally != null;
+            string cooldownText = "0";
+            if (lastRally != null)
+            {
+                var remaining = lastRally.RalliedAt.AddHours(24) - DateTime.UtcNow;
+                cooldownText = $"{(int)remaining.TotalHours}h {remaining.Minutes}m";
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "agentName", targetPlayer.Nickname },
+                { "level", targetPlayer.Level.ToString() },
+                { "playerIdString", targetPlayer.PlayerIdString },
+                { "leaderName", leaderCard?.CardTemplate?.Title ?? "Agent Recruit" },
+                { "leaderImage", leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield" },
+                { "leaderRarity", leaderCard?.CardTemplate?.Rarity ?? "Normal" },
+                { "leaderAlignment", leaderCard?.CardTemplate?.Alignment ?? "Speed" },
+                { "leaderAtk", (leaderCard?.CurrentAtk ?? 0).ToString() },
+                { "leaderDef", (leaderCard?.CurrentDef ?? 0).ToString() },
+                { "relationshipStatus", status },
+                { "rallyCooldownActive", cooldownActive ? "true" : "false" },
+                { "cooldownText", cooldownText },
+                { "agentId", targetPlayer.Id.ToString() },
+                { "rallyPoints", currentPlayer.RallyPoints.ToString() },
+                { "currentPlayerName", currentPlayer.Nickname }
+            };
+
+            return Content(RenderTemplate("agent_dossier.html", replacements), "text/html");
         }
 
         private PlayerProfile? GetPlayerProfile(int profileId, bool includeInventory = false)
