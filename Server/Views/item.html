@@ -210,6 +210,14 @@
         <div class="bar-container">
             <div class="bar-fill" id="energy-bar" style="width: {{energyPct}}%;"></div>
         </div>
+
+        <div class="status-row" style="margin-top: 12px;">
+            <span class="hud-lbl">SQUAD FILES CAPACITY</span>
+            <span class="hud-val" id="capacity-val">{{cardsCount}} / {{cardsMax}}</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="capacity-bar" style="width: {{capacityPct}}%; background: var(--hud-blue);"></div>
+        </div>
     </div>
 
     <!-- Scrollable inventory items list -->
@@ -391,6 +399,15 @@
                         
                         const pct = (status.energy_current * 100) / status.energy_max;
                         document.getElementById('energy-bar').style.width = pct + '%';
+
+                        // Dynamically update squad files capacity bar if returned
+                        if (status.max_card_capacity !== undefined) {
+                            const capStr = status.cards_count + ' / ' + status.max_card_capacity;
+                            document.getElementById('capacity-val').textContent = capStr;
+
+                            const capPct = (status.cards_count * 100) / status.max_card_capacity;
+                            document.getElementById('capacity-bar').style.width = capPct + '%';
+                        }
                     }
 
                     // Update local card roster copy and animate modal refresh

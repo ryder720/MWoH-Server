@@ -142,6 +142,13 @@ namespace MwohServer.Services
                     masteryCur = card.CurrentMastery
                 };
             }
+            else if (invItem.ItemTemplate.Type == "InventoryExpansion")
+            {
+                int oldCap = profile.MaxCardCapacity;
+                int gain = invItem.ItemTemplate.EffectValue > 0 ? invItem.ItemTemplate.EffectValue : 5;
+                profile.MaxCardCapacity += gain;
+                message = $"📁 UPLINK SECURED // Squad slot capacity expanded from {oldCap} to {profile.MaxCardCapacity} files!";
+            }
 
             // Decrement ledger stock count
             invItem.Quantity--;

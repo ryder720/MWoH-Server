@@ -366,6 +366,11 @@ namespace MwohServer.Data
                             type = "MasteryIso8";
                             effectValue = 1;
                         }
+                        else if (name.Contains("Card Stock", StringComparison.OrdinalIgnoreCase))
+                        {
+                            type = "InventoryExpansion";
+                            effectValue = 5;
+                        }
 
                         string imageUrl = itemElement.GetProperty("image_url").GetString() ?? "";
                         

@@ -403,6 +403,10 @@ namespace MwohServer.Controllers
                 return Ok(new { success = false, message = result.Message });
             }
             
+            var updatedProfile = GetPlayerProfile(profileId);
+            int updatedCardsCount = updatedProfile?.Cards.Count ?? 0;
+            int updatedMaxCapacity = updatedProfile?.MaxCardCapacity ?? 250;
+
             return Ok(new
             {
                 success = true,
@@ -416,7 +420,9 @@ namespace MwohServer.Controllers
                     energy_max = result.EnergyMax,
                     energy_current = result.EnergyCurrent,
                     silver = result.Silver,
-                    mobacoin = result.MobaCoin
+                    mobacoin = result.MobaCoin,
+                    max_card_capacity = updatedMaxCapacity,
+                    cards_count = updatedCardsCount
                 }
             });
         }
@@ -483,7 +489,7 @@ namespace MwohServer.Controllers
                         _ => "#f59e0b"
                     };
 
-                    var useButton = (temp.Type.EndsWith("Restorative") || temp.Type == "LevelUpSerum" || temp.Type == "MasteryIso8") 
+                    var useButton = (temp.Type.EndsWith("Restorative") || temp.Type == "LevelUpSerum" || temp.Type == "MasteryIso8" || temp.Type == "InventoryExpansion") 
                         ? $"<button class='use-btn' data-type='{temp.Type}' onclick='useItem({temp.Id}, this)'>USE</button>"
                         : "<span class='passive-badge'>STOCK</span>";
 
@@ -530,6 +536,10 @@ namespace MwohServer.Controllers
             var cardsJson = JsonSerializer.Serialize(cardsList);
 
             var energyPct = energyMax > 0 ? (energyCur * 100) / energyMax : 0;
+            
+            var cardsCount = cardsList.Count;
+            var cardsMax = profile?.MaxCardCapacity ?? 250;
+            var capacityPct = cardsMax > 0 ? (cardsCount * 100) / cardsMax : 0;
 
             var replacements = new Dictionary<string, string>
             {
@@ -537,7 +547,10 @@ namespace MwohServer.Controllers
                 { "energyMax", energyMax.ToString() },
                 { "energyPct", energyPct.ToString() },
                 { "itemsHtml", itemsHtml },
-                { "cardsJson", cardsJson }
+                { "cardsJson", cardsJson },
+                { "cardsCount", cardsCount.ToString() },
+                { "cardsMax", cardsMax.ToString() },
+                { "capacityPct", capacityPct.ToString() }
             };
 
             return Content(RenderTemplate("item.html", replacements), "text/html");

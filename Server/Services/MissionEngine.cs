@@ -228,7 +228,7 @@ namespace MwohServer.Services
             var droppedCardName = "";
 
             int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            bool isInventoryFull = currentCardCount >= 250;
+            bool isInventoryFull = currentCardCount >= profile.MaxCardCapacity;
 
             if (rand.Next(1, 101) <= 20 && activeMission.PossibleDrops.Count > 0)
             {
@@ -238,7 +238,7 @@ namespace MwohServer.Services
                 {
                     if (isInventoryFull)
                     {
-                        _logger.LogWarning($"[MissionEngine] Card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
+                        _logger.LogWarning($"[MissionEngine] Card drop skipped for Profile {profile.Id} - Inventory full ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}).");
                     }
                     else
                     {
@@ -301,7 +301,7 @@ namespace MwohServer.Services
             }
             else if (isInventoryFull && activeMission.PossibleDrops.Count > 0)
             {
-                logLines.Add($"⚠️ WARNING: INVENTORY EXCEEDS MAXIMUM SECURED FILES (250/250). NO HERO ASSETS RECOVERED!");
+                logLines.Add($"⚠️ WARNING: INVENTORY EXCEEDS MAXIMUM SECURED FILES ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}). NO HERO ASSETS RECOVERED!");
             }
 
             return new MissionAttackResult
@@ -347,13 +347,13 @@ namespace MwohServer.Services
 
             var droppedCardName = "";
             int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            bool isInventoryFull = currentCardCount >= 250;
+            bool isInventoryFull = currentCardCount >= profile.MaxCardCapacity;
 
             if (rewardTemplate != null)
             {
                 if (isInventoryFull)
                 {
-                    _logger.LogWarning($"[MissionEngine] Boss card drop skipped for Profile {profile.Id} - Inventory full (250/250).");
+                    _logger.LogWarning($"[MissionEngine] Boss card drop skipped for Profile {profile.Id} - Inventory full ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}).");
                 }
                 else
                 {
@@ -405,7 +405,7 @@ namespace MwohServer.Services
             _dbContext.SaveChanges();
 
             var clearMessage = isInventoryFull
-                ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL (250/250) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
+                ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
                 : $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
 
             return new BossBattleResult

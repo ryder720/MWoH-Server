@@ -113,11 +113,11 @@ namespace MwohServer.Services
                 }
             }
 
-            // Verify inventory capacity (250 limit)
+            // Verify inventory capacity (MaxCardCapacity limit)
             int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            if (currentCardCount + pullCount > 250)
+            if (currentCardCount + pullCount > profile.MaxCardCapacity)
             {
-                return new GachaResult { Success = false, Message = "Inventory capacity reached. Clear squad space first." };
+                return new GachaResult { Success = false, Message = $"Inventory capacity reached ({currentCardCount}/{profile.MaxCardCapacity}). Clear squad space first." };
             }
 
             // Deduct cost
