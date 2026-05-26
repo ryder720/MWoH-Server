@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Team Network</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Scoped visual parameters for S.H.I.E.L.D. Team view */
+        .tab-container {
+            display: flex;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 12px 6px;
+            background: rgba(3, 7, 18, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: none;
+            border-radius: 8px 8px 0 0;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: uppercase;
+            text-align: center;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            letter-spacing: 0.5px;
+        }
+
+        .tab-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            border-color: rgba(0, 240, 255, 0.3);
+            border-bottom: 2px solid var(--hud-blue);
+            box-shadow: 0 -4px 12px rgba(0, 240, 255, 0.05);
+        }
+
+        .tab-panel {
+            display: none;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* Glassmorphic Agent Card Visual Design */
+        .agent-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .agent-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--hud-blue);
+            opacity: 0.3;
+        }
+
+        .agent-card.accepted::before {
+            background: #10b981; /* Green glow for accepted team */
+            opacity: 0.8;
+            box-shadow: 0 0 8px #34d399;
+        }
+
+        .agent-card.pending::before {
+            background: var(--accent-gold); /* Gold glow for invites */
+            opacity: 0.8;
+            box-shadow: 0 0 8px var(--accent-gold);
+        }
+
+        .agent-avatar-container {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            background: rgba(3, 7, 18, 0.8);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .agent-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .agent-avatar-ph {
+            font-size: 24px;
+            opacity: 0.4;
+        }
+
+        .agent-level-badge {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: rgba(0, 240, 255, 0.95);
+            color: #030712;
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 1px 3px;
+            border-radius: 2px 0 0 0;
+            line-height: 1;
+        }
+
+        .agent-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .agent-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.25px;
+            text-transform: uppercase;
+        }
+
+        .agent-sub {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .agent-sub span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .agent-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        /* Action Buttons visual parameters */
+        .action-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .action-btn:active {
+            transform: scale(0.97);
+        }
+
+        .action-btn.propose-btn {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, rgba(0, 240, 255, 0.25) 100%);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            color: var(--hud-blue);
+        }
+
+        .action-btn.propose-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 240, 255, 0.4) 100%);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        .action-btn.accept-btn {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.3) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #34d399;
+        }
+
+        .action-btn.accept-btn:hover {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.4) 100%);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        .action-btn.ignore-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .action-btn.ignore-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .action-btn.remove-btn {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(239, 68, 68, 0.15) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .action-btn.remove-btn:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.25) 100%);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+        }
+
+        .action-btn:disabled {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.05) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+        }
+
+        /* Search input parameters */
+        .search-bar-sec {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-input {
+            flex: 1;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            padding: 10px 14px;
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+        }
+
+        .empty-placeholder {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px dashed rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; BACK</a>
+        <h1>SHIELD ALLIES</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 480px; margin: 0 auto 15px auto;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURE CONSOLE</span>
+                <span class="hud-val" style="font-size:14px; color:#ffffff;">{{agentName}} <span style="font-size:10px; color:var(--hud-blue);">[LVL {{level}}]</span></span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">ACTIVE SQUAD STRENGTH</span>
+                <span class="hud-val" style="font-size:14px; color:var(--accent-gold);"><span id="roster-count">{{teamCount}}</span> / {{maxCapacity}} AGENTS</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Section -->
+    <div style="width: 100%; max-width: 480px; margin: 0 auto;">
+        <div class="tab-container">
+            <button class="tab-btn active" id="tab-roster-btn" onclick="switchTab('roster')">Roster</button>
+            <button class="tab-btn" id="tab-invites-btn" onclick="switchTab('invites')">Invites</button>
+            <button class="tab-btn" id="tab-directory-btn" onclick="switchTab('directory')">Directory</button>
+        </div>
+
+        <!-- 1. active Roster panel -->
+        <div class="tab-panel active" id="panel-roster">
+            <div id="roster-list" class="tab-panel active" style="gap:12px;">
+                <!-- Populate Roster -->
+            </div>
+        </div>
+
+        <!-- 2. invites panel -->
+        <div class="tab-panel" id="panel-invites">
+            <h3 style="font-family:'Space Mono',monospace; font-size:10px; color:var(--hud-blue); text-transform:uppercase; margin-bottom:5px;">// Incoming Proposals</h3>
+            <div id="incoming-list" style="display:flex; flex-direction:column; gap:12px; margin-bottom:20px;">
+                <!-- Populate Incoming Invites -->
+            </div>
+
+            <h3 style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:5px; margin-top:15px;">// Transmitted Proposals Pending Approval</h3>
+            <div id="outgoing-list" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Populate Outgoing Invites -->
+            </div>
+        </div>
+
+        <!-- 3. directory search panel -->
+        <div class="tab-panel" id="panel-directory">
+            <div class="search-bar-sec">
+                <input type="text" class="search-input" id="searchQuery" placeholder="Search by Nickname or S.H.I.E.L.D. ID..." onkeydown="if(event.key === 'Enter') executeSearch();">
+                <button class="action-btn propose-btn" style="padding:10px 18px;" onclick="executeSearch()">SEARCH</button>
+            </div>
+            <div id="search-results" style="display:flex; flex-direction:column; gap:12px; margin-top:5px;">
+                <div class="empty-placeholder">🔍 Search the directory to find and propose co-op squad memberships to active S.H.I.E.L.D. agents.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="friend-toast">TRANSMISSION ESTABLISHED</div>
+
+    <script>
+        // Data injected from Cygames C# Controller
+        let activeTeam = {{activeTeamJson}};
+        let receivedInvites = {{receivedInvitesJson}};
+        let sentInvites = {{sentInvitesJson}};
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('friend-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${tabName}-btn`).classList.add('active');
+
+            // Update tab panels
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.getElementById(`panel-${tabName}`).classList.add('active');
+
+            // Save tab parameter in URL query without reload
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tabName);
+            window.history.replaceState({}, '', url);
+        }
+
+        function renderRoster() {
+            const list = document.getElementById('roster-list');
+            list.innerHTML = '';
+
+            if (activeTeam.length === 0) {
+                list.innerHTML = `<div class="empty-placeholder">🤝 Your S.H.I.E.L.D. Team roster is currently empty.<br><br>Search the Directory to propose squad memberships!</div>`;
+                return;
+            }
+
+            activeTeam.forEach(agent => {
+                const card = document.createElement('div');
+                card.className = 'agent-card accepted';
+                card.innerHTML = `
+                    <div class="agent-avatar-container">
+                        ${agent.leaderImage ? `<img src="/images/cards/${agent.leaderImage}.jpg" class="agent-avatar-img" onerror="this.outerHTML='<span class=\\'agent-avatar-ph\\'>👤</span>';">` : `<span class="agent-avatar-ph">👤</span>`}
+                        <span class="agent-level-badge">LV ${agent.level}</span>
+                    </div>
+                    <div class="agent-info">
+                        <span class="agent-name">${agent.nickname}</span>
+                        <div class="agent-sub">
+                            <span>🛡️ Representative Leader: ${agent.leaderName}</span>
+                            <span>⚡ Combat stats: ATK ${agent.leaderAtk.toLocaleString()} / DEF ${agent.leaderDef.toLocaleString()}</span>
+                            <span>🔑 ID: ${agent.playerId}</span>
+                        </div>
+                    </div>
+                    <div class="agent-actions">
+                        <button class="action-btn remove-btn" onclick="removeMember(${agent.id}, this)">Dismiss</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            document.getElementById('roster-count').textContent = activeTeam.length;
+        }
+
+        function renderInvites() {
+            const incoming = document.getElementById('incoming-list');
+            incoming.innerHTML = '';
+
+            if (receivedInvites.length === 0) {
+                incoming.innerHTML = `<div class="empty-placeholder" style="padding: 20px 10px;">No incoming squad invites.</div>`;
+            } else {
+                receivedInvites.forEach(agent => {
+                    const card = document.createElement('div');
+                    card.className = 'agent-card pending';
+                    card.innerHTML = `
+                        <div class="agent-avatar-container">
+                            ${agent.leaderImage ? `<img src="/images/cards/${agent.leaderImage}.jpg" class="agent-avatar-img" onerror="this.outerHTML='<span class=\\'agent-avatar-ph\\'>👤</span>';">` : `<span class="agent-avatar-ph">👤</span>`}
+                            <span class="agent-level-badge">LV ${agent.level}</span>
+                        </div>
+                        <div class="agent-info">
+                            <span class="agent-name">${agent.nickname}</span>
+                            <div class="agent-sub">
+                                <span>🛡️ Leader Card: ${agent.leaderName}</span>
+                                <span>🔑 ID: ${agent.playerId}</span>
+                            </div>
+                        </div>
+                        <div class="agent-actions" style="flex-direction:row;">
+                            <button class="action-btn accept-btn" onclick="acceptProposal(${agent.id}, this)">Accept</button>
+                            <button class="action-btn ignore-btn" onclick="ignoreProposal(${agent.id}, this)">Ignore</button>
+                        </div>
+                    `;
+                    incoming.appendChild(card);
+                });
+            }
+
+            const outgoing = document.getElementById('outgoing-list');
+            outgoing.innerHTML = '';
+
+            if (sentInvites.length === 0) {
+                outgoing.innerHTML = `<div class="empty-placeholder" style="padding: 20px 10px;">No outgoing pending proposal transmissions.</div>`;
+            } else {
+                sentInvites.forEach(agent => {
+                    const card = document.createElement('div');
+                    card.className = 'agent-card';
+                    card.style.opacity = '0.7';
+                    card.innerHTML = `
+                        <div class="agent-avatar-container">
+                            ${agent.leaderImage ? `<img src="/images/cards/${agent.leaderImage}.jpg" class="agent-avatar-img" onerror="this.outerHTML='<span class=\\'agent-avatar-ph\\'>👤</span>';">` : `<span class="agent-avatar-ph">👤</span>`}
+                            <span class="agent-level-badge">LV ${agent.level}</span>
+                        </div>
+                        <div class="agent-info">
+                            <span class="agent-name">${agent.nickname}</span>
+                            <div class="agent-sub">
+                                <span>🛡️ Leader Card: ${agent.leaderName}</span>
+                                <span>🔑 ID: ${agent.playerId}</span>
+                            </div>
+                        </div>
+                        <div class="agent-actions">
+                            <span style="font-family:'Space Mono',monospace; font-size:8px; color:var(--accent-gold); letter-spacing:0.5px;">PROPOSAL SENT</span>
+                        </div>
+                    `;
+                    outgoing.appendChild(card);
+                });
+            }
+        }
+
+        function executeSearch() {
+            const queryInput = document.getElementById('searchQuery');
+            const query = queryInput.value.trim();
+            if (!query) {
+                showToast("Please enter an Agent Nickname or ID to search.", true);
+                return;
+            }
+
+            const container = document.getElementById('search-results');
+            container.innerHTML = `<div class="empty-placeholder">📡 INTERCEPTING FREQUENCIES... ENCRYPTING S.H.I.E.L.D. DATABASES...</div>`;
+
+            fetch(`/ultimate/friend/search?query=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(results => {
+                container.innerHTML = '';
+                if (results.length === 0) {
+                    container.innerHTML = `<div class="empty-placeholder">⚠️ NO MATCHES // Proposed agent nickname or ID was not registered in active files.</div>`;
+                    return;
+                }
+
+                results.forEach(agent => {
+                    let actionHtml = '';
+                    if (agent.friendshipStatus === "Accepted") {
+                        actionHtml = `<span style="font-family:'Space Mono',monospace; font-size:8px; color:#10b981; font-weight:700;">ROSTER MEMBER</span>`;
+                    } else if (agent.friendshipStatus === "PendingSent") {
+                        actionHtml = `<span style="font-family:'Space Mono',monospace; font-size:8px; color:var(--accent-gold); font-weight:700;">PENDING SENT</span>`;
+                    } else if (agent.friendshipStatus === "PendingReceived") {
+                        actionHtml = `<button class="action-btn accept-btn" onclick="acceptProposal(${agent.id}, this)">Accept Roster Proposal</button>`;
+                    } else {
+                        actionHtml = `<button class="action-btn propose-btn" onclick="proposeMember(${agent.id}, this)">Propose Team</button>`;
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'agent-card';
+                    card.innerHTML = `
+                        <div class="agent-avatar-container">
+                            ${agent.leaderImage ? `<img src="/images/cards/${agent.leaderImage}.jpg" class="agent-avatar-img" onerror="this.outerHTML='<span class=\\'agent-avatar-ph\\'>👤</span>';">` : `<span class="agent-avatar-ph">👤</span>`}
+                            <span class="agent-level-badge">LV ${agent.level}</span>
+                        </div>
+                        <div class="agent-info">
+                            <span class="agent-name">${agent.nickname}</span>
+                            <div class="agent-sub">
+                                <span>🛡️ Leader Card: ${agent.leaderName}</span>
+                                <span>🔑 ID: ${agent.playerId}</span>
+                            </div>
+                        </div>
+                        <div class="agent-actions">
+                            ${actionHtml}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                container.innerHTML = `<div class="empty-placeholder" style="color:#ef4444;">📡 SCANNER UPLINK INTERRUPTED. RETRY ACTION.</div>`;
+            });
+        }
+
+        function proposeMember(targetId, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('targetId', targetId);
+
+            fetch('/ultimate/friend/propose', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || "Proposal sent successfully!");
+                    // Refresh sent list by fetching redirects or updating directly
+                    btn.outerHTML = `<span style="font-family:'Space Mono',monospace; font-size:8px; color:var(--accent-gold); font-weight:700;">PENDING SENT</span>`;
+                    
+                    // Reload indices silently
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Failed to transmit proposal.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
+            });
+        }
+
+        function acceptProposal(proposerId, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('proposerId', proposerId);
+
+            fetch('/ultimate/friend/accept', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || "Proposal accepted!");
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Accept failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
+            });
+        }
+
+        function ignoreProposal(proposerId, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('proposerId', proposerId);
+
+            fetch('/ultimate/friend/ignore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || "Proposal ignored.");
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Action failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
+            });
+        }
+
+        function removeMember(memberId, btn) {
+            if (!confirm("⚠️ WARNING: Dismissing an agent from your co-op S.H.I.E.L.D. Team will result in a permanent deduction of 5 S.H.I.E.L.D. attribute points from your highest active parameter (Energy, Attack, or Defense)! Are you sure you want to dismiss this member?")) {
+                return;
+            }
+
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('memberId', memberId);
+
+            fetch('/ultimate/friend/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || "Agent dismissed from co-op squad.");
+                    setTimeout(() => window.location.reload(), 2500);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Dismissal failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
+            });
+        }
+
+        // Initialize view
+        renderRoster();
+        renderInvites();
+
+        // Load correct tab from query string
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        if (activeTab === 'invites' || activeTab === 'directory') {
+            switchTab(activeTab);
+        }
+    </script>
+</body>
+</html>

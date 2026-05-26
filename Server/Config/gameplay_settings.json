@@ -19,6 +19,7 @@
       "MasteryGainPerPvPBattle": 5
     },
     "CommunityUrl": "https://github.com/ryder720/MWoH-Server",
-    "ResourceDropRatePercentage": 100
+    "ResourceDropRatePercentage": 100,
+    "EnableFriendRemoval24HourPenalty": true
   }
 }

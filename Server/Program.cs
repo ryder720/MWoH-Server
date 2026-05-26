@@ -134,6 +134,67 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (LastEnergyRecoveryTime): {ex.Message}");
     }
 
+    // 2b. Migrate Profiles - Add S.H.I.E.L.D. Team removal penalty columns if missing
+    try
+    {
+        var hasLastRemovalTime = false;
+        var hasRemovalsInLast24Hours = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Profiles);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var colName = reader["name"].ToString();
+                    if (colName == "LastRemovalTime") hasLastRemovalTime = true;
+                    if (colName == "RemovalsInLast24Hours") hasRemovalsInLast24Hours = true;
+                }
+            }
+        }
+
+        if (!hasLastRemovalTime)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN LastRemovalTime TEXT NULL;");
+            logger.LogInformation("Database migration: Added LastRemovalTime column to Profiles.");
+        }
+        if (!hasRemovalsInLast24Hours)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN RemovalsInLast24Hours INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added RemovalsInLast24Hours column to Profiles.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Profiles S.H.I.E.L.D. Team penalty fields): {ex.Message}");
+    }
+
+    // 2c. Create ShieldTeamMembers table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ShieldTeamMembers (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProfileId INTEGER NOT NULL,
+                MemberProfileId INTEGER NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'Pending',
+                CreatedAt TEXT NOT NULL,
+                FOREIGN KEY (ProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE,
+                FOREIGN KEY (MemberProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured ShieldTeamMembers table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (ShieldTeamMembers table): {ex.Message}");
+    }
+
     // 3. Migrate CardTemplates - Add MaxMastery column if missing
     try
     {

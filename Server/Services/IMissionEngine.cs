@@ -9,7 +9,7 @@ namespace MwohServer.Services
         (OperationBlueprint? Operation, MissionBlueprint? Mission) GetMissionBlueprint(string missionCode);
         void RestoreEnergy(PlayerProfile profile);
         MissionAttackResult Attack(int profileId, string missionCode);
-        BossBattleResult EngageBoss(int profileId, string missionCode);
+        BossBattleResult EngageBoss(int profileId, string missionCode, List<int>? supportProfileIds = null);
     }
 
     public class MissionAttackResult
@@ -35,5 +35,6 @@ namespace MwohServer.Services
         public bool ResourceDropped { get; set; }
         public string DroppedResourceName { get; set; } = string.Empty;
         public string DroppedResourceImage { get; set; } = string.Empty;
+        public List<string> LogLines { get; set; } = new();
     }
 }

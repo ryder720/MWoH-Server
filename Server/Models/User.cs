@@ -61,11 +61,28 @@ namespace MwohServer.Models
         public string ResourceRedemptionsJson { get; set; } = "{}";
 
         public DateTime LastEnergyRecoveryTime { get; set; } = DateTime.UtcNow;
+
+        public DateTime? LastRemovalTime { get; set; }
+        public int RemovalsInLast24Hours { get; set; } = 0;
         
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
         public System.Collections.Generic.ICollection<PlayerCard> Cards { get; set; } = new System.Collections.Generic.List<PlayerCard>();
         public System.Collections.Generic.ICollection<PlayerInventoryItem> InventoryItems { get; set; } = new System.Collections.Generic.List<PlayerInventoryItem>();
+    }
+
+    public class ShieldTeamMember
+    {
+        [Key]
+        public int Id { get; set; }
+        public int ProfileId { get; set; }
+        public int MemberProfileId { get; set; }
+        public string Status { get; set; } = "Pending"; // Pending, Accepted
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation properties
+        public PlayerProfile? Profile { get; set; }
+        public PlayerProfile? MemberProfile { get; set; }
     }
 
     // Static card metadata parsed from Wiki scraping JSON
@@ -246,6 +263,7 @@ namespace MwohServer.Models
         public static int DefaultDefensePower { get; set; } = 100;
         public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
         public static int ResourceDropRatePercentage { get; set; } = 100;
+        public static bool EnableFriendRemoval24HourPenalty { get; set; } = true;
 
         public static void Load()
         {
@@ -300,6 +318,10 @@ namespace MwohServer.Models
                             {
                                 ResourceDropRatePercentage = resDropProp.GetInt32();
                             }
+                            if (gameplayNode.TryGetProperty("EnableFriendRemoval24HourPenalty", out var fPenaltyProp))
+                            {
+                                EnableFriendRemoval24HourPenalty = fPenaltyProp.GetBoolean();
+                            }
                         }
                     }
                 }
@@ -329,7 +351,8 @@ namespace MwohServer.Models
       ""DefaultMasteryPercentage"": 100
     },
     ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server"",
-    ""ResourceDropRatePercentage"": 100
+    ""ResourceDropRatePercentage"": 100,
+    ""EnableFriendRemoval24HourPenalty"": true
   }
 }";
                 try

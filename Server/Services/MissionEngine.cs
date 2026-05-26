@@ -317,7 +317,7 @@ namespace MwohServer.Services
             };
         }
 
-        public BossBattleResult EngageBoss(int profileId, string missionCode)
+        public BossBattleResult EngageBoss(int profileId, string missionCode, List<int>? supportProfileIds = null)
         {
             var profile = _dbContext.Profiles
                 .Include(p => p.Cards)
@@ -337,6 +337,39 @@ namespace MwohServer.Services
             {
                 return new BossBattleResult { Success = false, Message = "Mission blueprint mismatch." };
             }
+
+            // Gather Support Reinforcements
+            var combatLogLines = new List<string>();
+            int supportBonusAtk = 0;
+            int supportBonusDef = 0;
+
+            if (supportProfileIds != null && supportProfileIds.Count > 0)
+            {
+                combatLogLines.Add("📡 S.H.I.E.L.D. TACTICAL FREQUENCY LINKED // CONNECTING SUPPORT REINFORCEMENTS...");
+                foreach (var supportId in supportProfileIds)
+                {
+                    var supportProfile = _dbContext.Profiles
+                        .Include(p => p.Cards)
+                            .ThenInclude(c => c.CardTemplate)
+                        .FirstOrDefault(p => p.Id == supportId);
+
+                    if (supportProfile != null)
+                    {
+                        var leaderCard = supportProfile.Cards.FirstOrDefault(c => c.IsLeader) ?? supportProfile.Cards.FirstOrDefault();
+                        if (leaderCard != null)
+                        {
+                            supportBonusAtk += leaderCard.CurrentAtk;
+                            supportBonusDef += leaderCard.CurrentDef;
+                            combatLogLines.Add($"🤝 Agent {supportProfile.Nickname} deployed {leaderCard.CardTemplate?.Title ?? "Card"} (ATK: {leaderCard.CurrentAtk:N0} / DEF: {leaderCard.CurrentDef:N0}) to assist!");
+                        }
+                    }
+                }
+                combatLogLines.Add($"⚡ TOTAL CO-OP COMBAT POWER ADDED: ATK +{supportBonusAtk:N0} / DEF +{supportBonusDef:N0}!");
+            }
+
+            combatLogLines.Add($"⚔️ ENGAGING SUPER VILLAIN: {activeOp.BossName}...");
+            combatLogLines.Add($"🔥 UNLEASHING ALL DESTRUCTION PROTOCOLS!");
+            combatLogLines.Add("🎯 MISSION TARGET SECURED // Clearance levels updated.");
 
             var bossRewardTemplateName = activeMission.PossibleDrops.Count > 0 
                 ? activeMission.PossibleDrops[0] 
@@ -523,7 +556,8 @@ namespace MwohServer.Services
                 UnlockedMissionId = progressState.UnlockedMissionId,
                 ResourceDropped = resourceDropped,
                 DroppedResourceName = droppedResourceName,
-                DroppedResourceImage = droppedResourceImage
+                DroppedResourceImage = droppedResourceImage,
+                LogLines = combatLogLines
             };
         }
     }

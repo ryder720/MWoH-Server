@@ -265,9 +265,25 @@
 
             <!-- Red Alert Boss panel (hidden initially unless 100%) -->
             <div class="boss-panel" id="bossPanel" style="display: {{bossDisplay}};">
-                <div style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent-red);">
+                <div style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--accent-red); margin-bottom: 8px;">
                     ⚠️ WARNING // BOSS THREAT DETECTED: {{bossName}}!
                 </div>
+                
+                <!-- Co-op Support dropdown selections -->
+                <div id="supportSelectionContainer" style="display: none; flex-direction: column; gap: 8px; width: 100%; max-width: 320px; background: rgba(3, 7, 18, 0.4); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 12px; text-align: left;">
+                    <div style="font-family: 'Space Mono', monospace; font-size: 9px; color: var(--hud-blue); font-weight: 700; letter-spacing: 0.5px; border-bottom: 1px dashed rgba(255,255,255,0.08); padding-bottom: 4px; margin-bottom: 8px;">
+                        🤝 S.H.I.E.L.D. REINFORCEMENTS (SELECT UP TO 2 AGENTS)
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <select id="supportSelect1" style="width: 100%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #ffffff; font-family: 'Outfit', sans-serif; font-size: 11px; padding: 6px;">
+                            <option value="">-- SELECT SUPPORT AGENT 1 --</option>
+                        </select>
+                        <select id="supportSelect2" style="width: 100%; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #ffffff; font-family: 'Outfit', sans-serif; font-size: 11px; padding: 6px;">
+                            <option value="">-- SELECT SUPPORT AGENT 2 --</option>
+                        </select>
+                    </div>
+                </div>
+
                 <button class="action-button boss-btn" onclick="engageBoss();">
                     ENGAGE SUPER VILLAIN
                 </button>
@@ -372,12 +388,49 @@
             });
         }
 
-        function engageBoss() {
-            addLog("ENGAGING BOSS... FIRING DESTRUCTION PROTOCOLS!", "danger");
+        const activeTeam = {{activeTeamJson}};
+        
+        function setupSupportDropdowns() {
+            const select1 = document.getElementById('supportSelect1');
+            const select2 = document.getElementById('supportSelect2');
+            const container = document.getElementById('supportSelectionContainer');
             
+            if (activeTeam && activeTeam.length > 0) {
+                container.style.display = "flex";
+                
+                activeTeam.forEach(agent => {
+                    const opt1 = document.createElement('option');
+                    opt1.value = agent.id;
+                    opt1.textContent = `${agent.nickname} [LVL ${agent.level}] - ${agent.leaderName}`;
+                    select1.appendChild(opt1);
+                    
+                    const opt2 = document.createElement('option');
+                    opt2.value = agent.id;
+                    opt2.textContent = `${agent.nickname} [LVL ${agent.level}] - ${agent.leaderName}`;
+                    select2.appendChild(opt2);
+                });
+            }
+        }
+
+        function engageBoss() {
+            const supportIds = [];
+            const select1 = document.getElementById('supportSelect1');
+            const select2 = document.getElementById('supportSelect2');
+            if (select1 && select1.value) supportIds.push(parseInt(select1.value));
+            if (select2 && select2.value) supportIds.push(parseInt(select2.value));
+
+            // Prevent duplicate selection
+            if (supportIds.length === 2 && supportIds[0] === supportIds[1]) {
+                alert("Please select two unique support agents.");
+                return;
+            }
+
+            addLog("ENGAGING BOSS... FIRING DESTRUCTION PROTOCOLS!", "danger");
+
             fetch(`/ultimate/mypage/missions/engage-boss/${missionId}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ supportIds: supportIds })
             })
             .then(res => res.json())
             .then(data => {
@@ -385,6 +438,17 @@
                     addLog(data.message || "COMBAT ENGAGEMENT FAILED", "danger");
                     alert(data.message || "Boss battle failed.");
                     return;
+                }
+
+                // Log support deployment lines to the command terminal
+                if (data.logLines) {
+                    data.logLines.forEach(l => {
+                        if (l.includes("[SUPPORT]")) {
+                            addLog(l, "success");
+                        } else {
+                            addLog(l, "danger");
+                        }
+                    });
                 }
 
                 // Show Boss Defeated popup modal
@@ -408,6 +472,9 @@
                 addLog("TRANSMISSION ERROR // ENGAGEMENT RETRY INITIATED.", "danger");
             });
         }
+
+        // Call boot config
+        setupSupportDropdowns();
 
         function closeRewardModal() {
             document.getElementById("rewardOverlay").style.display = "none";

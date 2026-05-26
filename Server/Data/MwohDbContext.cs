@@ -11,6 +11,7 @@ namespace MwohServer.Data
         public DbSet<PlayerCard> PlayerCards => Set<PlayerCard>();
         public DbSet<ItemTemplate> ItemTemplates => Set<ItemTemplate>();
         public DbSet<PlayerInventoryItem> PlayerInventoryItems => Set<PlayerInventoryItem>();
+        public DbSet<ShieldTeamMember> ShieldTeamMembers => Set<ShieldTeamMember>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -25,6 +26,19 @@ namespace MwohServer.Data
                 .HasOne(u => u.Profile)
                 .WithOne(p => p.UserAccount)
                 .HasForeignKey<PlayerProfile>(p => p.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure ShieldTeamMember bidirectional relationships
+            modelBuilder.Entity<ShieldTeamMember>()
+                .HasOne(m => m.Profile)
+                .WithMany()
+                .HasForeignKey(m => m.ProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ShieldTeamMember>()
+                .HasOne(m => m.MemberProfile)
+                .WithMany()
+                .HasForeignKey(m => m.MemberProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Configure one-to-many relationship between Profile and PlayerCards

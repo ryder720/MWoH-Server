@@ -1092,8 +1092,6 @@ namespace MwohServer.Controllers
         [HttpGet("shop")]
         [HttpGet("trade_response/trade_list_advance")]
         [HttpGet("wish")]
-        [HttpGet("friend")]
-        [HttpGet("search_users")]
         [HttpGet("results")]
         [HttpGet("archive")]
         [HttpGet("advise/index/top")]
@@ -1129,6 +1127,414 @@ namespace MwohServer.Controllers
             };
 
             return Content(RenderTemplate("stub_portal.html", replacements), "text/html");
+        }
+
+        [HttpGet("friend")]
+        [HttpGet("friend/index")]
+        public IActionResult ServeSHIELDTeamPage()
+        {
+            _logger.LogInformation("[Cygames] ServeSHIELDTeamPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            int maxCapacity = 5;
+            if (profile.Level >= 10)
+            {
+                maxCapacity = 6 + (profile.Level - 10) / 2;
+                if (maxCapacity > 50) maxCapacity = 50;
+            }
+
+            // 1. Fetch Accepted Team Members
+            var teamRelations = _dbContext.ShieldTeamMembers
+                .Where(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted")
+                .ToList();
+
+            var teamProfiles = new List<object>();
+            foreach (var rel in teamRelations)
+            {
+                var otherId = rel.ProfileId == profile.Id ? rel.MemberProfileId : rel.ProfileId;
+                var otherProfile = _dbContext.Profiles
+                    .Include(p => p.Cards)
+                        .ThenInclude(c => c.CardTemplate)
+                    .FirstOrDefault(p => p.Id == otherId);
+
+                if (otherProfile != null)
+                {
+                    var leaderCard = otherProfile.Cards.FirstOrDefault(c => c.IsLeader) ?? otherProfile.Cards.FirstOrDefault();
+                    teamProfiles.Add(new
+                    {
+                        id = otherProfile.Id,
+                        nickname = otherProfile.Nickname,
+                        level = otherProfile.Level,
+                        playerId = otherProfile.PlayerIdString,
+                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield",
+                        leaderAtk = leaderCard?.CurrentAtk ?? 0,
+                        leaderDef = leaderCard?.CurrentDef ?? 0
+                    });
+                }
+            }
+
+            // 2. Fetch Incoming Pending Invites
+            var receivedInvites = _dbContext.ShieldTeamMembers
+                .Where(m => m.MemberProfileId == profile.Id && m.Status == "Pending")
+                .ToList();
+
+            var incomingProfiles = new List<object>();
+            foreach (var rel in receivedInvites)
+            {
+                var senderProfile = _dbContext.Profiles
+                    .Include(p => p.Cards)
+                        .ThenInclude(c => c.CardTemplate)
+                    .FirstOrDefault(p => p.Id == rel.ProfileId);
+
+                if (senderProfile != null)
+                {
+                    var leaderCard = senderProfile.Cards.FirstOrDefault(c => c.IsLeader) ?? senderProfile.Cards.FirstOrDefault();
+                    incomingProfiles.Add(new
+                    {
+                        id = senderProfile.Id,
+                        nickname = senderProfile.Nickname,
+                        level = senderProfile.Level,
+                        playerId = senderProfile.PlayerIdString,
+                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield"
+                    });
+                }
+            }
+
+            // 3. Fetch Outgoing Sent Invites
+            var sentInvites = _dbContext.ShieldTeamMembers
+                .Where(m => m.ProfileId == profile.Id && m.Status == "Pending")
+                .ToList();
+
+            var outgoingProfiles = new List<object>();
+            foreach (var rel in sentInvites)
+            {
+                var receiverProfile = _dbContext.Profiles
+                    .Include(p => p.Cards)
+                        .ThenInclude(c => c.CardTemplate)
+                    .FirstOrDefault(p => p.Id == rel.MemberProfileId);
+
+                if (receiverProfile != null)
+                {
+                    var leaderCard = receiverProfile.Cards.FirstOrDefault(c => c.IsLeader) ?? receiverProfile.Cards.FirstOrDefault();
+                    outgoingProfiles.Add(new
+                    {
+                        id = receiverProfile.Id,
+                        nickname = receiverProfile.Nickname,
+                        level = receiverProfile.Level,
+                        playerId = receiverProfile.PlayerIdString,
+                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield"
+                    });
+                }
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "agentName", profile.Nickname },
+                { "level", profile.Level.ToString() },
+                { "playerIdString", profile.PlayerIdString },
+                { "teamCount", teamProfiles.Count.ToString() },
+                { "maxCapacity", maxCapacity.ToString() },
+                { "activeTeamJson", System.Text.Json.JsonSerializer.Serialize(teamProfiles) },
+                { "receivedInvitesJson", System.Text.Json.JsonSerializer.Serialize(incomingProfiles) },
+                { "sentInvitesJson", System.Text.Json.JsonSerializer.Serialize(outgoingProfiles) }
+            };
+
+            return Content(RenderTemplate("friend.html", replacements), "text/html");
+        }
+
+        [HttpGet("search_users")]
+        public IActionResult SearchUsersRedirect()
+        {
+            return Redirect("/ultimate/friend?tab=directory");
+        }
+
+        [HttpGet("friend/search")]
+        public IActionResult SearchAgents([FromQuery] string query)
+        {
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return BadRequest("Profile not found.");
+
+            if (string.IsNullOrEmpty(query))
+            {
+                return Ok(new List<object>());
+            }
+
+            var searchResults = _dbContext.Profiles
+                .Include(p => p.Cards)
+                    .ThenInclude(c => c.CardTemplate)
+                .Where(p => p.Id != profile.Id && (p.Nickname.Contains(query) || p.PlayerIdString == query))
+                .Take(25)
+                .ToList();
+
+            var responseList = new List<object>();
+            foreach (var r in searchResults)
+            {
+                var leaderCard = r.Cards.FirstOrDefault(c => c.IsLeader) ?? r.Cards.FirstOrDefault();
+                
+                // Determine friendship status
+                var relation = _dbContext.ShieldTeamMembers
+                    .FirstOrDefault(m => (m.ProfileId == profile.Id && m.MemberProfileId == r.Id) || (m.ProfileId == r.Id && m.MemberProfileId == profile.Id));
+
+                string status = "None";
+                if (relation != null)
+                {
+                    if (relation.Status == "Accepted")
+                    {
+                        status = "Accepted";
+                    }
+                    else if (relation.Status == "Pending")
+                    {
+                        status = relation.ProfileId == profile.Id ? "PendingSent" : "PendingReceived";
+                    }
+                }
+
+                responseList.Add(new
+                {
+                    id = r.Id,
+                    nickname = r.Nickname,
+                    level = r.Level,
+                    playerId = r.PlayerIdString,
+                    leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                    leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield",
+                    friendshipStatus = status
+                });
+            }
+
+            return Ok(responseList);
+        }
+
+        [HttpPost("friend/propose")]
+        public IActionResult ProposeTeamMember([FromForm] int targetId)
+        {
+            _logger.LogInformation($"[Cygames] ProposeTeamMember targetId: {targetId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
+
+            if (profile.Id == targetId)
+            {
+                return Ok(new { success = false, message = "You cannot propose S.H.I.E.L.D. Team membership to yourself." });
+            }
+
+            var target = _dbContext.Profiles.FirstOrDefault(p => p.Id == targetId);
+            if (target == null)
+            {
+                return Ok(new { success = false, message = "Proposed Agent could not be located in S.H.I.E.L.D. directory." });
+            }
+
+            // Check if relationship already exists
+            var existing = _dbContext.ShieldTeamMembers
+                .FirstOrDefault(m => (m.ProfileId == profile.Id && m.MemberProfileId == targetId) || (m.ProfileId == targetId && m.MemberProfileId == profile.Id));
+
+            if (existing != null)
+            {
+                if (existing.Status == "Accepted")
+                    return Ok(new { success = false, message = "This agent is already on your active S.H.I.E.L.D. Team." });
+                else
+                    return Ok(new { success = false, message = "A S.H.I.E.L.D. Team proposal is already pending with this agent." });
+            }
+
+            // Check capacity for both
+            int myMax = profile.Level >= 10 ? Math.Min(50, 6 + (profile.Level - 10) / 2) : 5;
+            int myCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted");
+            if (myCount >= myMax)
+            {
+                return Ok(new { success = false, message = "⚠️ PROPOSAL DENIED // Your S.H.I.E.L.D. Team capacity has reached maximum limits." });
+            }
+
+            int targetMax = target.Level >= 10 ? Math.Min(50, 6 + (target.Level - 10) / 2) : 5;
+            int targetCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == targetId || m.MemberProfileId == targetId) && m.Status == "Accepted");
+            if (targetCount >= targetMax)
+            {
+                return Ok(new { success = false, message = "⚠️ PROPOSAL DENIED // The target Agent has reached their maximum S.H.I.E.L.D. Team capacity." });
+            }
+
+            var proposal = new ShieldTeamMember
+            {
+                ProfileId = profile.Id,
+                MemberProfileId = targetId,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+            _dbContext.ShieldTeamMembers.Add(proposal);
+            _dbContext.SaveChanges();
+
+            return Ok(new { success = true, message = $"S.H.I.E.L.D. Team proposal successfully transmitted to agent {target.Nickname}." });
+        }
+
+        [HttpPost("friend/accept")]
+        public IActionResult AcceptTeamProposal([FromForm] int proposerId)
+        {
+            _logger.LogInformation($"[Cygames] AcceptTeamProposal proposerId: {proposerId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
+
+            var proposal = _dbContext.ShieldTeamMembers
+                .FirstOrDefault(m => m.ProfileId == proposerId && m.MemberProfileId == profile.Id && m.Status == "Pending");
+
+            if (proposal == null)
+            {
+                return Ok(new { success = false, message = "No pending S.H.I.E.L.D. Team proposal from this agent." });
+            }
+
+            var proposer = _dbContext.Profiles.FirstOrDefault(p => p.Id == proposerId);
+            if (proposer == null)
+            {
+                return Ok(new { success = false, message = "Proposer profile not located." });
+            }
+
+            // Check capacity
+            int myMax = profile.Level >= 10 ? Math.Min(50, 6 + (profile.Level - 10) / 2) : 5;
+            int myCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted");
+            if (myCount >= myMax)
+            {
+                return Ok(new { success = false, message = "⚠️ TRANSITION FAILED // Your S.H.I.E.L.D. Team has reached maximum limits. You must dismiss an agent first." });
+            }
+
+            int proposerMax = proposer.Level >= 10 ? Math.Min(50, 6 + (proposer.Level - 10) / 2) : 5;
+            int proposerCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == proposerId || m.MemberProfileId == proposerId) && m.Status == "Accepted");
+            if (proposerCount >= proposerMax)
+            {
+                return Ok(new { success = false, message = "⚠️ TRANSITION FAILED // Proposer's S.H.I.E.L.D. Team capacity is at maximum limits." });
+            }
+
+            // Set to accepted and award points
+            proposal.Status = "Accepted";
+            
+            profile.StatPoints += 5;
+            proposer.StatPoints += 5;
+
+            _dbContext.SaveChanges();
+
+            return Ok(new { success = true, message = $"Proposal accepted! You are now team members with {proposer.Nickname}. Both agents have received 5 S.H.I.E.L.D. Attribute points!" });
+        }
+
+        [HttpPost("friend/ignore")]
+        public IActionResult IgnoreTeamProposal([FromForm] int proposerId)
+        {
+            _logger.LogInformation($"[Cygames] IgnoreTeamProposal proposerId: {proposerId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
+
+            var proposal = _dbContext.ShieldTeamMembers
+                .FirstOrDefault(m => m.ProfileId == proposerId && m.MemberProfileId == profile.Id && m.Status == "Pending");
+
+            if (proposal != null)
+            {
+                _dbContext.ShieldTeamMembers.Remove(proposal);
+                _dbContext.SaveChanges();
+            }
+
+            return Ok(new { success = true, message = "S.H.I.E.L.D. Team proposal dismissed." });
+        }
+
+        [HttpPost("friend/remove")]
+        public IActionResult RemoveTeamMember([FromForm] int memberId)
+        {
+            _logger.LogInformation($"[Cygames] RemoveTeamMember memberId: {memberId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
+
+            var relation = _dbContext.ShieldTeamMembers
+                .FirstOrDefault(m => ((m.ProfileId == profile.Id && m.MemberProfileId == memberId) || (m.ProfileId == memberId && m.MemberProfileId == profile.Id)) && m.Status == "Accepted");
+
+            if (relation == null)
+            {
+                return Ok(new { success = false, message = "Agent is not currently a member of your S.H.I.E.L.D. Team." });
+            }
+
+            var other = _dbContext.Profiles.FirstOrDefault(p => p.Id == memberId);
+            if (other == null)
+            {
+                return Ok(new { success = false, message = "Target profile not located." });
+            }
+
+            // Remove connection
+            _dbContext.ShieldTeamMembers.Remove(relation);
+
+            // Apply points deduction to active player
+            int pointsToDeduct = 5;
+            bool wasSubsequentRemovalPenaltyApplied = false;
+
+            if (GameplaySettings.EnableFriendRemoval24HourPenalty)
+            {
+                if (profile.LastRemovalTime.HasValue && (DateTime.UtcNow - profile.LastRemovalTime.Value).TotalHours < 24)
+                {
+                    pointsToDeduct = 6;
+                    wasSubsequentRemovalPenaltyApplied = true;
+                }
+            }
+
+            for (int i = 0; i < pointsToDeduct; i++)
+            {
+                if (profile.EnergyMax >= profile.AttackPower && profile.EnergyMax >= profile.DefensePower)
+                {
+                    profile.EnergyMax = Math.Max(10, profile.EnergyMax - 1);
+                    if (profile.EnergyCurrent > profile.EnergyMax)
+                    {
+                        profile.EnergyCurrent = profile.EnergyMax;
+                    }
+                }
+                else if (profile.AttackPower >= profile.EnergyMax && profile.AttackPower >= profile.DefensePower)
+                {
+                    profile.AttackPower = Math.Max(1, profile.AttackPower - 1);
+                }
+                else
+                {
+                    profile.DefensePower = Math.Max(1, profile.DefensePower - 1);
+                }
+            }
+
+            profile.LastRemovalTime = DateTime.UtcNow;
+            profile.RemovalsInLast24Hours++;
+
+            // Apply points deduction (exactly 5) to the dismissed other player
+            for (int i = 0; i < 5; i++)
+            {
+                if (other.EnergyMax >= other.AttackPower && other.EnergyMax >= other.DefensePower)
+                {
+                    other.EnergyMax = Math.Max(10, other.EnergyMax - 1);
+                    if (other.EnergyCurrent > other.EnergyMax)
+                    {
+                        other.EnergyCurrent = other.EnergyMax;
+                    }
+                }
+                else if (other.AttackPower >= other.EnergyMax && other.AttackPower >= other.DefensePower)
+                {
+                    other.AttackPower = Math.Max(1, other.AttackPower - 1);
+                }
+                else
+                {
+                    other.DefensePower = Math.Max(1, other.DefensePower - 1);
+                }
+            }
+
+            _dbContext.SaveChanges();
+
+            string penaltyAlert = wasSubsequentRemovalPenaltyApplied 
+                ? "⚠️ 24-HOUR DOUBLE DISMISSAL PENALTY ENFORCED: 6 S.H.I.E.L.D. points subtracted from parameters!"
+                : "5 S.H.I.E.L.D. points subtracted from parameters.";
+
+            return Ok(new { 
+                success = true, 
+                message = $"Dismissal completed. Agent {other.Nickname} has been dismissed from your S.H.I.E.L.D. Team. {penaltyAlert}" 
+            });
         }
 
         [HttpGet("mypage/enhance")]
@@ -1649,6 +2055,29 @@ namespace MwohServer.Controllers
             var leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Operative";
             var leaderAtk = leaderCard?.CurrentAtk ?? 1000;
 
+            // Fetch S.H.I.E.L.D. Team accepted members
+            var teamRelations = _dbContext.ShieldTeamMembers
+                .Where(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted")
+                .ToList();
+
+            var teamProfiles = new List<object>();
+            foreach (var rel in teamRelations)
+            {
+                var otherId = rel.ProfileId == profile.Id ? rel.MemberProfileId : rel.ProfileId;
+                var otherProfile = _dbContext.Profiles
+                    .FirstOrDefault(p => p.Id == otherId);
+
+                if (otherProfile != null)
+                {
+                    teamProfiles.Add(new
+                    {
+                        id = otherProfile.Id,
+                        nickname = otherProfile.Nickname,
+                        level = otherProfile.Level
+                    });
+                }
+            }
+
             var replacements = new Dictionary<string, string>
             {
                 { "missionId", id },
@@ -1662,7 +2091,8 @@ namespace MwohServer.Controllers
                 { "leaderName", leaderName },
                 { "leaderAtk", leaderAtk.ToString() },
                 { "bossName", activeOp.BossName },
-                { "bossDisplay", progressState.ActiveMissionProgress >= 100 ? "flex" : "none" }
+                { "bossDisplay", progressState.ActiveMissionProgress >= 100 ? "flex" : "none" },
+                { "activeTeamJson", System.Text.Json.JsonSerializer.Serialize(teamProfiles) }
             };
 
             return Content(RenderTemplate("mission_play.html", replacements), "text/html");
@@ -1698,14 +2128,21 @@ namespace MwohServer.Controllers
             });
         }
 
-        [HttpPost("mypage/missions/engage-boss/{id}")]
-        public IActionResult ProcessBossBattle(string id)
+        public class EngageBossRequest
         {
-            _logger.LogInformation($"[Cygames] ProcessBossBattle for mission {id}.");
+            public List<int>? SupportIds { get; set; }
+        }
+
+        [HttpPost("mypage/missions/engage-boss/{id}")]
+        public IActionResult ProcessBossBattle(string id, [FromBody] EngageBossRequest? req)
+        {
+            _logger.LogInformation($"[Cygames] ProcessBossBattle for mission {id} with supports.");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var result = _missionEngine.EngageBoss(profileId, id);
+            var supportIds = req?.SupportIds ?? new List<int>();
+
+            var result = _missionEngine.EngageBoss(profileId, id, supportIds);
             if (!result.Success)
             {
                 return BadRequest(new { success = false, message = result.Message });
@@ -1715,7 +2152,11 @@ namespace MwohServer.Controllers
             {
                 success = true,
                 droppedCardName = result.DroppedCardName,
-                message = result.Message
+                resourceDropped = result.ResourceDropped,
+                droppedResourceName = result.DroppedResourceName,
+                droppedResourceImage = result.DroppedResourceImage,
+                message = result.Message,
+                logLines = result.LogLines
             });
         }
 
