@@ -39,6 +39,7 @@ Tools/Patcher/bin/
 
 # Scraped assets (illustrations and database images)
 Tools/Scraper/illustrations/
+Tools/Scraper/items/
 Server/wwwroot/images/operations/
 Server/wwwroot/images/cards/
 Server/wwwroot/images/items/
