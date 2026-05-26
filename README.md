@@ -42,10 +42,6 @@ MWoH Server/
 │   └── Patcher/                     # Automated Client APK Bytecode Patcher
 │       ├── patcher.py               # Patching script (manifest + smali + HTTPS downgrade)
 │       └── bin/                     # Tooling jars (apktool.jar / uber-apk-signer.jar)
-├── APK/
-│   ├── Base/                        # Place untouched original game APKs here
-│   └── Modified/                    # Output directory for patched, signed clients
-├── CONTEXT.md                       # Domain model & architectural decision context
 └── README.md
 ```
 
