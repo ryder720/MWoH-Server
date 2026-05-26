@@ -427,6 +427,96 @@ namespace MwohServer.Data
                 logger.LogError($"[Seeder] Failed to seed items from JSON: {ex.Message}");
                 SeedDefaultFallbackItems(context);
             }
+
+            SeedTacticalResources(context, logger);
+        }
+
+        private static void SeedTacticalResources(MwohDbContext context, ILogger logger)
+        {
+            if (context.ItemTemplates.Any(x => x.Type == "Resource"))
+            {
+                logger.LogInformation("[Seeder] Tactical resources already seeded.");
+                return;
+            }
+
+            logger.LogInformation("[Seeder] Seeding S.H.I.E.L.D. Tactical Resources...");
+
+            var resourceGroups = new[]
+            {
+                new { GroupName = "Storm's Cape", BaseName = "Storm's Cape", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" }, Donation = 2000 },
+                new { GroupName = "Suitcase", BaseName = "Suitcase", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" }, Donation = 2500 },
+                new { GroupName = "Sword of Proficiency", BaseName = "Sword of Proficiency", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" }, Donation = 3000 },
+                new { GroupName = "Assassin's Choker", BaseName = "Assassin's Choker", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" }, Donation = 3500 },
+                new { GroupName = "Chain Belt", BaseName = "Chain Belt", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Cyan" }, Donation = 4000 },
+                new { GroupName = "Geirr", BaseName = "Geirr", Colors = new[] { "Crimson", "Cobalt", "Emerald", "Amber", "Violet", "Aqua" }, Donation = 4500 },
+                new { GroupName = "Projectile Array", BaseName = "Projectile Array", Colors = new[] { "Red", "Blue", "Green", "Yellow", "Violet", "Aqua" }, Donation = 5000 }
+            };
+
+            int resourceAddedCount = 0;
+            foreach (var group in resourceGroups)
+            {
+                foreach (var color in group.Colors)
+                {
+                    string name;
+                    string imgFile;
+                    if (group.BaseName == "Storm's Cape")
+                    {
+                        name = $"Storm's {color} Cape";
+                        imgFile = $"Storms_{color}_Cape.jpg";
+                    }
+                    else if (group.BaseName == "Assassin's Choker")
+                    {
+                        name = $"Assassin's {color} Choker";
+                        imgFile = $"Assassins_{color}_Choker.jpg";
+                    }
+                    else if (group.BaseName == "Geirr")
+                    {
+                        name = $"{color} Geirr";
+                        imgFile = $"{color}_Geirr.jpg";
+                    }
+                    else
+                    {
+                        name = $"{color} {group.BaseName}";
+                        imgFile = $"{color}_{group.BaseName.Replace(" ", "_")}.jpg";
+                    }
+
+                    var temp = new ItemTemplate
+                    {
+                        Name = name,
+                        Description = $"S.H.I.E.L.D. Tactical Resource item collected from operations. Collect a complete set of six colors to redeem premium card awards.",
+                        Type = "Resource",
+                        EffectValue = group.Donation,
+                        ImageFileName = imgFile
+                    };
+
+                    context.ItemTemplates.Add(temp);
+                    resourceAddedCount++;
+                }
+            }
+
+            context.SaveChanges();
+            logger.LogInformation($"[Seeder] Successfully seeded {resourceAddedCount} Tactical Resource templates into SQLite database.");
+
+            // Give the default profile (Id = 1) some starting resources to play with
+            var profile = context.Profiles.FirstOrDefault(p => p.Id == 1);
+            if (profile != null)
+            {
+                var resourceItems = context.ItemTemplates.Where(x => x.Type == "Resource").ToList();
+                foreach (var item in resourceItems)
+                {
+                    if (!context.PlayerInventoryItems.Any(pi => pi.PlayerProfileId == profile.Id && pi.ItemTemplateId == item.Id))
+                    {
+                        context.PlayerInventoryItems.Add(new PlayerInventoryItem
+                        {
+                            PlayerProfileId = profile.Id,
+                            ItemTemplateId = item.Id,
+                            Quantity = 2
+                        });
+                    }
+                }
+                context.SaveChanges();
+                logger.LogInformation($"[Seeder] Seeded 2 of each Tactical Resource in starter inventory for default profile '{profile.Nickname}'.");
+            }
         }
 
         private static void SeedDefaultFallbackItems(MwohDbContext context)

@@ -32,5 +32,8 @@ namespace MwohServer.Services
         public string DroppedCardName { get; set; } = string.Empty;
         public int UnlockedOperationId { get; set; }
         public int UnlockedMissionId { get; set; }
+        public bool ResourceDropped { get; set; }
+        public string DroppedResourceName { get; set; } = string.Empty;
+        public string DroppedResourceImage { get; set; } = string.Empty;
     }
 }

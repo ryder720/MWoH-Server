@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Resource Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Scoped vault visual parameters */
+        .vault-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .vault-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--hud-blue);
+            opacity: 0.3;
+        }
+
+        .vault-card.active-set::before {
+            background: #a855f7; /* Purple glow indicator */
+            opacity: 0.8;
+            box-shadow: 0 0 8px #c084fc;
+        }
+
+        .vault-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 8px;
+        }
+
+        .vault-title-sec {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .vault-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .vault-status-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .vault-status-badge.maxed {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .vault-status-badge.ready {
+            color: #c084fc;
+            background: rgba(168, 85, 247, 0.08);
+            border-color: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 6px rgba(168, 85, 247, 0.15);
+        }
+
+        .vault-redemption-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* 6-Color Grid visual design */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 6px;
+            margin: 4px 0;
+        }
+
+        .grid-slot {
+            aspect-ratio: 1;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            position: relative;
+            background: rgba(3, 7, 18, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .grid-slot.owned {
+            border-color: rgba(0, 240, 255, 0.25);
+            box-shadow: inset 0 0 5px rgba(0, 240, 255, 0.1);
+        }
+
+        .grid-slot.missing {
+            opacity: 0.25;
+            filter: grayscale(1);
+        }
+
+        .slot-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .slot-ph {
+            font-size: 16px;
+            opacity: 0.5;
+        }
+
+        .slot-qty-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--accent-gold);
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 3px;
+            border-radius: 3px;
+            line-height: 1;
+        }
+
+        .slot-color-dot {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            box-shadow: 0 0 4px currentColor;
+        }
+
+        /* Rewards & Action panel designs */
+        .vault-info-row {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .info-lbl {
+            font-size: 8px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .info-val {
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .info-val.reward {
+            color: var(--accent-gold);
+            text-transform: uppercase;
+        }
+
+        .vault-actions-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .vault-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.5px;
+        }
+
+        .vault-btn.redeem-btn {
+            flex: 1.5;
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.35) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.5);
+            color: #c084fc;
+        }
+
+        .vault-btn.redeem-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0.5) 100%);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+        }
+
+        .vault-btn.redeem-btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .vault-btn.redeem-btn:disabled {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .vault-btn.donate-btn {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.15) 100%);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--accent-gold);
+        }
+
+        .vault-btn.donate-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.25) 100%);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+
+        .vault-btn.donate-btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+
+        .vault-btn.donate-btn:disabled {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.05);
+            color: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; BACK</a>
+        <h1>RESOURCE VAULT</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 480px; margin: 0 auto 15px auto;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">AGENT OUTPOST</span>
+                <span class="hud-val" style="font-size:14px; color:#ffffff;">{{agentName}} <span style="font-size:10px; color:var(--hud-blue);">[LVL {{level}}]</span></span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">S.H.I.E.L.D. SECURED CREDITS</span>
+                <span class="hud-val" id="credits-balance" style="font-size:14px; color:var(--accent-gold);">🪙 {{silver}} SILVER</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vault cards grid -->
+    <div class="items-list" id="vaultContainer">
+        <!-- Dynamically populated resource sets -->
+    </div>
+
+    <div class="toast" id="vault-toast">COMMUNICATION SYNCED</div>
+
+    <script>
+        const userResources = {{resourcesJson}};
+        const redemptionCounts = {{redemptionsJson}};
+
+        // Define groups and color details
+        const resourceGroups = [
+            {
+                key: "StormsCape",
+                title: "Storm's Cape Collection",
+                baseName: "Storm's Cape",
+                colors: ["Red", "Blue", "Green", "Yellow", "Purple", "Emerald"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Purple: "#a855f7", Emerald: "#059669" },
+                prizes: {
+                    1: "[Queen of Lightning] Storm (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "[Queen of Lightning] Storm (Rare)"
+                },
+                donation: 2000
+            },
+            {
+                key: "Suitcase",
+                title: "Suitcase Set",
+                baseName: "Suitcase",
+                colors: ["Red", "Blue", "Green", "Yellow", "Purple", "Emerald"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Purple: "#a855f7", Emerald: "#059669" },
+                prizes: {
+                    1: "[Legal Eagle] She-Hulk (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "[Legal Eagle] She-Hulk (Rare)"
+                },
+                donation: 2500
+            },
+            {
+                key: "SwordOfProficiency",
+                title: "Sword of Proficiency Set",
+                baseName: "Sword of Proficiency",
+                colors: ["Red", "Blue", "Green", "Yellow", "Purple", "Emerald"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Purple: "#a855f7", Emerald: "#059669" },
+                prizes: {
+                    1: "Taskmaster (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "Taskmaster (Rare)"
+                },
+                donation: 3000
+            },
+            {
+                key: "AssassinsChoker",
+                title: "Assassin's Choker Collection",
+                baseName: "Assassin's Choker",
+                colors: ["Red", "Blue", "Green", "Yellow", "Purple", "Emerald"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Purple: "#a855f7", Emerald: "#059669" },
+                prizes: {
+                    1: "X-23 (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "X-23 (Rare)"
+                },
+                donation: 3500
+            },
+            {
+                key: "ChainBelt",
+                title: "Chain Belt Collection",
+                baseName: "Chain Belt",
+                colors: ["Red", "Blue", "Green", "Yellow", "Purple", "Cyan"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Purple: "#a855f7", Cyan: "#06b6d4" },
+                prizes: {
+                    1: "[Knuckle Up] Luke Cage (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "[Knuckle Up] Luke Cage (Rare)"
+                },
+                donation: 4000
+            },
+            {
+                key: "Geirr",
+                title: "Geirr Spear Set",
+                baseName: "Geirr",
+                colors: ["Crimson", "Cobalt", "Emerald", "Amber", "Violet", "Aqua"],
+                colorValues: { Crimson: "#b91c1c", Cobalt: "#1d4ed8", Emerald: "#047857", Amber: "#b45309", Violet: "#6d28d9", Aqua: "#0891b2" },
+                prizes: {
+                    1: "[Escort of Souls] Valkyrie (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "[Escort of Souls] Valkyrie (Rare)"
+                },
+                donation: 4500
+            },
+            {
+                key: "ProjectileArray",
+                title: "Projectile Array Set",
+                baseName: "Projectile Array",
+                colors: ["Red", "Blue", "Green", "Yellow", "Violet", "Aqua"],
+                colorValues: { Red: "#ef4444", Blue: "#3b82f6", Green: "#10b981", Yellow: "#eab308", Violet: "#8b5cf6", Aqua: "#06b6d4" },
+                prizes: {
+                    1: "[Friend in Need] War Machine (Rare)",
+                    2: "3x Level-Up ISO-8 Serums",
+                    3: "[Friend in Need] War Machine (Rare)"
+                },
+                donation: 5000
+            }
+        ];
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('vault-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function renderVault() {
+            const container = document.getElementById('vaultContainer');
+            container.innerHTML = '';
+
+            resourceGroups.forEach(group => {
+                const count = redemptionCounts[group.key] || 0;
+                
+                // Determine next set prize
+                let nextPrizeText = "Sets Completed";
+                let prizeVal = "No further exchanges available.";
+                let isMaxed = count >= 3;
+
+                if (!isMaxed) {
+                    nextPrizeText = `Set ${count + 1} Exchange Reward`;
+                    prizeVal = group.prizes[count + 1];
+                }
+
+                // Check if set is complete (all 6 colors quantity >= 1)
+                let isSetComplete = true;
+                let groupGainedSilver = 0;
+                let groupItemsCount = 0;
+                const gridSlotsHtml = [];
+
+                group.colors.forEach(color => {
+                    // Match resource in player's stock
+                    const match = userResources.find(r => r.groupKey === group.key && r.color === color);
+                    const qty = match ? match.qty : 0;
+                    
+                    if (qty <= 0) {
+                        isSetComplete = false;
+                    }
+
+                    groupGainedSilver += qty * group.donation;
+                    groupItemsCount += qty;
+
+                    const colorHex = group.colorValues[color] || "#ffffff";
+                    
+                    // Image placeholder details
+                    let imageHtml = '';
+                    if (match && match.imageFile && qty > 0) {
+                        imageHtml = `<img src="/images/items/${match.imageFile}" class="slot-img" onerror="this.style.display='none';">`;
+                    }
+
+                    gridSlotsHtml.push(`
+                        <div class="grid-slot ${qty > 0 ? 'owned' : 'missing'}" style="border-color: ${qty > 0 ? colorHex : 'rgba(255,255,255,0.08)'};">
+                            <span class="slot-color-dot" style="color: ${colorHex}; background-color: ${colorHex};"></span>
+                            ${imageHtml}
+                            <div class="slot-ph" style="color: ${colorHex}; opacity: 0.15;">💎</div>
+                            ${qty > 0 ? `<span class="slot-qty-badge">x${qty}</span>` : ''}
+                        </div>
+                    `);
+                });
+
+                // Status Badge details
+                let badgeClass = '';
+                let badgeLabel = '';
+                if (isMaxed) {
+                    badgeClass = 'maxed';
+                    badgeLabel = 'FULLY SECURED';
+                } else if (isSetComplete) {
+                    badgeClass = 'ready';
+                    badgeLabel = 'SET UNLOCKED';
+                } else {
+                    badgeClass = '';
+                    badgeLabel = `INCOMPLETE (${groupItemsCount} / 6)`;
+                }
+
+                const card = document.createElement('div');
+                card.className = `vault-card ${isSetComplete && !isMaxed ? 'active-set' : ''}`;
+                card.innerHTML = `
+                    <div class="vault-header-row">
+                        <div class="vault-title-sec">
+                            <span class="vault-title">${group.title}</span>
+                            <span class="vault-redemption-lbl">Redemption limits: ${count} / 3 completed</span>
+                        </div>
+                        <span class="vault-status-badge ${badgeClass}">${badgeLabel}</span>
+                    </div>
+
+                    <div class="color-grid">
+                        ${gridSlotsHtml.join('')}
+                    </div>
+
+                    <div class="vault-info-row">
+                        <div>
+                            <div class="info-lbl">${nextPrizeText}</div>
+                            <div class="info-val ${!isMaxed ? 'reward' : ''}">${prizeVal}</div>
+                        </div>
+                        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 8px;">
+                            <div class="info-lbl">Donation Value</div>
+                            <div class="info-val" style="color: var(--hud-blue);">+${group.donation.toLocaleString()} SILVER</div>
+                        </div>
+                    </div>
+
+                    <div class="vault-actions-row">
+                        <button class="vault-btn redeem-btn" 
+                                ${!isSetComplete || isMaxed ? 'disabled' : ''} 
+                                onclick="exchangeSet('${group.key}', this)">
+                            ${isMaxed ? 'CAP SECURED' : 'EXCHANGE SET'}
+                        </button>
+                        <button class="vault-btn donate-btn" 
+                                ${groupItemsCount === 0 ? 'disabled' : ''} 
+                                onclick="donateGroup('${group.key}', this)">
+                            DONATE ALL
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function exchangeSet(groupKey, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('group_key', groupKey);
+
+            fetch('/ultimate/resource/redeem', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update redemption counts
+                    redemptionCounts[groupKey] = data.redemptions[groupKey];
+                    
+                    // Update stocks
+                    data.resources.forEach(item => {
+                        const local = userResources.find(r => r.id === item.id);
+                        if (local) local.qty = item.qty;
+                    });
+
+                    renderVault();
+                    showToast(data.message || "Set exchanged successfully!");
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Exchange failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY ACTION.", true);
+            });
+        }
+
+        function donateGroup(groupKey, btn) {
+            if (!confirm("Are you sure you want to donate all items in this group to S.H.I.E.L.D.? Excess stocks will be cleared in exchange for Silver credits.")) {
+                return;
+            }
+
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('group_key', groupKey);
+
+            fetch('/ultimate/resource/donate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update Silver balance in HUD
+                    document.getElementById('credits-balance').textContent = `🪙 ${data.silverBalance.toLocaleString()} SILVER`;
+                    
+                    // Update stocks
+                    data.resources.forEach(item => {
+                        const local = userResources.find(r => r.id === item.id);
+                        if (local) local.qty = item.qty;
+                    });
+
+                    renderVault();
+                    showToast(data.message || "Donation complete!");
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    showToast(data.message || "Donation failed.", true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                showToast("CONNECTION TIMEOUT. RETRY ACTION.", true);
+            });
+        }
+
+        // Boot
+        renderVault();
+    </script>
+</body>
+</html>

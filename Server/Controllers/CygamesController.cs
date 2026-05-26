@@ -557,6 +557,305 @@ namespace MwohServer.Controllers
             return Content(RenderTemplate("item.html", replacements), "text/html");
         }
 
+        [HttpGet("resource")]
+        [HttpGet("resource/index")]
+        public IActionResult ServeResourceVaultPage()
+        {
+            _logger.LogInformation("[Cygames] ServeResourceVaultPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var silver = profile.SilverBalance;
+            var agentName = profile.Nickname;
+            var level = profile.Level;
+
+            var resourceList = profile.InventoryItems
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
+                .Select(pi => {
+                    var name = pi.ItemTemplate?.Name ?? string.Empty;
+                    string groupKey = "Unknown";
+                    if (name.Contains("Cape")) groupKey = "StormsCape";
+                    else if (name.Contains("Suitcase")) groupKey = "Suitcase";
+                    else if (name.Contains("Sword")) groupKey = "SwordOfProficiency";
+                    else if (name.Contains("Choker")) groupKey = "AssassinsChoker";
+                    else if (name.Contains("Belt")) groupKey = "ChainBelt";
+                    else if (name.Contains("Geirr")) groupKey = "Geirr";
+                    else if (name.Contains("Array")) groupKey = "ProjectileArray";
+
+                    string color = "Red";
+                    string[] colors = { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald", "Cyan", "Crimson", "Cobalt", "Amber", "Violet", "Aqua" };
+                    foreach (var c in colors)
+                    {
+                        if (name.Contains(c))
+                        {
+                            color = c;
+                            break;
+                        }
+                    }
+
+                    return new {
+                        id = pi.ItemTemplate?.Id ?? 0,
+                        name = name,
+                        qty = pi.Quantity,
+                        donation = pi.ItemTemplate?.EffectValue ?? 2000,
+                        imageFile = pi.ItemTemplate?.ImageFileName ?? "",
+                        groupKey = groupKey,
+                        color = color
+                    };
+                }).ToList();
+
+            var resourcesJson = JsonSerializer.Serialize(resourceList);
+
+            var redemptionsDict = new Dictionary<string, int>();
+            if (!string.IsNullOrEmpty(profile.ResourceRedemptionsJson))
+            {
+                try { redemptionsDict = JsonSerializer.Deserialize<Dictionary<string, int>>(profile.ResourceRedemptionsJson) ?? new(); } catch {}
+            }
+            var redemptionsJson = JsonSerializer.Serialize(redemptionsDict);
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "silver", silver.ToString("N0") },
+                { "agentName", agentName },
+                { "level", level.ToString() },
+                { "resourcesJson", resourcesJson },
+                { "redemptionsJson", redemptionsJson }
+            };
+
+            return Content(RenderTemplate("resource.html", replacements), "text/html");
+        }
+
+        [HttpPost("resource/redeem")]
+        public IActionResult RedeemResourceSet()
+        {
+            _logger.LogInformation("[Cygames] RedeemResourceSet called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
+
+            var groupKey = Request.Form["group_key"].ToString();
+            if (string.IsNullOrEmpty(groupKey))
+            {
+                return BadRequest(new { success = false, message = "Group key missing." });
+            }
+
+            string groupName = "";
+            if (groupKey == "StormsCape") groupName = "Storm's Cape";
+            else if (groupKey == "Suitcase") groupName = "Suitcase";
+            else if (groupKey == "SwordOfProficiency") groupName = "Sword of Proficiency";
+            else if (groupKey == "AssassinsChoker") groupName = "Assassin's Choker";
+            else if (groupKey == "ChainBelt") groupName = "Chain Belt";
+            else if (groupKey == "Geirr") groupName = "Geirr";
+            else if (groupKey == "ProjectileArray") groupName = "Projectile Array";
+
+            if (string.IsNullOrEmpty(groupName))
+            {
+                return BadRequest(new { success = false, message = "Invalid resource group." });
+            }
+
+            var redemptionsDict = new Dictionary<string, int>();
+            if (!string.IsNullOrEmpty(profile.ResourceRedemptionsJson))
+            {
+                try { redemptionsDict = JsonSerializer.Deserialize<Dictionary<string, int>>(profile.ResourceRedemptionsJson) ?? new(); } catch {}
+            }
+
+            int count = 0;
+            redemptionsDict.TryGetValue(groupKey, out count);
+            if (count >= 3)
+            {
+                return Ok(new { success = false, message = "⚠️ MAXIMUM REDEMPTIONS REACHED // S.H.I.E.L.D. data caps reached." });
+            }
+
+            var groupTemplates = _dbContext.ItemTemplates
+                .Where(t => t.Type == "Resource" && (
+                    (groupKey == "StormsCape" && t.Name.Contains("Storm's") && t.Name.Contains("Cape")) ||
+                    (groupKey == "Suitcase" && t.Name.Contains("Suitcase")) ||
+                    (groupKey == "SwordOfProficiency" && t.Name.Contains("Sword")) ||
+                    (groupKey == "AssassinsChoker" && t.Name.Contains("Assassin's") && t.Name.Contains("Choker")) ||
+                    (groupKey == "ChainBelt" && t.Name.Contains("Chain Belt")) ||
+                    (groupKey == "Geirr" && t.Name.Contains("Geirr")) ||
+                    (groupKey == "ProjectileArray" && t.Name.Contains("Projectile Array"))
+                )).ToList();
+
+            if (groupTemplates.Count < 6)
+            {
+                return Ok(new { success = false, message = "⚠️ SYSTEM ERROR // Template files corrupted." });
+            }
+
+            var inventoryMatch = new List<PlayerInventoryItem>();
+            foreach (var temp in groupTemplates)
+            {
+                var pItem = profile.InventoryItems.FirstOrDefault(pi => pi.ItemTemplateId == temp.Id && pi.Quantity >= 1);
+                if (pItem == null)
+                {
+                    return Ok(new { success = false, message = $"⚠️ SET INCOMPLETE // Missing required colors." });
+                }
+                inventoryMatch.Add(pItem);
+            }
+
+            int setIndex = count + 1;
+            string rewardMessage = "";
+            string rewardCardTitle = "";
+            bool isCardReward = true;
+
+            if (setIndex == 1 || setIndex == 3)
+            {
+                if (groupKey == "StormsCape") rewardCardTitle = "Queen of Lightning Storm";
+                else if (groupKey == "Suitcase") rewardCardTitle = "Legal Eagle She-Hulk";
+                else if (groupKey == "SwordOfProficiency") rewardCardTitle = "Taskmaster";
+                else if (groupKey == "AssassinsChoker") rewardCardTitle = "X-23";
+                else if (groupKey == "ChainBelt") rewardCardTitle = "Knuckle Up Luke Cage";
+                else if (groupKey == "Geirr") rewardCardTitle = "Escort of Souls Valkyrie";
+                else if (groupKey == "ProjectileArray") rewardCardTitle = "Friend In Need War Machine";
+
+                int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
+                if (currentCardCount >= profile.MaxCardCapacity)
+                {
+                    return Ok(new { success = false, message = $"⚠️ DEPLOYMENT REJECTED // SQUAD FILES FULL ({profile.MaxCardCapacity}/{profile.MaxCardCapacity})." });
+                }
+            }
+            else
+            {
+                isCardReward = false;
+            }
+
+            foreach (var pItem in inventoryMatch)
+            {
+                pItem.Quantity = Math.Max(0, pItem.Quantity - 1);
+            }
+
+            if (isCardReward)
+            {
+                var cardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == rewardCardTitle);
+                if (cardTemplate == null)
+                {
+                    cardTemplate = _dbContext.CardTemplates.FirstOrDefault();
+                }
+
+                if (cardTemplate != null)
+                {
+                    var newCard = new PlayerCard { PlayerProfileId = profile.Id };
+                    newCard.InitializeStats(cardTemplate, GameplaySettings.DefaultMasteryPercentage);
+                    _dbContext.PlayerCards.Add(newCard);
+                    rewardMessage = $"RECOVERED HERO: {cardTemplate.VisualTitle ?? cardTemplate.Title} added to your deck roster!";
+                }
+            }
+            else
+            {
+                var serumTemplate = _dbContext.ItemTemplates.FirstOrDefault(t => t.Type == "LevelUpSerum");
+                if (serumTemplate != null)
+                {
+                    var pItem = _dbContext.PlayerInventoryItems.FirstOrDefault(pi => pi.PlayerProfileId == profile.Id && pi.ItemTemplateId == serumTemplate.Id);
+                    if (pItem == null)
+                    {
+                        pItem = new PlayerInventoryItem
+                        {
+                            PlayerProfileId = profile.Id,
+                            ItemTemplateId = serumTemplate.Id,
+                            Quantity = 3
+                        };
+                        _dbContext.PlayerInventoryItems.Add(pItem);
+                    }
+                    else
+                    {
+                        pItem.Quantity += 3;
+                    }
+                    rewardMessage = $"SECURED SUPPLIES: Added 3x Level-Up ISO-8 Serums to tactical depot!";
+                }
+                else
+                {
+                    rewardMessage = "ISO-8 supply seeder failed.";
+                }
+            }
+
+            redemptionsDict[groupKey] = count + 1;
+            profile.ResourceRedemptionsJson = JsonSerializer.Serialize(redemptionsDict);
+
+            _dbContext.SaveChanges();
+
+            var updatedResources = profile.InventoryItems
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
+                .Select(pi => new {
+                    id = pi.ItemTemplateId,
+                    qty = pi.Quantity
+                }).ToList();
+
+            return Ok(new
+            {
+                success = true,
+                message = $"CONGRATULATIONS // {rewardMessage}",
+                redemptions = redemptionsDict,
+                resources = updatedResources
+            });
+        }
+
+        [HttpPost("resource/donate")]
+        public IActionResult DonateResources()
+        {
+            _logger.LogInformation("[Cygames] DonateResources called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
+
+            var groupKey = Request.Form["group_key"].ToString();
+            if (string.IsNullOrEmpty(groupKey))
+            {
+                return BadRequest(new { success = false, message = "Group key missing." });
+            }
+
+            var groupResources = profile.InventoryItems
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource" && (
+                    (groupKey == "StormsCape" && pi.ItemTemplate.Name.Contains("Storm's") && pi.ItemTemplate.Name.Contains("Cape")) ||
+                    (groupKey == "Suitcase" && pi.ItemTemplate.Name.Contains("Suitcase")) ||
+                    (groupKey == "SwordOfProficiency" && pi.ItemTemplate.Name.Contains("Sword")) ||
+                    (groupKey == "AssassinsChoker" && pi.ItemTemplate.Name.Contains("Assassin's") && pi.ItemTemplate.Name.Contains("Choker")) ||
+                    (groupKey == "ChainBelt" && pi.ItemTemplate.Name.Contains("Chain Belt")) ||
+                    (groupKey == "Geirr" && pi.ItemTemplate.Name.Contains("Geirr")) ||
+                    (groupKey == "ProjectileArray" && pi.ItemTemplate.Name.Contains("Projectile Array"))
+                ) && pi.Quantity > 0).ToList();
+
+            if (groupResources.Count == 0)
+            {
+                return Ok(new { success = false, message = "⚠️ RESOURCE STOCK EMPTY // No excess drops to donate." });
+            }
+
+            long totalSilverGained = 0;
+            int totalItemsDonated = 0;
+
+            foreach (var pi in groupResources)
+            {
+                int quantity = pi.Quantity;
+                int valuePerItem = pi.ItemTemplate?.EffectValue ?? 2000;
+                totalSilverGained += (long)quantity * valuePerItem;
+                totalItemsDonated += quantity;
+
+                pi.Quantity = 0;
+            }
+
+            profile.SilverBalance += totalSilverGained;
+            _dbContext.SaveChanges();
+
+            var updatedResources = profile.InventoryItems
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
+                .Select(pi => new {
+                    id = pi.ItemTemplateId,
+                    qty = pi.Quantity
+                }).ToList();
+
+            return Ok(new
+            {
+                success = true,
+                message = $"DONATION COMPLETE // Contributed {totalItemsDonated} assets to S.H.I.E.L.D. tactical mainframe. Credited +{totalSilverGained} Silver!",
+                silverBalance = profile.SilverBalance,
+                resources = updatedResources
+            });
+        }
+
         [HttpGet("mypage")]
         public IActionResult ServeMyPage()
         {

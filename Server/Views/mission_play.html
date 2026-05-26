@@ -286,6 +286,16 @@
             <div id="rewardCardName" style="font-size: 18px; font-weight: 800; color: var(--accent-gold); text-transform: uppercase;">
                 Spider-Woman
             </div>
+            
+            <!-- Resource Drop Section -->
+            <div id="resourceRewardContainer" style="display: none; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 15px; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+                <div style="font-family: 'Space Mono', monospace; font-size: 10px; color: var(--hud-blue);">// TACTICAL RESOURCE SECURED</div>
+                <div style="width: 54px; height: 54px; border: 1.5px solid var(--border-color); border-radius: 8px; overflow: hidden; background: radial-gradient(circle, rgba(16, 24, 48, 0.4) 0%, rgba(3, 7, 18, 0.9) 100%);">
+                    <img id="rewardResourceImg" src="" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                </div>
+                <div id="rewardResourceName" style="font-size: 12px; font-weight: 700; color: #ffffff; text-transform: uppercase;">Storm's Red Cape</div>
+            </div>
+            
             <button class="reward-close-btn" onclick="closeRewardModal();">DISMISS DOSSIER</button>
         </div>
     </div>
@@ -379,6 +389,16 @@
 
                 // Show Boss Defeated popup modal
                 document.getElementById("rewardCardName").innerText = `${data.droppedCardName} (BOSS DROP!)`;
+                
+                // Show resource drops if any
+                if (data.resourceDropped && data.droppedResourceName) {
+                    document.getElementById("rewardResourceImg").src = `/images/items/${data.droppedResourceImage}`;
+                    document.getElementById("rewardResourceName").innerText = data.droppedResourceName;
+                    document.getElementById("resourceRewardContainer").style.display = "flex";
+                } else {
+                    document.getElementById("resourceRewardContainer").style.display = "none";
+                }
+                
                 document.getElementById("rewardOverlay").style.display = "flex";
 
                 // Setup redirection to Missions Hub after closing reward modal

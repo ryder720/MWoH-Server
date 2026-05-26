@@ -18,6 +18,7 @@
       "MasteryGainPerMissionClick": 1,
       "MasteryGainPerPvPBattle": 5
     },
-    "CommunityUrl": "https://github.com/ryder720/MWoH-Server"
+    "CommunityUrl": "https://github.com/ryder720/MWoH-Server",
+    "ResourceDropRatePercentage": 100
   }
 }

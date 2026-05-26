@@ -401,6 +401,107 @@ namespace MwohServer.Services
 
             progressState.ActiveMissionProgress = 0;
 
+            // Resource drop logic
+            bool resourceDropped = false;
+            string droppedResourceName = "";
+            string droppedResourceImage = "";
+
+            try
+            {
+                var rand = new Random();
+                var partsCode = missionCode.Split('-');
+                if (partsCode.Length > 0 && int.TryParse(partsCode[0], out int opId) && opId >= 2 && opId <= 29)
+                {
+                    var dropRate = GameplaySettings.ResourceDropRatePercentage;
+                    if (rand.Next(1, 101) <= dropRate)
+                    {
+                        string groupName = "";
+                        string[]? colors = null;
+
+                        if (opId >= 2 && opId <= 5)
+                        {
+                            groupName = "Storm's Cape";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" };
+                        }
+                        else if (opId >= 6 && opId <= 9)
+                        {
+                            groupName = "Suitcase";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" };
+                        }
+                        else if (opId >= 10 && opId <= 13)
+                        {
+                            groupName = "Sword of Proficiency";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" };
+                        }
+                        else if (opId >= 14 && opId <= 17)
+                        {
+                            groupName = "Assassin's Choker";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Emerald" };
+                        }
+                        else if (opId >= 18 && opId <= 21)
+                        {
+                            groupName = "Chain Belt";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Purple", "Cyan" };
+                        }
+                        else if (opId >= 22 && opId <= 25)
+                        {
+                            groupName = "Geirr";
+                            colors = new[] { "Crimson", "Cobalt", "Emerald", "Amber", "Violet", "Aqua" };
+                        }
+                        else if (opId >= 26 && opId <= 29)
+                        {
+                            groupName = "Projectile Array";
+                            colors = new[] { "Red", "Blue", "Green", "Yellow", "Violet", "Aqua" };
+                        }
+
+                        if (colors != null)
+                        {
+                            var color = colors[rand.Next(colors.Length)];
+                            string resourceTemplateName;
+
+                            if (groupName == "Storm's Cape")
+                                resourceTemplateName = $"Storm's {color} Cape";
+                            else if (groupName == "Assassin's Choker")
+                                resourceTemplateName = $"Assassin's {color} Choker";
+                            else if (groupName == "Geirr")
+                                resourceTemplateName = $"{color} Geirr";
+                            else
+                                resourceTemplateName = $"{color} {groupName}";
+
+                            var itemTemplate = _dbContext.ItemTemplates.FirstOrDefault(t => t.Name == resourceTemplateName);
+                            if (itemTemplate != null)
+                            {
+                                var playerItem = _dbContext.PlayerInventoryItems
+                                    .FirstOrDefault(pi => pi.PlayerProfileId == profile.Id && pi.ItemTemplateId == itemTemplate.Id);
+
+                                if (playerItem == null)
+                                {
+                                    playerItem = new PlayerInventoryItem
+                                    {
+                                        PlayerProfileId = profile.Id,
+                                        ItemTemplateId = itemTemplate.Id,
+                                        Quantity = 1
+                                    };
+                                    _dbContext.PlayerInventoryItems.Add(playerItem);
+                                }
+                                else
+                                {
+                                    playerItem.Quantity++;
+                                }
+
+                                resourceDropped = true;
+                                droppedResourceName = itemTemplate.Name;
+                                droppedResourceImage = itemTemplate.ImageFileName;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[MissionEngine] Failed to award resource drop: {ex.Message}");
+            }
+
             SavePlayerMissionProgress(profile, progressState);
             _dbContext.SaveChanges();
 
@@ -408,13 +509,21 @@ namespace MwohServer.Services
                 ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
                 : $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
 
+            if (resourceDropped)
+            {
+                clearMessage += $" // RECOVERED TACTICAL RESOURCE: {droppedResourceName}!";
+            }
+
             return new BossBattleResult
             {
                 Success = true,
                 DroppedCardName = droppedCardName,
                 Message = clearMessage,
                 UnlockedOperationId = progressState.UnlockedOperationId,
-                UnlockedMissionId = progressState.UnlockedMissionId
+                UnlockedMissionId = progressState.UnlockedMissionId,
+                ResourceDropped = resourceDropped,
+                DroppedResourceName = droppedResourceName,
+                DroppedResourceImage = droppedResourceImage
             };
         }
     }

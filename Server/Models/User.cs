@@ -57,6 +57,8 @@ namespace MwohServer.Models
         public int MaxCardCapacity { get; set; } = 250;
         
         public string MissionProgressJson { get; set; } = "{\"UnlockedOperationId\":1,\"UnlockedMissionId\":1,\"ActiveMissionId\":1,\"ActiveMissionProgress\":0}";
+        
+        public string ResourceRedemptionsJson { get; set; } = "{}";
 
         public DateTime LastEnergyRecoveryTime { get; set; } = DateTime.UtcNow;
         
@@ -243,6 +245,7 @@ namespace MwohServer.Models
         public static int DefaultAttackPower { get; set; } = 100;
         public static int DefaultDefensePower { get; set; } = 100;
         public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
+        public static int ResourceDropRatePercentage { get; set; } = 100;
 
         public static void Load()
         {
@@ -293,6 +296,10 @@ namespace MwohServer.Models
                             {
                                 CommunityUrl = communityProp.GetString() ?? "https://github.com/ryder720/MWoH-Server";
                             }
+                            if (gameplayNode.TryGetProperty("ResourceDropRatePercentage", out var resDropProp))
+                            {
+                                ResourceDropRatePercentage = resDropProp.GetInt32();
+                            }
                         }
                     }
                 }
@@ -321,7 +328,8 @@ namespace MwohServer.Models
     ""CardGrowth"": {
       ""DefaultMasteryPercentage"": 100
     },
-    ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server""
+    ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server"",
+    ""ResourceDropRatePercentage"": 100
   }
 }";
                 try
