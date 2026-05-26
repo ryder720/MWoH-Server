@@ -559,6 +559,7 @@ namespace MwohServer.Controllers
 
         [HttpGet("resource")]
         [HttpGet("resource/index")]
+        [HttpGet("rareparts")]
         public IActionResult ServeResourceVaultPage()
         {
             _logger.LogInformation("[Cygames] ServeResourceVaultPage called.");
@@ -1092,7 +1093,6 @@ namespace MwohServer.Controllers
         [HttpGet("trade_response/trade_list_advance")]
         [HttpGet("wish")]
         [HttpGet("friend")]
-        [HttpGet("rareparts")]
         [HttpGet("search_users")]
         [HttpGet("results")]
         [HttpGet("archive")]
