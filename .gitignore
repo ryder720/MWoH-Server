@@ -41,6 +41,7 @@ Tools/Patcher/bin/
 Tools/Scraper/illustrations/
 Server/wwwroot/images/operations/
 Server/wwwroot/images/cards/
+Server/wwwroot/images/items/
 
 
 # Local diagnostic logs

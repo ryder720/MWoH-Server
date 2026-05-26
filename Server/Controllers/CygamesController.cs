@@ -336,7 +336,7 @@ namespace MwohServer.Controllers
                 count = pi.Quantity,
                 description = pi.ItemTemplate?.Description ?? "",
                 type = pi.ItemTemplate?.Type ?? "EnergyRestorative",
-                image_url = $"http://10.0.2.2:5000/assets/items/{pi.ItemTemplate?.ImageFileName}"
+                image_url = $"http://10.0.2.2:5000/images/items/{pi.ItemTemplate?.ImageFileName}"
             }).ToList();
             
             return Ok(new
@@ -495,8 +495,9 @@ namespace MwohServer.Controllers
 
                     itemsHtml += $"""
             <div class="item-row" id="item-row-{temp.Id}">
-                <div class="item-visual" style="border-color: {color}; color: {color};">
-                    {icon}
+                <div class="item-visual" style="border-color: {color};">
+                    <img src="/images/items/{temp.ImageFileName}" class="item-img" onerror="this.style.display='none'; document.getElementById('ph_{temp.Id}').style.display='flex';">
+                    <div class="item-ph" id="ph_{temp.Id}" style="display:none; color: {color};">{icon}</div>
                 </div>
                 <div class="item-body">
                     <div class="item-header-row">
