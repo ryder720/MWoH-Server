@@ -163,6 +163,18 @@
             box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
         }
 
+        .btn-ticket {
+            background: rgba(0, 210, 255, 0.1);
+            border-color: rgba(0, 210, 255, 0.35);
+            color: var(--hud-blue);
+            grid-column: span 2;
+        }
+
+        .btn-ticket:active {
+            background: rgba(0, 210, 255, 0.25);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+        }
+
         .btn-cost {
             font-size: 9px;
             opacity: 0.8;
@@ -508,6 +520,7 @@
         const activeBanners = {{gachaConfigJson}};
         let currentSilver = parseInt("{{silver}}");
         let currentMobaCoins = parseInt("{{mobaCoins}}");
+        const userTickets = {{ticketsJson}};
 
         // System elements
         const bannersContainer = document.getElementById('bannersContainer');
@@ -565,6 +578,18 @@
                     ratesHtml += `<span class="rate-badge" style="color: ${rateColor};">${rarity}: ${rate}%</span>`;
                 }
 
+                // Inject dynamic ticket action button if item id is set
+                let ticketHtml = '';
+                if (pack.ticket_item_id && pack.cost_ticket) {
+                    const ownedCount = userTickets[pack.ticket_item_id] || 0;
+                    ticketHtml = `
+                        <button class="summon-btn btn-ticket" onclick="performRecruit(${pack.id}, 'Ticket', 1, ${pack.cost_ticket}, ${pack.ticket_item_id})">
+                            <span>Recruit with Ticket</span>
+                            <span class="btn-cost">${ownedCount} Tickets Owned</span>
+                        </button>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div class="banner-header">
                         <div class="banner-title" style="color: ${pack.theme_color};">${pack.name}</div>
@@ -590,6 +615,7 @@
                             <span>10x Elite</span>
                             <span class="btn-cost">${formatBalance(pack.cost_mobacoin * 10)} Coins</span>
                         </button>
+                        ${ticketHtml}
                     </div>
                 `;
                 bannersContainer.appendChild(card);
@@ -597,16 +623,22 @@
         }
 
         // Handle recruit transactions
-        function performRecruit(packId, currencyType, pullCount, cost) {
+        function performRecruit(packId, currencyType, pullCount, cost, ticketItemId = 0) {
             // Client balance pre-validation
             if (currencyType === 'Silver') {
                 if (currentSilver < cost) {
                     showToast('INSUFFICIENT CREDITS. TRANSACTION DENIED.', true);
                     return;
                 }
-            } else {
+            } else if (currencyType === 'MobaCoin') {
                 if (currentMobaCoins < cost) {
                     showToast('INSUFFICIENT COINS. TRANSACTION DENIED.', true);
+                    return;
+                }
+            } else if (currencyType === 'Ticket') {
+                const owned = userTickets[ticketItemId] || 0;
+                if (owned < cost) {
+                    showToast('INSUFFICIENT TICKETS. TRANSACTION DENIED.', true);
                     return;
                 }
             }
@@ -668,6 +700,12 @@
                             currentMobaCoins = data.newMobaCoins;
                             silverBalanceEl.textContent = formatBalance(currentSilver);
                             coinBalanceEl.textContent = formatBalance(currentMobaCoins);
+
+                            // Update ticket inventories and refresh buttons reactively
+                            if (data.newTickets) {
+                                Object.assign(userTickets, data.newTickets);
+                                renderBanners();
+                            }
 
                             // Reveal pulled cards
                             revealPulledCards(data.pulledCards);

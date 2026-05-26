@@ -200,11 +200,18 @@ namespace MwohServer.Controllers
                 gachaConfigJson = System.IO.File.ReadAllText(configPath);
             }
 
+            var inventory = _itemLedger.GetInventory(profileId);
+            var ticketsDict = inventory
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Name.Contains("Ticket", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(pi => pi.ItemTemplateId, pi => pi.Quantity);
+            var ticketsJson = JsonSerializer.Serialize(ticketsDict);
+
             var replacements = new Dictionary<string, string>
             {
                 { "mobaCoins", mobaCoins.ToString() },
                 { "silver", silver.ToString() },
-                { "gachaConfigJson", gachaConfigJson }
+                { "gachaConfigJson", gachaConfigJson },
+                { "ticketsJson", ticketsJson }
             };
 
             return Content(RenderTemplate("gacha.html", replacements), "text/html");
@@ -265,12 +272,18 @@ namespace MwohServer.Controllers
                 powerRequirement = c.CardTemplate?.PowerRequirement ?? 5
             }).ToList();
 
+            var updatedInventory = _itemLedger.GetInventory(profileId);
+            var updatedTicketsDict = updatedInventory
+                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Name.Contains("Ticket", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(pi => pi.ItemTemplateId, pi => pi.Quantity);
+
             return Ok(new
             {
                 success = true,
                 newMobaCoins = result.NewMobaCoins,
                 newSilver = result.NewSilver,
-                pulledCards = responseCards
+                pulledCards = responseCards,
+                newTickets = updatedTicketsDict
             });
         }
 

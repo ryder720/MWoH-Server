@@ -5,6 +5,8 @@
     "description": "Standard S.H.I.E.L.D. tactical recruitment nodes. Provides a balance of classic and tactical reinforcements.",
     "cost_mobacoin": 300,
     "cost_silver": 10000,
+    "cost_ticket": 1,
+    "ticket_item_id": 2,
     "theme_color": "#00d2ff",
     "rates": {
       "Normal": 70.0,
@@ -19,6 +21,8 @@
     "description": "High-priority classification recruitments. Enhanced chances to unlock Super Rare and Legendary tactical assets.",
     "cost_mobacoin": 900,
     "cost_silver": 30000,
+    "cost_ticket": 1,
+    "ticket_item_id": 25,
     "theme_color": "#ff007f",
     "rates": {
       "Normal": 40.0,

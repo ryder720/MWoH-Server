@@ -58,24 +58,58 @@ namespace MwohServer.Services
             }
 
             // Read costs
-            var costMobacoin = selectedPackNode.GetProperty("cost_mobacoin").GetInt32();
-            var costSilver = selectedPackNode.GetProperty("cost_silver").GetInt32();
-
-            var totalCost = (currencyType == "MobaCoin" ? costMobacoin : costSilver) * pullCount;
-
-            // Validate balance
-            if (currencyType == "MobaCoin")
+            int ticketItemId = 0;
+            int costTicket = 0;
+            if (selectedPackNode.TryGetProperty("ticket_item_id", out var ticketIdProp))
             {
-                if (profile.MobaCoinBalance < totalCost)
+                ticketItemId = ticketIdProp.GetInt32();
+            }
+            if (selectedPackNode.TryGetProperty("cost_ticket", out var costTicketProp))
+            {
+                costTicket = costTicketProp.GetInt32();
+            }
+
+            int totalCost = 0;
+            PlayerInventoryItem? ticketInventoryItem = null;
+
+            if (currencyType == "Ticket")
+            {
+                if (ticketItemId == 0 || costTicket == 0)
                 {
-                    return new GachaResult { Success = false, Message = "Insufficient MobaCoins. Acquisition denied." };
+                    return new GachaResult { Success = false, Message = "Ticket currency not supported for this recruitment node." };
+                }
+
+                int totalTicketCost = costTicket * pullCount;
+                ticketInventoryItem = _dbContext.PlayerInventoryItems
+                    .Include(pi => pi.ItemTemplate)
+                    .FirstOrDefault(pi => pi.PlayerProfileId == profileId && pi.ItemTemplateId == ticketItemId);
+
+                if (ticketInventoryItem == null || ticketInventoryItem.Quantity < totalTicketCost)
+                {
+                    var itemName = ticketInventoryItem?.ItemTemplate?.Name ?? "Required Tickets";
+                    return new GachaResult { Success = false, Message = $"Insufficient {itemName}. Acquisition denied." };
                 }
             }
             else
             {
-                if (profile.SilverBalance < totalCost)
+                var costMobacoin = selectedPackNode.GetProperty("cost_mobacoin").GetInt32();
+                var costSilver = selectedPackNode.GetProperty("cost_silver").GetInt32();
+                totalCost = (currencyType == "MobaCoin" ? costMobacoin : costSilver) * pullCount;
+
+                // Validate balance
+                if (currencyType == "MobaCoin")
                 {
-                    return new GachaResult { Success = false, Message = "Insufficient Silver resources. Acquisition denied." };
+                    if (profile.MobaCoinBalance < totalCost)
+                    {
+                        return new GachaResult { Success = false, Message = "Insufficient MobaCoins. Acquisition denied." };
+                    }
+                }
+                else
+                {
+                    if (profile.SilverBalance < totalCost)
+                    {
+                        return new GachaResult { Success = false, Message = "Insufficient Silver resources. Acquisition denied." };
+                    }
                 }
             }
 
@@ -87,7 +121,14 @@ namespace MwohServer.Services
             }
 
             // Deduct cost
-            if (currencyType == "MobaCoin")
+            if (currencyType == "Ticket")
+            {
+                if (ticketInventoryItem != null)
+                {
+                    ticketInventoryItem.Quantity -= costTicket * pullCount;
+                }
+            }
+            else if (currencyType == "MobaCoin")
             {
                 profile.MobaCoinBalance -= totalCost;
             }
