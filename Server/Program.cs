@@ -41,6 +41,7 @@ builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<IDeckManager, DeckManager>();
 builder.Services.AddScoped<ILeaderManager, LeaderManager>();
 builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
+builder.Services.AddSingleton<ISpecialComboEngine, SpecialComboEngine>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
 builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
@@ -599,6 +600,8 @@ public static class AdminConsoleEngine
             Console.WriteLine("  reload                                         - Reload gameplay & gacha configurations");
             Console.WriteLine("  runtests                                       - Execute card ability evaluation unit tests");
             Console.WriteLine("  runbattletests                                 - Execute S.H.I.E.L.D. Battle Engine unit tests");
+            Console.WriteLine("  runalliancetests                               - Execute S.H.I.E.L.D. Alliance System unit tests");
+            Console.WriteLine("  runcombotests                                  - Execute S.H.I.E.L.D. Special Combos unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
@@ -630,7 +633,7 @@ public static class AdminConsoleEngine
             var logger = loggerFactory.CreateLogger<BattleEngine>();
             var allianceLogger = loggerFactory.CreateLogger<AllianceEngine>();
             var allianceEngine = new AllianceEngine(allianceLogger, db);
-            var battleEngine = new BattleEngine(logger, db, evaluator, allianceEngine);
+            var battleEngine = new BattleEngine(logger, db, evaluator, allianceEngine, new SpecialComboEngine());
             var success = MwohServer.Tests.BattleEngineTests.Run(battleEngine, db);
             if (success)
             {
@@ -659,6 +662,23 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Alliance System Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runcombotests")
+        {
+            var comboEngine = new SpecialComboEngine();
+            var success = MwohServer.Tests.SpecialComboTests.Run(comboEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Special Combos Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Special Combos Test Suite failed!");
                 Console.ResetColor();
             }
             return;

@@ -14,17 +14,20 @@ namespace MwohServer.Services
         private readonly MwohDbContext _dbContext;
         private readonly ICardAbilityEvaluator _abilityEvaluator;
         private readonly IAllianceEngine _allianceEngine;
+        private readonly ISpecialComboEngine _specialComboEngine;
 
         public BattleEngine(
             ILogger<BattleEngine> logger,
             MwohDbContext dbContext,
             ICardAbilityEvaluator abilityEvaluator,
-            IAllianceEngine allianceEngine)
+            IAllianceEngine allianceEngine,
+            ISpecialComboEngine specialComboEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
             _abilityEvaluator = abilityEvaluator;
             _allianceEngine = allianceEngine;
+            _specialComboEngine = specialComboEngine;
         }
 
         public void RestoreBattlePower(PlayerProfile profile)
@@ -342,6 +345,77 @@ namespace MwohServer.Services
             // 6. Evaluate final combat stats
             var attackerCombatStats = _abilityEvaluator.EvaluateDeck(attackerEvalCards, defenderEvalCards, isAttackingDeck: true);
             var defenderCombatStats = _abilityEvaluator.EvaluateDeck(defenderEvalCards, attackerEvalCards, isAttackingDeck: false);
+
+            // Process S.H.I.E.L.D. Special Combos
+            var attackerCombos = _specialComboEngine.ProcessDeckCombos(attackerCards, isAttacking: true);
+            var defenderCombos = _specialComboEngine.ProcessDeckCombos(defenderCards, isAttacking: false);
+
+            // Helper to apply Special Combo buffs/debuffs to deck combat stats
+            void ApplyComboEffect(SpecialComboResult combo, List<PlayerCardCombatStats> friendlyStats, List<PlayerCardCombatStats> opposingStats)
+            {
+                var targets = combo.Target == ComboTarget.Friendly ? friendlyStats : opposingStats;
+                
+                foreach (var stat in targets)
+                {
+                    bool inScope = false;
+                    switch (combo.Scope)
+                    {
+                        case ComboScope.All:
+                            inScope = true;
+                            break;
+                        case ComboScope.Alignment:
+                            inScope = combo.ScopeDetail.Any(d => string.Equals(stat.Card.CardTemplate?.Alignment, d, StringComparison.OrdinalIgnoreCase));
+                            break;
+                        case ComboScope.Faction:
+                            inScope = combo.ScopeDetail.Any(d => string.Equals(stat.Card.CardTemplate?.Faction, d, StringComparison.OrdinalIgnoreCase));
+                            if (!inScope && combo.EffectText.ToLower().Contains("hero"))
+                            {
+                                inScope = string.Equals(stat.Card.CardTemplate?.Faction, "Super Hero", StringComparison.OrdinalIgnoreCase);
+                            }
+                            if (!inScope && combo.EffectText.ToLower().Contains("villain"))
+                            {
+                                inScope = string.Equals(stat.Card.CardTemplate?.Faction, "Villain", StringComparison.OrdinalIgnoreCase);
+                            }
+                            break;
+                        case ComboScope.SpecificCharacters:
+                            var charName = SpecialComboEngine.GetCharacterName(stat.Card.CardTemplate?.Title);
+                            inScope = combo.ScopeDetail.Any(d => string.Equals(charName, d, StringComparison.OrdinalIgnoreCase));
+                            break;
+                    }
+
+                    if (inScope)
+                    {
+                        if (combo.AffectedStat == ComboStat.Atk || combo.AffectedStat == ComboStat.AtkDef)
+                        {
+                            if (combo.Target == ComboTarget.Friendly) stat.ActiveBuffPercentageAtk += combo.PowerValue;
+                            else stat.ActiveDebuffPercentageAtk += combo.PowerValue;
+                        }
+                        if (combo.AffectedStat == ComboStat.Def || combo.AffectedStat == ComboStat.AtkDef)
+                        {
+                            if (combo.Target == ComboTarget.Friendly) stat.ActiveBuffPercentageDef += combo.PowerValue;
+                            else stat.ActiveDebuffPercentageDef += combo.PowerValue;
+                        }
+                    }
+                }
+            }
+
+            foreach (var combo in attackerCombos)
+            {
+                if (combo.Triggered)
+                {
+                    ApplyComboEffect(combo, attackerCombatStats, defenderCombatStats);
+                }
+                log.Add(combo.LogLine);
+            }
+
+            foreach (var combo in defenderCombos)
+            {
+                if (combo.Triggered)
+                {
+                    ApplyComboEffect(combo, defenderCombatStats, attackerCombatStats);
+                }
+                log.Add(combo.LogLine);
+            }
 
             var finalAttackerPower = attackerCombatStats.Sum(s => s.FinalAtk);
             var finalDefenderPower = defenderCombatStats.Sum(s => s.FinalDef);
