@@ -1,6 +1,8 @@
 import os
 import re
 import json
+import urllib.request
+import urllib.parse
 
 def clean_html(text):
     text = re.sub(r'<[^>]+>', '', text)
@@ -8,14 +10,25 @@ def clean_html(text):
     return re.sub(r'\s+', ' ', text).strip()
 
 def main():
-    # The scraped page from Fandom wiki is cached in content.md during session
-    filepath = r"C:\Users\Ryder\.gemini\antigravity\brain\0122896f-925b-49f3-ab45-26aa464b3363\.system_generated\steps\3576\content.md"
-    if not os.path.exists(filepath):
-        print(f"Historical content file not found: {filepath}")
+    print("[*] Fetching Items page from MWoH Fandom Wiki...")
+    url = "https://marvel-war-of-heroes.fandom.com/api.php?action=parse&page=Items&format=json"
+    req = urllib.request.Request(
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        }
+    )
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            if "parse" in res_data:
+                content = res_data["parse"].get("text", {}).get("*", "")
+            else:
+                print("[-] ERROR: Failed to parse Items page from Wiki API response.")
+                return
+    except Exception as e:
+        print(f"[-] ERROR: Failed to fetch Items page: {e}")
         return
-
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
 
     # Find all h3 headings which represent individual items
     h3_pattern = re.compile(r'<h3><span class="mw-headline"[^>]*>(.*?)</span></h3>', re.DOTALL)

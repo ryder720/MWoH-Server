@@ -4,6 +4,7 @@ import urllib.request
 import urllib.parse
 import html
 import time
+import json
 
 def clean_filename(name):
     # e.g. "Storm's cape red.jpg" -> "Storms_cape_red.jpg"
@@ -16,23 +17,28 @@ def clean_filename(name):
 
 def main():
     scraper_dir = os.path.dirname(os.path.abspath(__file__))
-    content_path = os.path.join(scraper_dir, "..", "..", "C:\\Users\\Ryder\\.gemini\\antigravity\brain\\21fb657b-58f5-4c68-8c42-4389d19001ad\\.system_generated\\steps\\947\\content.md")
-    
-    # Absolute path verification
-    if not os.path.exists(content_path):
-        # Fallback to direct path
-        content_path = r"C:\Users\Ryder\.gemini\antigravity\brain\21fb657b-58f5-4c68-8c42-4389d19001ad\.system_generated\steps\947\content.md"
-        
-    if not os.path.exists(content_path):
-        print(f"Error: content.md not found at '{content_path}'")
-        return
-        
     wwwroot_dir = os.path.abspath(os.path.join(scraper_dir, "..", "..", "Server", "wwwroot", "images", "items"))
     os.makedirs(wwwroot_dir, exist_ok=True)
     
-    print("[Resources Downloader] Reading scraped wiki HTML content...")
-    with open(content_path, "r", encoding="utf-8") as f:
-        html_content = f.read()
+    print("[Resources Downloader] Fetching Resources page dynamically from MWoH Fandom Wiki...")
+    url = "https://marvel-war-of-heroes.fandom.com/api.php?action=parse&page=Resources&format=json"
+    req = urllib.request.Request(
+        url,
+        headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        }
+    )
+    try:
+        with urllib.request.urlopen(req) as response:
+            res_data = json.loads(response.read().decode('utf-8'))
+            if "parse" in res_data:
+                html_content = res_data["parse"].get("text", {}).get("*", "")
+            else:
+                print("[-] ERROR: Failed to parse Resources page from Wiki API response.")
+                return
+    except Exception as e:
+        print(f"[-] ERROR: Failed to fetch Resources page: {e}")
+        return
         
     # Regex to find img tags with alt and src
     # E.g. <img src="https://..." alt="Storm&#039;s Red Cape" ...> or similar
