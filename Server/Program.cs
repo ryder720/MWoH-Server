@@ -42,6 +42,7 @@ builder.Services.AddScoped<IDeckManager, DeckManager>();
 builder.Services.AddScoped<ILeaderManager, LeaderManager>();
 builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
+builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -434,6 +435,91 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database auto-healing failed (Deck Power limits): {ex.Message}");
     }
 
+    // 8. Create Alliances and AllianceJoinRequests tables, and add Alliance fields to Profiles if missing
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS Alliances (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                Name TEXT NOT NULL,
+                Slogan TEXT NOT NULL DEFAULT 'Assemble!',
+                LeaderProfileId INTEGER NOT NULL,
+                Level INTEGER NOT NULL DEFAULT 1,
+                DonatedSilver INTEGER NOT NULL DEFAULT 0,
+                Rating INTEGER NOT NULL DEFAULT 0,
+                ProtectionWallCount INTEGER NOT NULL DEFAULT 0,
+                SpeedAdaptorLevel INTEGER NOT NULL DEFAULT 0,
+                BruiserAdaptorLevel INTEGER NOT NULL DEFAULT 0,
+                TacticsAdaptorLevel INTEGER NOT NULL DEFAULT 0,
+                CreatedAt TEXT NOT NULL
+            );
+        ");
+        
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS AllianceJoinRequests (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                AllianceId INTEGER NOT NULL,
+                PlayerProfileId INTEGER NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'Pending',
+                CreatedAt TEXT NOT NULL,
+                FOREIGN KEY (AllianceId) REFERENCES Alliances(Id) ON DELETE CASCADE,
+                FOREIGN KEY (PlayerProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        
+        logger.LogInformation("Database migration: Ensured Alliances & AllianceJoinRequests tables exist.");
+
+        var hasAllianceId = false;
+        var hasAllianceRole = false;
+        var hasAllianceDonatedSilver = false;
+        var hasAllianceJoinedAt = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Profiles);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var colName = reader["name"].ToString();
+                    if (colName == "AllianceId") hasAllianceId = true;
+                    if (colName == "AllianceRole") hasAllianceRole = true;
+                    if (colName == "AllianceDonatedSilver") hasAllianceDonatedSilver = true;
+                    if (colName == "AllianceJoinedAt") hasAllianceJoinedAt = true;
+                }
+            }
+        }
+
+        if (!hasAllianceId)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN AllianceId INTEGER NULL;");
+            logger.LogInformation("Database migration: Added AllianceId column to Profiles.");
+        }
+        if (!hasAllianceRole)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN AllianceRole TEXT NULL;");
+            logger.LogInformation("Database migration: Added AllianceRole column to Profiles.");
+        }
+        if (!hasAllianceDonatedSilver)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN AllianceDonatedSilver INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added AllianceDonatedSilver column to Profiles.");
+        }
+        if (!hasAllianceJoinedAt)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN AllianceJoinedAt TEXT NULL;");
+            logger.LogInformation("Database migration: Added AllianceJoinedAt column to Profiles.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Alliance schema): {ex.Message}");
+    }
+
 
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
@@ -542,7 +628,9 @@ public static class AdminConsoleEngine
             var evaluator = new CardAbilityEvaluator();
             var loggerFactory = new LoggerFactory();
             var logger = loggerFactory.CreateLogger<BattleEngine>();
-            var battleEngine = new BattleEngine(logger, db, evaluator);
+            var allianceLogger = loggerFactory.CreateLogger<AllianceEngine>();
+            var allianceEngine = new AllianceEngine(allianceLogger, db);
+            var battleEngine = new BattleEngine(logger, db, evaluator, allianceEngine);
             var success = MwohServer.Tests.BattleEngineTests.Run(battleEngine, db);
             if (success)
             {
@@ -552,6 +640,25 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Battle Engine Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runalliancetests")
+        {
+            var loggerFactory = new LoggerFactory();
+            var allianceLogger = loggerFactory.CreateLogger<AllianceEngine>();
+            var allianceEngine = new AllianceEngine(allianceLogger, db);
+            var success = MwohServer.Tests.AllianceEngineTests.Run(allianceEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Alliance System Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Alliance System Test Suite failed!");
                 Console.ResetColor();
             }
             return;

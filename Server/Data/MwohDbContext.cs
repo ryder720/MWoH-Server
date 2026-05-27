@@ -14,6 +14,8 @@ namespace MwohServer.Data
         public DbSet<ShieldTeamMember> ShieldTeamMembers => Set<ShieldTeamMember>();
         public DbSet<RallyLog> RallyLogs => Set<RallyLog>();
         public DbSet<BattleRecord> BattleRecords => Set<BattleRecord>();
+        public DbSet<Alliance> Alliances => Set<Alliance>();
+        public DbSet<AllianceJoinRequest> AllianceJoinRequests => Set<AllianceJoinRequest>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -96,6 +98,26 @@ namespace MwohServer.Data
                 .WithMany()
                 .HasForeignKey(pi => pi.ItemTemplateId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure relationship between PlayerProfile and Alliance
+            modelBuilder.Entity<PlayerProfile>()
+                .HasOne(p => p.Alliance)
+                .WithMany(a => a.Members)
+                .HasForeignKey(p => p.AllianceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Configure AllianceJoinRequest relationships
+            modelBuilder.Entity<AllianceJoinRequest>()
+                .HasOne(r => r.Alliance)
+                .WithMany()
+                .HasForeignKey(r => r.AllianceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<AllianceJoinRequest>()
+                .HasOne(r => r.PlayerProfile)
+                .WithMany()
+                .HasForeignKey(r => r.PlayerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Seed default test account
             modelBuilder.Entity<UserAccount>().HasData(new UserAccount

@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Division Mainframe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Scoped Alliance Visual Parameters */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 4px; height: 100%;
+            background: var(--hud-blue);
+            opacity: 0.3;
+        }
+
+        .dashboard-card.upgrade-card::before {
+            background: var(--accent-gold);
+        }
+
+        .dashboard-card-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 6px;
+        }
+
+        .dashboard-card.upgrade-card .dashboard-card-title {
+            color: var(--accent-gold);
+        }
+
+        /* Commission Checklist styling */
+        .checklist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 13px;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+        }
+
+        .checklist-dot.active {
+            background: var(--hud-green);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+
+        /* Recommendations table */
+        .alliance-recommendation-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+
+        .rec-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .rec-name {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .rec-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .rec-cap {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--hud-blue);
+        }
+
+        .alliance-action-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--hud-blue);
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .alliance-action-btn:hover:not(:disabled) {
+            background: var(--hud-blue);
+            color: #030712;
+            box-shadow: 0 0 8px var(--hud-blue-glow);
+        }
+
+        .alliance-action-btn:disabled {
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Member Row design */
+        .member-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .member-name {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .member-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .member-donation {
+            font-family: 'Space Mono', monospace;
+            font-size: 9.5px;
+            color: var(--accent-gold);
+        }
+
+        .member-role-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 7.5px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            border: 1px solid;
+            line-height: 1;
+        }
+
+        .member-role-badge.leader {
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.25);
+        }
+
+        .member-role-badge.vice-leader {
+            color: #c084fc;
+            background: rgba(168, 85, 247, 0.08);
+            border-color: rgba(168, 85, 247, 0.25);
+        }
+
+        .member-role-badge.offense-leader {
+            color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+
+        .member-role-badge.defense-leader {
+            color: var(--accent-gold);
+            background: rgba(245, 158, 11, 0.08);
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+
+        .member-role-badge.member {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Requests row */
+        .request-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(168, 85, 247, 0.02);
+            border: 1px solid rgba(168, 85, 247, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .no-requests-msg {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 15px 0;
+        }
+
+        .alliance-action-btn.accept {
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .alliance-action-btn.accept:hover {
+            background: #10b981;
+            color: #030712;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .alliance-action-btn.decline {
+            color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .alliance-action-btn.decline:hover {
+            background: var(--accent-red);
+            color: #030712;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Upgrades Mainframe grid styling */
+        .upgrades-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .upgrade-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 12px;
+            align-items: center;
+        }
+
+        .upgrade-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .upgrade-name {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .upgrade-level-indicator {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            color: var(--accent-gold);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .upgrade-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* Resource Vault Core grid */
+        .vault-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .vault-item-row {
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .vault-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vault-item-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.1;
+        }
+
+        .vault-item-stock {
+            font-family: 'Space Mono', monospace;
+            font-size: 8.5px;
+            color: var(--hud-blue);
+            background: rgba(0,240,255,0.06);
+            border: 1px solid rgba(0,240,255,0.15);
+            border-radius: 4px;
+            padding: 1px 4px;
+        }
+
+        .vault-item-stock.empty {
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.02);
+            border-color: rgba(255,255,255,0.05);
+        }
+
+        .vault-item-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 8.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .vault-item-donate-btn {
+            width: 100%;
+            font-family: 'Space Mono', monospace;
+            font-size: 8.5px;
+            font-weight: 700;
+            padding: 5px;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: var(--accent-gold);
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .vault-item-donate-btn:hover:not(:disabled) {
+            background: var(--accent-gold);
+            color: #030712;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+        }
+
+        .vault-item-donate-btn:disabled {
+            background: rgba(255,255,255,0.01);
+            border-color: rgba(255,255,255,0.04);
+            color: #334155;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1 style="font-size: 16px;">S.H.I.E.L.D. DIVISION MAINFRAME</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 480px; margin: 0 auto 15px auto;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">AGENT IDENTITY</span>
+                <span class="hud-val" style="font-size:14px; color:#ffffff;">{{agentName}} <span style="font-size:10px; color:var(--hud-blue);">[LVL {{level}}]</span></span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURED OUTPOST BALANCES</span>
+                <span class="hud-val" id="agent-personal-silver" style="font-size:12.5px; color:var(--accent-gold);">🪙 <span id="agent-silver-val">{{silver}}</span> SILVER</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FACET A: DISCOVERY & COMMISSIONING CORE (Served if not in alliance) -->
+    <div class="container" style="display: {{noAllianceDisplay}}; padding-top: 5px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto;">
+        
+        <div class="dashboard-grid">
+            <!-- Requirement checklist -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-title">📡 COMMISSIONING ELIGIBILITY CHECKLIST</div>
+                <div class="checklist-item">
+                    <span>Clearance level 20 or higher Required (Current: Lv. {{level}})</span>
+                    <span class="checklist-dot" id="dot-level"></span>
+                </div>
+                <div class="checklist-item">
+                    <span>At least 10 S.H.I.E.L.D. Allies recruited (Current: {{alliesCount}} Allies)</span>
+                    <span class="checklist-dot" id="dot-allies"></span>
+                </div>
+
+                <div style="margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px;">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px; font-family:'Space Mono',monospace; text-transform:uppercase;">
+                        Status: <span id="comm-status-label" style="font-weight:700;">VAL CHECK...</span>
+                    </div>
+                    <button class="cta-btn span-3" id="btn-commission-open" style="font-family:'Outfit',sans-serif; text-transform:uppercase;" disabled onclick="toggleFormModal(true)">
+                        Commission S.H.I.E.L.D. Division
+                    </button>
+                </div>
+            </div>
+
+            <!-- Discovery / Active alliances recommended roster -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-title">🤝 CHANNELS ACTIVE // REGISTERED DIVISIONS</div>
+                <div id="recommendations-container">
+                    {{allianceRecommendationsHtml}}
+                </div>
+            </div>
+        </div>
+
+        <!-- FORM ALLIANCE MODAL DIALOG -->
+        <div id="commission-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3,7,18,0.85); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;">
+            <div class="dashboard-card" style="width: 100%; max-width: 400px; padding: 25px;">
+                <div class="dashboard-card-title" style="color: var(--hud-blue);">📡 INITIALIZE TACTICAL COALITION</div>
+                
+                <form action="/ultimate/alliance/create" method="POST" id="create-alliance-form">
+                    <div style="margin-bottom: 15px; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted); text-transform:uppercase;">Division Call Sign (Max 23 chars):</label>
+                        <input type="text" name="alliance_name" maxlength="23" required placeholder="e.g. AVENGERS CORE" style="background:rgba(0,0,0,0.5); border:1px solid rgba(0,240,255,0.25); border-radius:8px; padding:10px; color:#ffffff; font-family:'Outfit',sans-serif; font-size:13.5px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);">
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; display:flex; flex-direction:column; gap:6px;">
+                        <label style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted); text-transform:uppercase;">Tactical Slogan / Directive:</label>
+                        <input type="text" name="alliance_slogan" maxlength="100" placeholder="e.g. Earth's Mightiest Heroes." style="background:rgba(0,0,0,0.5); border:1px solid rgba(0,240,255,0.25); border-radius:8px; padding:10px; color:#ffffff; font-family:'Outfit',sans-serif; font-size:13.5px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);">
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" class="alliance-action-btn decline" style="flex: 1; padding: 12px; font-size: 10.5px;" onclick="toggleFormModal(false)">Abort</button>
+                        <button type="submit" class="alliance-action-btn accept" style="flex: 1.5; padding: 12px; font-size: 10.5px;">Establish core</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- FACET B: COMMAND CONSOLE TACTICAL MAINFRAME (Served if in alliance) -->
+    <div class="container" style="display: {{inAllianceDisplay}}; padding-top: 5px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto; padding-bottom: 50px;">
+        
+        <div class="dashboard-grid">
+            <!-- Division Header Info -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-title">📡 S.H.I.E.L.D. Division Core status</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing:0.5px;">{{allianceName}}</h2>
+                        <p style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Directive: "<span id="alliance-slogan-val">{{allianceSlogan}}</span>"</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="member-role-badge leader" style="font-size: 8px;">LEVEL {{allianceLevel}}</span>
+                        <div style="font-family:'Space Mono',monospace; font-size: 9.5px; color: var(--hud-blue); margin-top: 6px;" id="alliance-rating-val">RATING: {{allianceRating}}</div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.03); border-radius: 8px; padding: 10px; margin-top: 15px; font-family:'Space Mono',monospace;">
+                    <div>
+                        <span class="info-lbl">Secured Division Bank</span>
+                        <div class="info-val" style="font-size: 12px; color: #ffffff;">🪙 <span id="alliance-bank-silver">{{donatedSilver}}</span> SILVER</div>
+                    </div>
+                    <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.05); padding-left: 10px;">
+                        <span class="info-lbl">Active Roster</span>
+                        <div class="info-val" style="font-size: 12px; color: var(--hud-blue);" id="alliance-member-cap">{{memberCount}}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contributions hub -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-title">🪙 TACTICAL DONATIONS CORE</div>
+                
+                <!-- Silver contributions -->
+                <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 12.5px; font-weight:600;">Personal Silver Contribution</span>
+                        <span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-muted);">Total Contributed: <span id="personal-donated-val">{{personalDonated}}</span></span>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <input type="number" id="silver-donation-input" min="1" placeholder="Enter silver amount" style="flex: 2; background:rgba(0,0,0,0.4); border:1px solid rgba(0,240,255,0.2); border-radius:6px; padding:8px 10px; color:#ffffff; font-family:'Outfit',sans-serif; font-size:12.5px;">
+                        <button class="alliance-action-btn accept" style="flex: 1; font-size:10px;" onclick="donateSilver()">Contribute</button>
+                    </div>
+                </div>
+
+                <!-- Resources contributions -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 12.5px; font-weight:600; margin-bottom: 4px;">Direct Resource Drop Vault Deposits</span>
+                    <p style="font-size: 10.5px; color: var(--text-muted); line-height: 1.4; margin-bottom: 6px;">
+                        Donate Excess Campaign Operations Drops directly to Division. Deposits automatically convert to equivalent S.H.I.E.L.D. Silver value in the Alliance bank.
+                    </p>
+                    <div class="vault-grid" id="allianceVaultGrid">
+                        <!-- Dynamically populated drops stock -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Research & Mainframe updates -->
+            <div class="dashboard-card upgrade-card">
+                <div class="dashboard-card-title">🔧 DIVISION RESEARCH UPGRADES MAINFRAME</div>
+                
+                <div class="upgrades-container">
+                    <!-- Protection wall segment -->
+                    <div class="upgrade-row">
+                        <div class="upgrade-info">
+                            <span class="upgrade-name">Protection Wall Grid <span class="upgrade-level-indicator" id="val-wall-count">{{protectionWalls}} / 6 SECURED</span></span>
+                            <span class="upgrade-desc">Provides +1% DEF boost per segment (Up to 5%) in PvP battles.</span>
+                        </div>
+                        <button class="alliance-action-btn accept" style="font-size: 9px;" onclick="purchaseUpgrade('ProtectionWall', this)">Build [50K]</button>
+                    </div>
+
+                    <!-- Speed adaptor -->
+                    <div class="upgrade-row">
+                        <div class="upgrade-info">
+                            <span class="upgrade-name">Speed Core Adaptor <span class="upgrade-level-indicator" id="val-speed-lvl">Lv {{speedAdaptor}} / 3</span></span>
+                            <span class="upgrade-desc">Boosts Speed Alignment cards' ATK & DEF (Lv.1: 5%, Lv.2: 6%, Lv.3: 7%).</span>
+                        </div>
+                        <button class="alliance-action-btn accept" id="btn-speed-upgrade" style="font-size: 9px;" onclick="purchaseUpgrade('SpeedAdaptor', this)">Upgrade</button>
+                    </div>
+
+                    <!-- Bruiser adaptor -->
+                    <div class="upgrade-row">
+                        <div class="upgrade-info">
+                            <span class="upgrade-name">Bruiser Core Adaptor <span class="upgrade-level-indicator" id="val-bruiser-lvl">Lv {{bruiserAdaptor}} / 3</span></span>
+                            <span class="upgrade-desc">Boosts Bruiser Alignment cards' ATK & DEF (Lv.1: 5%, Lv.2: 6%, Lv.3: 7%).</span>
+                        </div>
+                        <button class="alliance-action-btn accept" id="btn-bruiser-upgrade" style="font-size: 9px;" onclick="purchaseUpgrade('BruiserAdaptor', this)">Upgrade</button>
+                    </div>
+
+                    <!-- Tactics adaptor -->
+                    <div class="upgrade-row">
+                        <div class="upgrade-info">
+                            <span class="upgrade-name">Tactics Core Adaptor <span class="upgrade-level-indicator" id="val-tactics-lvl">Lv {{tacticsAdaptor}} / 3</span></span>
+                            <span class="upgrade-desc">Boosts Tactics Alignment cards' ATK & DEF (Lv.1: 5%, Lv.2: 6%, Lv.3: 7%).</span>
+                        </div>
+                        <button class="alliance-action-btn accept" id="btn-tactics-upgrade" style="font-size: 9px;" onclick="purchaseUpgrade('TacticsAdaptor', this)">Upgrade</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Join requests list (only visible if officer) -->
+            <div class="dashboard-card" style="display: {{requestsDisplay}};">
+                <div class="dashboard-card-title" style="color: #c084fc;">📨 DECLASSIFIED DEPLOYMENT REQUESTS INBOX</div>
+                <div id="requests-container">
+                    {{joinRequestsHtml}}
+                </div>
+            </div>
+
+            <!-- Members roster -->
+            <div class="dashboard-card">
+                <div class="dashboard-card-title">👥 REGISTERED AGENTS DIVISION ROSTER</div>
+                <div id="members-container">
+                    {{membersHtml}}
+                </div>
+            </div>
+
+            <!-- Division Exit operations -->
+            <div class="dashboard-card" style="border-color: rgba(239,68,68,0.25);">
+                <div class="dashboard-card-title" style="color: var(--accent-red);">⚠️ DIVISION TERMINAL CONTROLS</div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="alliance-action-btn decline" style="flex: 1; padding: 10px;" onclick="leaveAlliance()">Resign Position [-20K Silver]</button>
+                    <button class="alliance-action-btn decline" id="btn-disband-core" style="flex: 1; padding: 10px; display: {{roleActionsDisplay}};" onclick="disbandAlliance()">Disband Division</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast" id="alliance-toast">COMMUNICATION OUTPOST SECURED</div>
+
+    <script>
+        // Setup initial client data values
+        const playerLvl = parseInt("{{level}}") || 1;
+        const acceptedAllies = parseInt("{{alliesCount}}") || 0;
+        
+        let personalSilver = parseInt("{{silver}}".replace(/,/g, '')) || 0;
+        let resourcesStock = [];
+
+        try {
+            resourcesStock = {{resourcesJson}};
+        } catch(e) {
+            console.error("Resource inventory failed to parse", e);
+        }
+
+        // Checklist states initialization
+        if (document.getElementById('dot-level')) {
+            const dotLvl = document.getElementById('dot-level');
+            const dotAllies = document.getElementById('dot-allies');
+            const btnComm = document.getElementById('btn-commission-open');
+            const statusLbl = document.getElementById('comm-status-label');
+
+            const isLvlOk = playerLvl >= 20;
+            const isAlliesOk = acceptedAllies >= 10;
+
+            if (isLvlOk) {
+                dotLvl.classList.add('active');
+            }
+            if (isAlliesOk) {
+                dotAllies.classList.add('active');
+            }
+
+            if (isLvlOk && isAlliesOk) {
+                btnComm.removeAttribute('disabled');
+                statusLbl.textContent = "READY FOR COMMISSIONING";
+                statusLbl.style.color = "#10b981";
+            } else {
+                statusLbl.textContent = "UNRESOLVED BLOCKS OUTSTANDING";
+                statusLbl.style.color = "var(--accent-red)";
+            }
+        }
+
+        // Toggle creation Modal dialog
+        function toggleFormModal(open) {
+            document.getElementById('commission-modal').style.display = open ? 'flex' : 'none';
+        }
+
+        // Render drops in donation core
+        const resourceSetTemplates = [
+            { key: "StormsCape", title: "Storm's Cape", value: 2000 },
+            { key: "Suitcase", title: "Suitcase", value: 2500 },
+            { key: "SwordOfProficiency", title: "Sword of Proficiency", value: 3000 },
+            { key: "AssassinsChoker", title: "Assassin's Choker", value: 3500 },
+            { key: "ChainBelt", title: "Chain Belt", value: 4000 },
+            { key: "Geirr", title: "Geirr Spear", value: 4500 },
+            { key: "ProjectileArray", title: "Projectile Array", value: 5000 }
+        ];
+
+        function renderDropsVault() {
+            const vaultContainer = document.getElementById('allianceVaultGrid');
+            if (!vaultContainer) return;
+
+            vaultContainer.innerHTML = '';
+
+            resourceSetTemplates.forEach(t => {
+                // Find matching quantity in stock list
+                let count = 0;
+                resourcesStock.forEach(item => {
+                    if (item.groupKey === t.key) {
+                        count += item.qty;
+                    }
+                });
+
+                const box = document.createElement('div');
+                box.className = 'vault-item-row';
+                box.innerHTML = `
+                    <div class="vault-item-header">
+                        <span class="vault-item-title">${t.title}</span>
+                        <span class="vault-item-stock ${count === 0 ? 'empty' : ''}">x${count}</span>
+                    </div>
+                    <div class="vault-item-value">Est. Val: +${t.value.toLocaleString()}</div>
+                    <button class="vault-item-donate-btn" ${count === 0 ? 'disabled' : ''} onclick="donateResourceGroup('${t.key}', this)">Deposit</button>
+                `;
+
+                vaultContainer.appendChild(box);
+            });
+        }
+
+        // Show central HUD alerts
+        function triggerAlert(message, isError = false) {
+            const toast = document.getElementById('alliance-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // Allocate Personal Silver
+        function donateSilver() {
+            const input = document.getElementById('silver-donation-input');
+            const amount = parseInt(input.value) || 0;
+
+            if (amount <= 0) {
+                triggerAlert("⚠️ ERROR // Contribution amount must exceed zero.", true);
+                return;
+            }
+
+            if (personalSilver < amount) {
+                triggerAlert("⚠️ TRANSACTION REJECTED // Personal outpost funds insufficient.", true);
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('amount', amount);
+
+            fetch('/ultimate/alliance/donate-silver', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update personal funds HUD
+                    personalSilver = data.silverBalance;
+                    document.getElementById('agent-silver-val').textContent = personalSilver.toLocaleString();
+                    
+                    // Update Alliance balances
+                    document.getElementById('alliance-bank-silver').textContent = data.silverBalance.toLocaleString(); // Wait, let's see. In CygamesController, 'silverBalance' is player personal silver. 'donatedSilver' is player total contributed. No, wait, in C# the AJAX response credits res.NewPersonalSilver to 'silverBalance' and res.NewAllianceDonatedSilver to 'donatedSilver'. Wait, does the C# return donatedSilver as the alliance bank value or player personal total?
+                    // Ah, let's verify C# response. The C# DonateSilverApi returns:
+                    // silverBalance = res.NewPersonalSilver (player's own silver)
+                    // donatedSilver = res.NewAllianceDonatedSilver (player's individual contributed total)
+                    // allianceLevel = res.NewAllianceLevel (alliance level)
+                    // allianceRating = res.NewAllianceRating (alliance rating)
+                    // Wait, so we can reload the page or update the elements! If we want to be completely robust, we can simply reload the page on successful donations or let's update dynamically. Let's do a location.reload() to easily refresh all the dynamic HTML values like roster contribution totals, bank balances, and adaptor levels! A reload is exceptionally clean, robust, and guarantees synchronization with the DB!
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                triggerAlert("📡 UPLINK TIMEOUT. ACTION REFUSED.", true);
+            });
+        }
+
+        // Donate campaign resource set drop
+        function donateResourceGroup(groupKey, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('group_key', groupKey);
+
+            fetch('/ultimate/alliance/donate-resources', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    // Reload to sync all layout parts
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                triggerAlert("📡 ALLIANCE DEPOSIT TIMEOUT. RETRY SEQUENCE.", true);
+            });
+        }
+
+        // Disburse Upgrades
+        function purchaseUpgrade(upgradeType, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('upgrade_type', upgradeType);
+
+            fetch('/ultimate/alliance/purchase-upgrade', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                triggerAlert("📡 RESEARCH CORE UNRESPONSIVE.", true);
+            });
+        }
+
+        // Requests management
+        function sendJoinRequest(allianceId, btn) {
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "...";
+
+            const params = new URLSearchParams();
+            params.append('alliance_id', allianceId);
+
+            fetch('/ultimate/alliance/send-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    btn.textContent = "PENDING";
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                triggerAlert("📡 CHANNELS SATURATED // Retrying join request...", true);
+            });
+        }
+
+        function respondRequest(requestId, accept, btn) {
+            const originalText = btn.textContent;
+            btn.disabled = true;
+
+            const params = new URLSearchParams();
+            params.append('request_id', requestId);
+            params.append('accept', accept.toString());
+
+            fetch('/ultimate/alliance/respond-request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = originalText;
+                console.error(err);
+                triggerAlert("📡 REQUEST TIMEOUT // Resubmitting clearances...", true);
+            });
+        }
+
+        // Officer Role Assignment
+        function changeMemberRole(memberId, select) {
+            const origVal = select.value;
+            select.disabled = true;
+
+            const params = new URLSearchParams();
+            params.append('member_id', memberId);
+            params.append('role', origVal);
+
+            fetch('/ultimate/alliance/set-role', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    select.disabled = false;
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                select.disabled = false;
+                console.error(err);
+                triggerAlert("📡 AUTHORIZATION DEVIATED // Re-establishing uplink...", true);
+            });
+        }
+
+        // Leave Alliance
+        function leaveAlliance() {
+            if (!confirm("Are you sure you want to resign your position from this Division? Resigning will deduct a S.H.I.E.L.D. decommissioning fee of -20,000 Silver!")) {
+                return;
+            }
+
+            fetch('/ultimate/alliance/leave', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.href = "/ultimate/alliance";
+                    }, 1000);
+                } else {
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                triggerAlert("📡 RESIGNATION DENIED // Uplink interrupted.", true);
+            });
+        }
+
+        // Disband Alliance
+        function disbandAlliance() {
+            if (!confirm("🚨 WARNING: CRITICAL COMMAND INITIALIZED // Are you absolutely sure you want to DISBAND this entire S.H.I.E.L.D. Division? This operation is classified permanent and will evict all active agents!")) {
+                return;
+            }
+
+            fetch('/ultimate/alliance/disband', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    triggerAlert(data.message);
+                    setTimeout(() => {
+                        window.location.href = "/ultimate/alliance";
+                    }, 1000);
+                } else {
+                    triggerAlert(data.message, true);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                triggerAlert("🚨 DISBAND BLOCKED // Mainframe locked.", true);
+            });
+        }
+
+        // Boot
+        renderDropsVault();
+    </script>
+</body>
+</html>

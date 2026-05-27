@@ -31,6 +31,7 @@ namespace MwohServer.Controllers
         private readonly IDeckManager _deckManager;
         private readonly ILeaderManager _leaderManager;
         private readonly IBattleEngine _battleEngine;
+        private readonly IAllianceEngine _allianceEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -43,7 +44,8 @@ namespace MwohServer.Controllers
             ISessionGateway sessionGateway,
             IDeckManager deckManager,
             ILeaderManager leaderManager,
-            IBattleEngine battleEngine)
+            IBattleEngine battleEngine,
+            IAllianceEngine allianceEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -56,6 +58,7 @@ namespace MwohServer.Controllers
             _deckManager = deckManager;
             _leaderManager = leaderManager;
             _battleEngine = battleEngine;
+            _allianceEngine = allianceEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -2512,6 +2515,451 @@ namespace MwohServer.Controllers
             }
 
             return profile;
+        }
+
+        // ==========================================
+        // ALLIANCE CONTROLLER ENDPOINTS
+        // ==========================================
+
+        [HttpGet("alliance")]
+        public IActionResult ServeAllianceHubPage()
+        {
+            _logger.LogInformation("[Cygames] ServeAllianceHubPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            // Load profile with inventory for resources list
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var agentName = profile.Nickname;
+            var level = profile.Level;
+            var silver = profile.SilverBalance;
+
+            var replacements = new Dictionary<string, string>();
+
+            if (profile.AllianceId == null)
+            {
+                // Count accepted allies
+                int alliesCount = _dbContext.ShieldTeamMembers
+                    .Count(m => (m.ProfileId == profileId || m.MemberProfileId == profileId) && m.Status == "Accepted");
+
+                bool canForm = level >= 20 && alliesCount >= 10;
+                string formStatus = canForm ? "SATISFIED" : "RESTRICTED";
+
+                // Generate active alliances list
+                var recommendationsHtml = "";
+                var existingAlliances = _dbContext.Alliances.Include(a => a.Members).Take(5).ToList();
+                if (existingAlliances.Any())
+                {
+                    foreach (var a in existingAlliances)
+                    {
+                        int maxCap = a.Level <= 1 ? 10 : a.Level <= 11 ? 10 + (a.Level - 1) : 20 + (int)Math.Floor((a.Level - 11) / 2.0);
+                        if (a.Level >= 31 && a.Level <= 34) maxCap = 30;
+                        else if (a.Level >= 35 && a.Level <= 54) maxCap = 31 + (int)Math.Floor((a.Level - 35) / 5.0);
+                        else if (a.Level >= 55 && a.Level <= 109) maxCap = 35 + (int)Math.Floor((a.Level - 55) / 10.0);
+                        else if (a.Level >= 110) maxCap = 40;
+
+                        recommendationsHtml += $"""
+                        <div class="alliance-recommendation-row">
+                            <div class="rec-info">
+                                <span class="rec-name">{a.Name}</span>
+                                <span class="rec-desc">Lv. {a.Level} // Rating: {a.Rating} // "{a.Slogan}"</span>
+                            </div>
+                            <div style="text-align: right; display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                                <span class="rec-cap">{a.Members.Count} / {maxCap} Members</span>
+                                <button class="alliance-action-btn" onclick="sendJoinRequest({a.Id}, this)">Ask to Join</button>
+                            </div>
+                        </div>
+                        """;
+                    }
+                }
+                else
+                {
+                    recommendationsHtml = "<div class='no-records-card'>No active S.H.I.E.L.D. Divisions registered in tactical database. Form the first division!</div>";
+                }
+
+                replacements = new Dictionary<string, string>
+                {
+                    { "agentName", agentName },
+                    { "level", level.ToString() },
+                    { "silver", silver.ToString("N0") },
+                    { "alliesCount", alliesCount.ToString() },
+                    { "formRequirementStatus", formStatus },
+                    { "allianceRecommendationsHtml", recommendationsHtml },
+                    { "inAllianceDisplay", "none" },
+                    { "noAllianceDisplay", "block" },
+                    // Placeholders for template fields so rendering won't fail
+                    { "allianceName", "" },
+                    { "allianceSlogan", "" },
+                    { "allianceLevel", "1" },
+                    { "allianceRating", "0" },
+                    { "donatedSilver", "0" },
+                    { "protectionWalls", "0" },
+                    { "speedAdaptor", "0" },
+                    { "bruiserAdaptor", "0" },
+                    { "tacticsAdaptor", "0" },
+                    { "agentRole", "" },
+                    { "personalDonated", "0" },
+                    { "memberCount", "0/10" },
+                    { "membersHtml", "" },
+                    { "joinRequestsHtml", "" },
+                    { "requestsDisplay", "none" },
+                    { "roleActionsDisplay", "none" },
+                    { "resourcesJson", "[]" }
+                };
+            }
+            else
+            {
+                // In alliance: Load full Alliance Hub
+                var alliance = _dbContext.Alliances
+                    .Include(a => a.Members)
+                    .FirstOrDefault(a => a.Id == profile.AllianceId);
+
+                if (alliance == null) return RedirectToAction("ServeGameTopPage");
+
+                int maxMembers = alliance.Level <= 1 ? 10 : alliance.Level <= 11 ? 10 + (alliance.Level - 1) : 20 + (int)Math.Floor((alliance.Level - 11) / 2.0);
+                if (alliance.Level >= 31 && alliance.Level <= 34) maxMembers = 30;
+                else if (alliance.Level >= 35 && alliance.Level <= 54) maxMembers = 31 + (int)Math.Floor((alliance.Level - 35) / 5.0);
+                else if (alliance.Level >= 55 && alliance.Level <= 109) maxMembers = 35 + (int)Math.Floor((alliance.Level - 55) / 10.0);
+                else if (alliance.Level >= 110) maxMembers = 40;
+
+                bool isLeader = profile.AllianceRole == "Leader";
+                bool isOfficer = isLeader || profile.AllianceRole == "Vice-Leader";
+
+                // Generate members list
+                var membersHtml = "";
+                foreach (var m in alliance.Members.OrderByDescending(x => x.AllianceRole == "Leader")
+                                                  .ThenByDescending(x => x.AllianceRole == "Vice-Leader")
+                                                  .ThenByDescending(x => x.AllianceDonatedSilver))
+                {
+                    var joinedStr = m.AllianceJoinedAt?.ToString("yyyy-MM-dd HH:mm") ?? "N/A";
+                    var actionSelectorHtml = "";
+
+                    if (isLeader && m.Id != profileId)
+                    {
+                        actionSelectorHtml = $"""
+                        <div class="member-actions" style="margin-top: 4px;">
+                            <select onchange="changeMemberRole({m.Id}, this)" class="role-selector" style="font-family:'Space Mono',monospace; font-size:8px; background: rgba(0,0,0,0.5); color:#00f0ff; border:1px solid rgba(0,240,255,0.2); border-radius:4px; padding:2px 4px;">
+                                <option value="Member" {(m.AllianceRole == "Member" ? "selected" : "")}>AGENT</option>
+                                <option value="Vice-Leader" {(m.AllianceRole == "Vice-Leader" ? "selected" : "")}>VICE-LEADER</option>
+                                <option value="Offense-Leader" {(m.AllianceRole == "Offense-Leader" ? "selected" : "")}>OFFENSE LEADER</option>
+                                <option value="Defense-Leader" {(m.AllianceRole == "Defense-Leader" ? "selected" : "")}>DEFENSE LEADER</option>
+                            </select>
+                        </div>
+                        """;
+                    }
+
+                    membersHtml += $"""
+                    <div class="member-row">
+                        <div class="member-info">
+                            <span class="member-name">{m.Nickname} <span class="member-role-badge {m.AllianceRole?.ToLower()}">{m.AllianceRole?.ToUpper() ?? "AGENT"}</span></span>
+                            <span class="member-desc">Clearance: Lv. {m.Level} // Joined: {joinedStr}</span>
+                        </div>
+                        <div style="text-align: right; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;">
+                            <span class="member-donation">🪙 {m.AllianceDonatedSilver.ToString("N0")} Contributed</span>
+                            {actionSelectorHtml}
+                        </div>
+                    </div>
+                    """;
+                }
+
+                // Generate join requests list for Leaders/Vice-Leaders
+                var joinRequestsHtml = "";
+                var requests = _dbContext.AllianceJoinRequests
+                    .Include(r => r.PlayerProfile)
+                    .Where(r => r.AllianceId == alliance.Id && r.Status == "Pending")
+                    .ToList();
+
+                if (requests.Any())
+                {
+                    foreach (var r in requests)
+                    {
+                        joinRequestsHtml += $"""
+                        <div class="request-row" id="req-row-{r.Id}">
+                            <div class="member-info">
+                                <span class="member-name">{r.PlayerProfile?.Nickname ?? "Unknown Agent"}</span>
+                                <span class="member-desc">Clearance Level: Lv. {r.PlayerProfile?.Level ?? 1}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="alliance-action-btn accept" onclick="respondRequest({r.Id}, true, this)">Accept</button>
+                                <button class="alliance-action-btn decline" onclick="respondRequest({r.Id}, false, this)">Decline</button>
+                            </div>
+                        </div>
+                        """;
+                    }
+                }
+                else
+                {
+                    joinRequestsHtml = "<div class='no-requests-msg'>No pending access requests in mainframe.</div>";
+                }
+
+                // Filter out player's stock of Rare drops (Type == "Resource")
+                var resourceList = profile.InventoryItems
+                    .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
+                    .Select(pi => new {
+                        id = pi.ItemTemplateId,
+                        groupKey = pi.ItemTemplate.Name.Contains("Storm's") && pi.ItemTemplate.Name.Contains("Cape") ? "StormsCape" :
+                                   pi.ItemTemplate.Name.Contains("Suitcase") ? "Suitcase" :
+                                   pi.ItemTemplate.Name.Contains("Sword") ? "SwordOfProficiency" :
+                                   pi.ItemTemplate.Name.Contains("Assassin's") && pi.ItemTemplate.Name.Contains("Choker") ? "AssassinsChoker" :
+                                   pi.ItemTemplate.Name.Contains("Chain Belt") ? "ChainBelt" :
+                                   pi.ItemTemplate.Name.Contains("Geirr") ? "Geirr" : "ProjectileArray",
+                        color = pi.ItemTemplate.Name.Split(' ').Last(), // e.g. "Red", "Blue", etc.
+                        imageFile = pi.ItemTemplate.ImageFileName,
+                        qty = pi.Quantity
+                    }).ToList();
+
+                var resourcesJson = JsonSerializer.Serialize(resourceList);
+
+                replacements = new Dictionary<string, string>
+                {
+                    { "agentName", agentName },
+                    { "level", level.ToString() },
+                    { "silver", silver.ToString("N0") },
+                    { "allianceName", alliance.Name },
+                    { "allianceSlogan", alliance.Slogan },
+                    { "allianceLevel", alliance.Level.ToString() },
+                    { "allianceRating", alliance.Rating.ToString("N0") },
+                    { "donatedSilver", alliance.DonatedSilver.ToString("N0") },
+                    { "protectionWalls", alliance.ProtectionWallCount.ToString() },
+                    { "speedAdaptor", alliance.SpeedAdaptorLevel.ToString() },
+                    { "bruiserAdaptor", alliance.BruiserAdaptorLevel.ToString() },
+                    { "tacticsAdaptor", alliance.TacticsAdaptorLevel.ToString() },
+                    { "agentRole", profile.AllianceRole?.ToUpper() ?? "AGENT" },
+                    { "personalDonated", profile.AllianceDonatedSilver.ToString("N0") },
+                    { "memberCount", $"{alliance.Members.Count}/{maxMembers}" },
+                    { "membersHtml", membersHtml },
+                    { "joinRequestsHtml", joinRequestsHtml },
+                    { "requestsDisplay", isOfficer ? "block" : "none" },
+                    { "roleActionsDisplay", isLeader ? "block" : "none" },
+                    { "resourcesJson", resourcesJson },
+                    { "inAllianceDisplay", "block" },
+                    { "noAllianceDisplay", "none" },
+                    { "alliesCount", "0" },
+                    { "formRequirementStatus", "RESTRICTED" },
+                    { "allianceRecommendationsHtml", "" }
+                };
+            }
+
+            return Content(RenderTemplate("alliance.html", replacements), "text/html");
+        }
+
+        [HttpPost("alliance/create")]
+        public IActionResult CreateAllianceForm()
+        {
+            _logger.LogInformation("[Cygames] CreateAllianceForm called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var name = Request.Form["alliance_name"].ToString();
+            var slogan = Request.Form["alliance_slogan"].ToString();
+
+            var res = _allianceEngine.CreateAlliance(profileId, name, slogan);
+            if (res.Success)
+            {
+                return RedirectToAction("ServeAllianceHubPage");
+            }
+
+            return BadRequest(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("alliance/donate-silver")]
+        public IActionResult DonateSilverApi()
+        {
+            _logger.LogInformation("[Cygames] DonateSilverApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            if (!long.TryParse(Request.Form["amount"], out long amount))
+            {
+                return Ok(new { success = false, message = "⚠️ AMOUNT UNREADABLE // Provide a valid Silver credit contribution amount." });
+            }
+
+            var res = _allianceEngine.DonateSilver(profileId, amount);
+            if (res.Success)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = res.Message,
+                    silverBalance = res.NewPersonalSilver,
+                    donatedSilver = res.NewAllianceDonatedSilver,
+                    allianceLevel = res.NewAllianceLevel,
+                    allianceRating = res.NewAllianceRating
+                });
+            }
+
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("alliance/donate-resources")]
+        public IActionResult DonateResourcesApi()
+        {
+            _logger.LogInformation("[Cygames] DonateResourcesApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var groupKey = Request.Form["group_key"].ToString();
+            if (string.IsNullOrEmpty(groupKey))
+            {
+                return Ok(new { success = false, message = "⚠️ VAULT BLOCK // Resource group key missing." });
+            }
+
+            var res = _allianceEngine.DonateResourceGroup(profileId, groupKey);
+            if (res.Success)
+            {
+                // Also get the updated inventory stock of Resources to return to UI
+                var profile = GetPlayerProfile(profileId, includeInventory: true);
+                var updatedResources = profile!.InventoryItems
+                    .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
+                    .Select(pi => new {
+                        id = pi.ItemTemplateId,
+                        qty = pi.Quantity
+                    }).ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = res.Message,
+                    donatedSilver = res.NewAllianceDonatedSilver,
+                    allianceLevel = res.NewAllianceLevel,
+                    allianceRating = res.NewAllianceRating,
+                    resources = updatedResources
+                });
+            }
+
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("alliance/purchase-upgrade")]
+        public IActionResult PurchaseUpgradeApi()
+        {
+            _logger.LogInformation("[Cygames] PurchaseUpgradeApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var upgradeType = Request.Form["upgrade_type"].ToString();
+            if (string.IsNullOrEmpty(upgradeType))
+            {
+                return Ok(new { success = false, message = "⚠️ UPGRADE CODE MISSING." });
+            }
+
+            var res = _allianceEngine.PurchaseUpgrade(profileId, upgradeType);
+            if (res.Success && res.Alliance != null)
+            {
+                return Ok(new
+                {
+                    success = true,
+                    message = res.Message,
+                    donatedSilver = res.Alliance.DonatedSilver,
+                    protectionWalls = res.Alliance.ProtectionWallCount,
+                    speedAdaptor = res.Alliance.SpeedAdaptorLevel,
+                    bruiserAdaptor = res.Alliance.BruiserAdaptorLevel,
+                    tacticsAdaptor = res.Alliance.TacticsAdaptorLevel
+                });
+            }
+
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("alliance/send-request")]
+        public IActionResult SendRequestApi()
+        {
+            _logger.LogInformation("[Cygames] SendRequestApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            if (!int.TryParse(Request.Form["alliance_id"], out int allianceId))
+            {
+                return Ok(new { success = false, message = "⚠️ DIVISION DESIGNATION MISSING." });
+            }
+
+            bool success = _allianceEngine.CreateJoinRequest(profileId, allianceId);
+            if (success)
+            {
+                return Ok(new { success = true, message = "📡 REQUEST TRANSMITTED // S.H.I.E.L.D. Division command notified." });
+            }
+
+            return Ok(new { success = false, message = "⚠️ TRANSMISSION BLOCKED // Request is already active, or members capacity is saturated." });
+        }
+
+        [HttpPost("alliance/respond-request")]
+        public IActionResult RespondRequestApi()
+        {
+            _logger.LogInformation("[Cygames] RespondRequestApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            if (!int.TryParse(Request.Form["request_id"], out int requestId))
+            {
+                return Ok(new { success = false, message = "⚠️ REQUEST ID INVALID." });
+            }
+
+            bool accept = Request.Form["accept"].ToString().ToLower() == "true";
+
+            bool success = _allianceEngine.ProcessJoinRequest(profileId, requestId, accept);
+            if (success)
+            {
+                return Ok(new { success = true, message = accept ? "✔️ AGENT CLEARED // Recruit successfully integrated into division." : "❌ REQUEST PURGED // Access request declined." });
+            }
+
+            return Ok(new { success = false, message = "⚠️ ACTION BLOCKED // Request is inactive, or max membership clearance limit exceeded." });
+        }
+
+        [HttpPost("alliance/set-role")]
+        public IActionResult SetRoleApi()
+        {
+            _logger.LogInformation("[Cygames] SetRoleApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            if (!int.TryParse(Request.Form["member_id"], out int memberId))
+            {
+                return Ok(new { success = false, message = "⚠️ MEMBER ID INVALID." });
+            }
+
+            var role = Request.Form["role"].ToString();
+
+            bool success = _allianceEngine.AssignMemberRole(profileId, memberId, role);
+            if (success)
+            {
+                return Ok(new { success = true, message = $"✔️ COMMAND AUTHORISED // Role reassigned to: {role.ToUpper()}." });
+            }
+
+            return Ok(new { success = false, message = "⚠️ ACTION REFUSED // You lack Leader credentials, or officers clearance capacity is saturated." });
+        }
+
+        [HttpPost("alliance/leave")]
+        public IActionResult LeaveAllianceApi()
+        {
+            _logger.LogInformation("[Cygames] LeaveAllianceApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            bool success = _allianceEngine.LeaveAlliance(profileId);
+            if (success)
+            {
+                return Ok(new { success = true, message = "🚪 DIVISION VACATED // Successfully resigned from S.H.I.E.L.D. Division. Resignation fee deducted (-20,000 Silver)." });
+            }
+
+            return Ok(new { success = false, message = "⚠️ LEAVE DENIED // Leaders cannot leave without disbanding or delegating command. Personal balance must exceed 20,000 Silver." });
+        }
+
+        [HttpPost("alliance/disband")]
+        public IActionResult DisbandAllianceApi()
+        {
+            _logger.LogInformation("[Cygames] DisbandAllianceApi called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            bool success = _allianceEngine.DisbandAlliance(profileId);
+            if (success)
+            {
+                return Ok(new { success = true, message = "💥 DIVISION DECOMMISSIONED // Alliance successfully disbanded. Mainframe resources cleared." });
+            }
+
+            return Ok(new { success = false, message = "⚠️ DISBAND BLOCKED // Only the Alliance Leader can decommission this division." });
         }
 
         private string RenderTemplate(string templateName, Dictionary<string, string> replacements)

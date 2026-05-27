@@ -13,15 +13,18 @@ namespace MwohServer.Services
         private readonly ILogger<BattleEngine> _logger;
         private readonly MwohDbContext _dbContext;
         private readonly ICardAbilityEvaluator _abilityEvaluator;
+        private readonly IAllianceEngine _allianceEngine;
 
         public BattleEngine(
             ILogger<BattleEngine> logger,
             MwohDbContext dbContext,
-            ICardAbilityEvaluator abilityEvaluator)
+            ICardAbilityEvaluator abilityEvaluator,
+            IAllianceEngine allianceEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
             _abilityEvaluator = abilityEvaluator;
+            _allianceEngine = allianceEngine;
         }
 
         public void RestoreBattlePower(PlayerProfile profile)
@@ -101,13 +104,15 @@ namespace MwohServer.Services
                 return result;
             }
 
-            // 1. Load profiles with decks
+            // 1. Load profiles with decks & alliances
             var attacker = _dbContext.Profiles
+                .Include(p => p.Alliance)
                 .Include(p => p.Cards)
                     .ThenInclude(c => c.CardTemplate)
                 .FirstOrDefault(p => p.Id == attackerProfileId);
 
             var defender = _dbContext.Profiles
+                .Include(p => p.Alliance)
                 .Include(p => p.Cards)
                     .ThenInclude(c => c.CardTemplate)
                 .FirstOrDefault(p => p.Id == defenderProfileId);
@@ -235,67 +240,103 @@ namespace MwohServer.Services
                 }
             }
 
-            // Create evaluation models with ability name cleared for non-triggered ones
-            var attackerEvalCards = attackerCards.Select(c => new PlayerCard
-            {
-                Id = c.Id,
-                CurrentAtk = c.CurrentAtk,
-                CurrentDef = c.CurrentDef,
-                AbilityLevel = c.AbilityLevel,
-                CardTemplate = new CardTemplate
+            // Apply S.H.I.E.L.D. Alliance boosts (adaptors, role bonuses, walls)
+            var attackerBoosts = new List<string>();
+            var defenderBoosts = new List<string>();
+
+            // Create evaluation models with ability name cleared for non-triggered ones and apply Alliance boosts
+            var attackerEvalCards = attackerCards.Select(c => {
+                var alignment = c.CardTemplate?.Alignment ?? "Speed";
+                var boost = _allianceEngine.GetAllianceCombatBoosts(attackerProfileId, alignment);
+
+                int boostedAtk = (int)Math.Round(c.CurrentAtk * boost.AtkModifier);
+                int boostedDef = (int)Math.Round(c.CurrentDef * boost.DefModifier);
+
+                if (!string.IsNullOrEmpty(boost.Logs))
                 {
-                    Id = c.CardTemplate!.Id,
-                    Title = c.CardTemplate.Title,
-                    VisualTitle = c.CardTemplate.VisualTitle,
-                    Alignment = c.CardTemplate.Alignment,
-                    Rarity = c.CardTemplate.Rarity,
-                    Faction = c.CardTemplate.Faction,
-                    Gender = c.CardTemplate.Gender,
-                    PowerRequirement = c.CardTemplate.PowerRequirement,
-                    BaseAtk = c.CardTemplate.BaseAtk,
-                    BaseDef = c.CardTemplate.BaseDef,
-                    MaxAtk = c.CardTemplate.MaxAtk,
-                    MaxDef = c.CardTemplate.MaxDef,
-                    MasteryBonusAtk = c.CardTemplate.MasteryBonusAtk,
-                    MasteryBonusDef = c.CardTemplate.MasteryBonusDef,
-                    MaxMastery = c.CardTemplate.MaxMastery,
-                    AbilityName = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
-                    AbilityEffect = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
-                    Quote = c.CardTemplate.Quote,
-                    ImageFileName = c.CardTemplate.ImageFileName,
-                    VariantName = c.CardTemplate.VariantName
+                    foreach (var line in boost.Logs.Split('\n'))
+                    {
+                        if (!attackerBoosts.Contains(line)) attackerBoosts.Add(line);
+                    }
                 }
+
+                return new PlayerCard
+                {
+                    Id = c.Id,
+                    CurrentAtk = boostedAtk,
+                    CurrentDef = boostedDef,
+                    AbilityLevel = c.AbilityLevel,
+                    CardTemplate = new CardTemplate
+                    {
+                        Id = c.CardTemplate!.Id,
+                        Title = c.CardTemplate.Title,
+                        VisualTitle = c.CardTemplate.VisualTitle,
+                        Alignment = c.CardTemplate.Alignment,
+                        Rarity = c.CardTemplate.Rarity,
+                        Faction = c.CardTemplate.Faction,
+                        Gender = c.CardTemplate.Gender,
+                        PowerRequirement = c.CardTemplate.PowerRequirement,
+                        BaseAtk = (int)Math.Round(c.CardTemplate.BaseAtk * boost.AtkModifier),
+                        BaseDef = (int)Math.Round(c.CardTemplate.BaseDef * boost.DefModifier),
+                        MaxAtk = (int)Math.Round(c.CardTemplate.MaxAtk * boost.AtkModifier),
+                        MaxDef = (int)Math.Round(c.CardTemplate.MaxDef * boost.DefModifier),
+                        MasteryBonusAtk = (int)Math.Round(c.CardTemplate.MasteryBonusAtk * boost.AtkModifier),
+                        MasteryBonusDef = (int)Math.Round(c.CardTemplate.MasteryBonusDef * boost.DefModifier),
+                        MaxMastery = c.CardTemplate.MaxMastery,
+                        AbilityName = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
+                        AbilityEffect = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
+                        Quote = c.CardTemplate.Quote,
+                        ImageFileName = c.CardTemplate.ImageFileName,
+                        VariantName = c.CardTemplate.VariantName
+                    }
+                };
             }).ToList();
 
-            var defenderEvalCards = defenderCards.Select(c => new PlayerCard
-            {
-                Id = c.Id,
-                CurrentAtk = (int)Math.Round(c.CurrentAtk * defenderScale),
-                CurrentDef = (int)Math.Round(c.CurrentDef * defenderScale),
-                AbilityLevel = c.AbilityLevel,
-                CardTemplate = new CardTemplate
+            var defenderEvalCards = defenderCards.Select(c => {
+                var alignment = c.CardTemplate?.Alignment ?? "Speed";
+                var boost = _allianceEngine.GetAllianceCombatBoosts(defenderProfileId, alignment);
+
+                int boostedAtk = (int)Math.Round(c.CurrentAtk * defenderScale * boost.AtkModifier);
+                int boostedDef = (int)Math.Round(c.CurrentDef * defenderScale * boost.DefModifier);
+
+                if (!string.IsNullOrEmpty(boost.Logs))
                 {
-                    Id = c.CardTemplate!.Id,
-                    Title = c.CardTemplate.Title,
-                    VisualTitle = c.CardTemplate.VisualTitle,
-                    Alignment = c.CardTemplate.Alignment,
-                    Rarity = c.CardTemplate.Rarity,
-                    Faction = c.CardTemplate.Faction,
-                    Gender = c.CardTemplate.Gender,
-                    PowerRequirement = c.CardTemplate.PowerRequirement,
-                    BaseAtk = (int)Math.Round(c.CardTemplate.BaseAtk * defenderScale),
-                    BaseDef = (int)Math.Round(c.CardTemplate.BaseDef * defenderScale),
-                    MaxAtk = (int)Math.Round(c.CardTemplate.MaxAtk * defenderScale),
-                    MaxDef = (int)Math.Round(c.CardTemplate.MaxDef * defenderScale),
-                    MasteryBonusAtk = (int)Math.Round(c.CardTemplate.MasteryBonusAtk * defenderScale),
-                    MasteryBonusDef = (int)Math.Round(c.CardTemplate.MasteryBonusDef * defenderScale),
-                    MaxMastery = c.CardTemplate.MaxMastery,
-                    AbilityName = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
-                    AbilityEffect = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
-                    Quote = c.CardTemplate.Quote,
-                    ImageFileName = c.CardTemplate.ImageFileName,
-                    VariantName = c.CardTemplate.VariantName
+                    foreach (var line in boost.Logs.Split('\n'))
+                    {
+                        if (!defenderBoosts.Contains(line)) defenderBoosts.Add(line);
+                    }
                 }
+
+                return new PlayerCard
+                {
+                    Id = c.Id,
+                    CurrentAtk = boostedAtk,
+                    CurrentDef = boostedDef,
+                    AbilityLevel = c.AbilityLevel,
+                    CardTemplate = new CardTemplate
+                    {
+                        Id = c.CardTemplate!.Id,
+                        Title = c.CardTemplate.Title,
+                        VisualTitle = c.CardTemplate.VisualTitle,
+                        Alignment = c.CardTemplate.Alignment,
+                        Rarity = c.CardTemplate.Rarity,
+                        Faction = c.CardTemplate.Faction,
+                        Gender = c.CardTemplate.Gender,
+                        PowerRequirement = c.CardTemplate.PowerRequirement,
+                        BaseAtk = (int)Math.Round(c.CardTemplate.BaseAtk * defenderScale * boost.AtkModifier),
+                        BaseDef = (int)Math.Round(c.CardTemplate.BaseDef * defenderScale * boost.DefModifier),
+                        MaxAtk = (int)Math.Round(c.CardTemplate.MaxAtk * defenderScale * boost.AtkModifier),
+                        MaxDef = (int)Math.Round(c.CardTemplate.MaxDef * defenderScale * boost.DefModifier),
+                        MasteryBonusAtk = (int)Math.Round(c.CardTemplate.MasteryBonusAtk * defenderScale * boost.AtkModifier),
+                        MasteryBonusDef = (int)Math.Round(c.CardTemplate.MasteryBonusDef * defenderScale * boost.DefModifier),
+                        MaxMastery = c.CardTemplate.MaxMastery,
+                        AbilityName = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
+                        AbilityEffect = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
+                        Quote = c.CardTemplate.Quote,
+                        ImageFileName = c.CardTemplate.ImageFileName,
+                        VariantName = c.CardTemplate.VariantName
+                    }
+                };
             }).ToList();
 
             // 6. Evaluate final combat stats
@@ -309,6 +350,8 @@ namespace MwohServer.Services
             result.DefenderFinalPower = finalDefenderPower;
 
             log.Add("[COMBAT INITIATED] Tactical calculations in progress...");
+            foreach (var l in attackerBoosts) log.Add(l);
+            foreach (var l in defenderBoosts) log.Add(l);
             foreach (var l in attackerAbilityLogs) log.Add(l);
             foreach (var l in defenderAbilityLogs) log.Add(l);
 

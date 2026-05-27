@@ -69,8 +69,14 @@ namespace MwohServer.Models
         public int RemovalsInLast24Hours { get; set; } = 0;
         public int RallyPoints { get; set; } = 0;
         
+        public int? AllianceId { get; set; }
+        public string? AllianceRole { get; set; } // "Leader", "Vice-Leader", "Offense-Leader", "Defense-Leader", "Member"
+        public long AllianceDonatedSilver { get; set; } = 0;
+        public DateTime? AllianceJoinedAt { get; set; }
+        
         // Navigation properties
         public UserAccount? UserAccount { get; set; }
+        public Alliance? Alliance { get; set; }
         public System.Collections.Generic.ICollection<PlayerCard> Cards { get; set; } = new System.Collections.Generic.List<PlayerCard>();
         public System.Collections.Generic.ICollection<PlayerInventoryItem> InventoryItems { get; set; } = new System.Collections.Generic.List<PlayerInventoryItem>();
     }
@@ -431,4 +437,44 @@ namespace MwohServer.Models
             }
         }
     }
+
+    public class Alliance
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        [Required]
+        [MaxLength(23)]
+        public string Name { get; set; } = string.Empty;
+        
+        [MaxLength(100)]
+        public string Slogan { get; set; } = "Assemble!";
+        
+        public int LeaderProfileId { get; set; }
+        public int Level { get; set; } = 1;
+        public long DonatedSilver { get; set; } = 0;
+        public int Rating { get; set; } = 0;
+        public int ProtectionWallCount { get; set; } = 0;
+        public int SpeedAdaptorLevel { get; set; } = 0;
+        public int BruiserAdaptorLevel { get; set; } = 0;
+        public int TacticsAdaptorLevel { get; set; } = 0;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public System.Collections.Generic.ICollection<PlayerProfile> Members { get; set; } = new System.Collections.Generic.List<PlayerProfile>();
+    }
+
+    public class AllianceJoinRequest
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int AllianceId { get; set; }
+        public int PlayerProfileId { get; set; }
+        public string Status { get; set; } = "Pending"; // Pending, Accepted, Declined
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public Alliance? Alliance { get; set; }
+        public PlayerProfile? PlayerProfile { get; set; }
+    }
 }
+
