@@ -587,6 +587,101 @@ namespace MwohServer.Data
             { 29, "Operation 29: Relics of Genosha II" }
         };
 
+        public static void SeedRivals(MwohDbContext context, ILogger logger)
+        {
+            if (context.Users.Any(u => u.Username == "coulson"))
+            {
+                logger.LogInformation("[Seeder] S.H.I.E.L.D. Rivals already seeded.");
+                return;
+            }
+
+            logger.LogInformation("[Seeder] Seeding S.H.I.E.L.D. Rival Agents...");
+
+            var cardTemplates = context.CardTemplates.ToList();
+            if (!cardTemplates.Any())
+            {
+                logger.LogWarning("[Seeder] No card templates found. Cannot seed rivals.");
+                return;
+            }
+
+            var rivalsData = new List<(string Username, string Nickname, int Level, int AP, int DP, long Silver, string MainCardTitle)>
+            {
+                ("coulson", "Agent Coulson", 45, 120, 120, 45000, "Spider-Man"),
+                ("may", "Agent May", 55, 140, 140, 60000, "Black Widow"),
+                ("fury", "Director Fury", 99, 250, 250, 200000, "Thor"),
+                ("hill", "Agent Hill", 60, 150, 150, 75000, "Iron Man"),
+                ("widow", "Agent Romanoff", 75, 180, 180, 110000, "Captain America")
+            };
+
+            int nextUserId = context.Users.Any() ? context.Users.Max(u => u.Id) + 1 : 1;
+            int nextProfileId = context.Profiles.Any() ? context.Profiles.Max(p => p.Id) + 1 : 1;
+
+            foreach (var r in rivalsData)
+            {
+                var user = new UserAccount
+                {
+                    Id = nextUserId++,
+                    Username = r.Username,
+                    PasswordHash = "shield_secure_pwd",
+                    CreatedAt = DateTime.UtcNow,
+                    ActiveToken = $"token_{r.Username}"
+                };
+
+                var profile = new PlayerProfile
+                {
+                    Id = nextProfileId++,
+                    UserAccountId = user.Id,
+                    Nickname = r.Nickname,
+                    Level = r.Level,
+                    Experience = r.Level * 1000,
+                    AttackPower = r.AP,
+                    AttackPowerCurrent = r.AP,
+                    DefensePower = r.DP,
+                    DefensePowerCurrent = r.DP,
+                    MobaCoinBalance = 10000,
+                    SilverBalance = r.Silver,
+                    PlayerIdString = (100000 + nextProfileId).ToString(),
+                    SessionId = $"session_{r.Username}",
+                    StatPoints = 0,
+                    LastEnergyRecoveryTime = DateTime.UtcNow,
+                    LastBattlePowerRecoveryTime = DateTime.UtcNow
+                };
+
+                context.Users.Add(user);
+                context.Profiles.Add(profile);
+
+                var selectedTemplates = new List<CardTemplate>();
+                var mainTemp = cardTemplates.FirstOrDefault(t => t.Title.Equals(r.MainCardTitle, StringComparison.OrdinalIgnoreCase)) 
+                            ?? cardTemplates.FirstOrDefault();
+                if (mainTemp != null) selectedTemplates.Add(mainTemp);
+
+                var remaining = cardTemplates.Where(t => mainTemp == null || t.Id != mainTemp.Id).OrderBy(t => Guid.NewGuid()).Take(4).ToList();
+                selectedTemplates.AddRange(remaining);
+
+                int cardIdx = 0;
+                foreach (var temp in selectedTemplates)
+                {
+                    var pc = new PlayerCard
+                    {
+                        PlayerProfileId = profile.Id,
+                        IsLeader = (cardIdx == 0),
+                        IsInAttackDeck = true,
+                        IsInDefenseDeck = true,
+                        CurrentLevel = Math.Max(1, r.Level - 10),
+                        AbilityLevel = 1
+                    };
+                    pc.InitializeStats(temp, GameplaySettings.DefaultMasteryPercentage);
+                    context.PlayerCards.Add(pc);
+                    cardIdx++;
+                }
+
+                logger.LogInformation($"[Seeder] Seeded Agent '{r.Nickname}' with {selectedTemplates.Count} cards in active squad.");
+            }
+
+            context.SaveChanges();
+            logger.LogInformation("[Seeder] Finished seeding S.H.I.E.L.D. Rivals.");
+        }
+
         public static void DownloadOperationBanners(ILogger logger)
         {
             logger.LogInformation("[Downloader] Starting background banner downloader...");
@@ -705,3 +800,4 @@ namespace MwohServer.Data
         }
     }
 }
+

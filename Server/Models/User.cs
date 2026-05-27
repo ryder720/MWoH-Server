@@ -41,8 +41,10 @@ namespace MwohServer.Models
         public int EnergyCurrent { get; set; } = 100;
         
         public int AttackPower { get; set; } = 10;
+        public int AttackPowerCurrent { get; set; } = 10;
         
         public int DefensePower { get; set; } = 10;
+        public int DefensePowerCurrent { get; set; } = 10;
         
         public long MobaCoinBalance { get; set; } = 10000;
         
@@ -61,6 +63,7 @@ namespace MwohServer.Models
         public string ResourceRedemptionsJson { get; set; } = "{}";
 
         public DateTime LastEnergyRecoveryTime { get; set; } = DateTime.UtcNow;
+        public DateTime LastBattlePowerRecoveryTime { get; set; } = DateTime.UtcNow;
 
         public DateTime? LastRemovalTime { get; set; }
         public int RemovalsInLast24Hours { get; set; } = 0;
@@ -97,6 +100,26 @@ namespace MwohServer.Models
         // Navigation properties
         public PlayerProfile? SenderProfile { get; set; }
         public PlayerProfile? ReceiverProfile { get; set; }
+    }
+
+    public class BattleRecord
+    {
+        [Key]
+        public int Id { get; set; }
+        public int AttackerProfileId { get; set; }
+        public int DefenderProfileId { get; set; }
+        public int WinnerProfileId { get; set; }
+        public int AttackerFinalPower { get; set; }
+        public int DefenderFinalPower { get; set; }
+        public long SilverExchanged { get; set; }
+        public int MasteryEarned { get; set; }
+        public DateTime BattleTime { get; set; } = DateTime.UtcNow;
+        public bool IsSparring { get; set; } = false;
+        public string DetailsJson { get; set; } = "[]"; // Complete transcripts list
+
+        // Navigation properties
+        public PlayerProfile? Attacker { get; set; }
+        public PlayerProfile? Defender { get; set; }
     }
 
     // Static card metadata parsed from Wiki scraping JSON
@@ -267,6 +290,10 @@ namespace MwohServer.Models
     {
         public static int EnergyRecoveryIntervalSeconds { get; set; } = 300; // 5 minutes
         public static int EnergyRecoveryAmount { get; set; } = 1;
+        public static int AttackRecoveryIntervalSeconds { get; set; } = 180; // 3 minutes
+        public static int AttackRecoveryAmount { get; set; } = 1;
+        public static int DefenseRecoveryIntervalSeconds { get; set; } = 180; // 3 minutes
+        public static int DefenseRecoveryAmount { get; set; } = 1;
         public static int BaseXpRequirement { get; set; } = 1000;
         public static int XpIncrementPerLevel { get; set; } = 500;
         public static int EnergyMaxIncreasePerLevel { get; set; } = 2;
@@ -298,6 +325,20 @@ namespace MwohServer.Models
                                     EnergyRecoveryIntervalSeconds = intervalProp.GetInt32();
                                 if (energyNode.TryGetProperty("AmountPerInterval", out var amountProp))
                                     EnergyRecoveryAmount = amountProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("AttackRecovery", out var attackNode))
+                            {
+                                if (attackNode.TryGetProperty("IntervalSeconds", out var intervalProp))
+                                    AttackRecoveryIntervalSeconds = intervalProp.GetInt32();
+                                if (attackNode.TryGetProperty("AmountPerInterval", out var amountProp))
+                                    AttackRecoveryAmount = amountProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("DefenseRecovery", out var defenseNode))
+                            {
+                                if (defenseNode.TryGetProperty("IntervalSeconds", out var intervalProp))
+                                    DefenseRecoveryIntervalSeconds = intervalProp.GetInt32();
+                                if (defenseNode.TryGetProperty("AmountPerInterval", out var amountProp))
+                                    DefenseRecoveryAmount = amountProp.GetInt32();
                             }
                             if (gameplayNode.TryGetProperty("LevelUp", out var lvlNode))
                             {
@@ -350,6 +391,14 @@ namespace MwohServer.Models
   ""Gameplay"": {
     ""EnergyRecovery"": {
       ""IntervalSeconds"": 300,
+      ""AmountPerInterval"": 1
+    },
+    ""AttackRecovery"": {
+      ""IntervalSeconds"": 180,
+      ""AmountPerInterval"": 1
+    },
+    ""DefenseRecovery"": {
+      ""IntervalSeconds"": 180,
       ""AmountPerInterval"": 1
     },
     ""LevelUp"": {

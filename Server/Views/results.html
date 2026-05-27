@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Tactical Mainframe | Classified Records</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .record-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .record-card.win {
+            border-left: 4px solid var(--hud-blue);
+        }
+        .record-card.loss {
+            border-left: 4px solid #ef4444;
+        }
+        .record-header {
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .record-summary {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .record-title {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 14px;
+            color: #f8fafc;
+        }
+        .record-result-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .record-card.win .record-result-label {
+            color: var(--hud-blue);
+        }
+        .record-card.loss .record-result-label {
+            color: #ef4444;
+        }
+        .record-timestamp {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #64748b;
+        }
+        .record-meta {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10px;
+            color: #94a3b8;
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+        .meta-item span {
+            font-family: 'Space Mono', monospace;
+            color: #f1f5f9;
+        }
+        .record-arrow {
+            font-size: 14px;
+            color: #94a3b8;
+            transition: transform 0.2s ease;
+        }
+        .record-card.expanded .record-arrow {
+            transform: rotate(90deg);
+        }
+        .record-details {
+            max-height: 0;
+            overflow: hidden;
+            background: rgba(9, 14, 26, 0.5);
+            border-top: 0 solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease-out;
+        }
+        .record-card.expanded .record-details {
+            max-height: 500px;
+            overflow-y: auto;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding: 12px;
+        }
+        .log-line {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            line-height: 1.5;
+            color: #cbd5e1;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+        }
+        .log-line:last-child {
+            border-bottom: none;
+        }
+        .log-line.ability {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.05);
+            border-left: 2px solid #38bdf8;
+            padding-left: 6px;
+        }
+        .log-line.victory {
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            border-left: 2px solid var(--hud-blue);
+            padding-left: 6px;
+            font-weight: 700;
+        }
+        .log-line.defeat {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 2px solid #ef4444;
+            padding-left: 6px;
+            font-weight: 700;
+        }
+        .log-line.warning {
+            color: #eab308;
+            background: rgba(234, 179, 8, 0.05);
+            border-left: 2px solid #eab308;
+            padding-left: 6px;
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate" class="back-btn" style="position: absolute; left: 15px; text-decoration: none; font-size: 14px;">📡</a>
+        <h1>CLASSIFIED RECORDS</h1>
+        <div class="agent-badge">{{currentPlayerName}}</div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto;">
+        
+        <div class="division-header active-intel" style="margin-bottom: 12px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 6px; background: rgba(16, 185, 129, 0.06); border-left: 3px solid #10b981; color: #10b981;">
+            📁 DECLASSIFIED COMBAT INTEL LOGS
+        </div>
+
+        <div class="records-list" id="records-container">
+            <!-- Populated via JavaScript dynamically -->
+        </div>
+
+    </div>
+
+    <div class="footer">
+        // SECURE ARCHIVE SYNCED
+    </div>
+
+    <script>
+        const currentPlayerId = {{currentPlayerId}};
+        const records = {{recordsJson}};
+        const container = document.getElementById('records-container');
+
+        if (records.length === 0) {
+            container.innerHTML = `<div class="record-card" style="padding:15px; text-align:center; color:#94a3b8; font-family:'Outfit';">No combat history found in secure database.</div>`;
+        } else {
+            records.forEach(r => {
+                const isAttacker = r.attackerId === currentPlayerId;
+                const isWinner = r.winnerId === currentPlayerId;
+                const resultText = isWinner ? "VICTORY" : "DEFEAT";
+                const cardClass = isWinner ? "win" : "loss";
+                
+                const title = isAttacker 
+                    ? `VS Agent ${r.defenderName}` 
+                    : `DEFENDING Agent ${r.attackerName}`;
+
+                const card = document.createElement('div');
+                card.className = `record-card ${cardClass}`;
+                
+                let detailsArr = [];
+                try {
+                    detailsArr = JSON.parse(r.details);
+                } catch(e) {
+                    detailsArr = [r.details];
+                }
+
+                let detailsHtml = '';
+                detailsArr.forEach(line => {
+                    let typeClass = '';
+                    if (line.includes('[ABILITY TRIGGER]')) typeClass = 'ability';
+                    else if (line.includes('VICTORY')) typeClass = 'victory';
+                    else if (line.includes('DEFEAT') || line.includes('[TACTICAL FAILURE]')) typeClass = 'defeat';
+                    else if (line.includes('[WARNING]')) typeClass = 'warning';
+
+                    detailsHtml += `<div class="log-line ${typeClass}">${escapeHtml(line)}</div>`;
+                });
+
+                card.innerHTML = `
+                    <div class="record-header" onclick="toggleDetails(this)">
+                        <div class="record-summary">
+                            <span class="record-result-label">${r.isSparring ? "SPARRING " : ""}${resultText}</span>
+                            <span class="record-title">${title}</span>
+                            <span class="record-timestamp">${r.time}</span>
+                            <div class="record-meta">
+                                ${r.silver > 0 ? `<div class="meta-item">Silver: <span>+${r.silver.toLocaleString()}</span></div>` : ''}
+                                ${r.mastery > 0 ? `<div class="meta-item">Mastery: <span>+${r.mastery}</span></div>` : ''}
+                                <div class="meta-item">ATK: <span>${r.attackerPower.toLocaleString()}</span></div>
+                                <div class="meta-item">DEF: <span>${r.defenderPower.toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                        <span class="record-arrow">▶</span>
+                    </div>
+                    <div class="record-details">
+                        ${detailsHtml}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleDetails(element) {
+            const card = element.parentElement;
+            card.classList.toggle('expanded');
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>

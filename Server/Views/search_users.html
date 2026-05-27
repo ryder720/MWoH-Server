@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Tactical Mainframe | Search Agents</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .stats-hud {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-hud-card {
+            background: rgba(13, 20, 35, 0.45);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .stat-hud-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: #94a3b8;
+            letter-spacing: 0.5px;
+        }
+        .stat-hud-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--hud-blue);
+        }
+        .stat-hud-value.def {
+            color: #10b981;
+        }
+        .agent-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .agent-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 80px 1fr;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .agent-card:active {
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 12px var(--hud-blue-glow);
+        }
+        .agent-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-size: cover;
+            background-position: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .agent-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .agent-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .agent-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 800;
+            color: #f8fafc;
+        }
+        .agent-lvl {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--hud-blue);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .agent-details {
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .detail-line span {
+            font-family: 'Space Mono', monospace;
+            color: #f1f5f9;
+        }
+        .agent-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .btn-action {
+            display: block;
+            text-align: center;
+            padding: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            transition: all 0.2s ease;
+        }
+        .btn-action.dossier {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+        }
+        .btn-action.dossier:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn-action.fight {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--hud-blue);
+            box-shadow: 0 0 4px rgba(0, 240, 255, 0.1);
+        }
+        .btn-action.fight:active {
+            background: var(--hud-blue);
+            color: #0d1323;
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate" class="back-btn" style="position: absolute; left: 15px; text-decoration: none; font-size: 14px;">📡</a>
+        <h1>TACTICAL SCANNER</h1>
+        <div class="agent-badge">{{currentPlayerName}}</div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto;">
+        
+        <div class="stats-hud">
+            <div class="stat-hud-card">
+                <div class="stat-hud-label">⚡ CLEARANCE (ATK)</div>
+                <div class="stat-hud-value">{{currentPlayerAttackPower}}</div>
+            </div>
+            <div class="stat-hud-card">
+                <div class="stat-hud-label">🛡️ DEFENSE POWER</div>
+                <div class="stat-hud-value def">{{currentPlayerDefensePower}}</div>
+            </div>
+        </div>
+
+        <div class="division-header active-core" style="margin-bottom: 12px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 6px; background: rgba(0, 240, 255, 0.06); border-left: 3px solid var(--hud-blue); color: var(--hud-blue);">
+            📡 DETECTED S.H.I.E.L.D. RIVAL AGENTS
+        </div>
+
+        <div class="agent-grid" id="rivals-container">
+            <!-- Populated via JavaScript dynamically -->
+        </div>
+
+    </div>
+
+    <div class="footer">
+        // DECLASSIFIED COMBAT SCANNER ACTIVE
+    </div>
+
+    <script>
+        const rivals = {{rivalsJson}};
+        const container = document.getElementById('rivals-container');
+
+        if (rivals.length === 0) {
+            container.innerHTML = `<div class="agent-card" style="display:block; text-align:center; color:#94a3b8; font-family:'Outfit';">No other agents detected on the secure network.</div>`;
+        } else {
+            rivals.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'agent-card';
+                card.innerHTML = `
+                    <div class="agent-avatar" style="background-image: url('/images/cards/${r.leaderImage}'), url('/images/placeholder_card.jpg');"></div>
+                    <div class="agent-info">
+                        <div class="agent-name-row">
+                            <span class="agent-name">${r.nickname}</span>
+                            <span class="agent-lvl">LVL ${r.level}</span>
+                        </div>
+                        <div class="agent-details">
+                            <div class="detail-line">Leader: <span>${r.leaderCard}</span></div>
+                            <div class="detail-line">Silver Balance: <span>${r.silver.toLocaleString()}</span></div>
+                            <div class="detail-line">Alignment: <span>${r.alignment}</span></div>
+                        </div>
+                        <div class="agent-actions">
+                            <a href="/ultimate/mypage/agent/${r.id}" class="btn-action dossier">DOSSIER</a>
+                            <a href="/ultimate/battle/fight/${r.id}" class="btn-action fight">ENGAGE</a>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>

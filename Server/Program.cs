@@ -40,7 +40,10 @@ builder.Services.AddScoped<IItemLedger, ItemLedger>();
 builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<IDeckManager, DeckManager>();
 builder.Services.AddScoped<ILeaderManager, LeaderManager>();
+builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
+builder.Services.AddScoped<IBattleEngine, BattleEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
+
 
 // Load Gameplay Custom Configurations
 MwohServer.Models.GameplaySettings.Load();
@@ -336,7 +339,81 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (FusionBonusAtk/Def): {ex.Message}");
     }
 
-    // 5. Ensure healthy default Attack/Defense deck capacity limits for all profiles
+    // 5. Migrate Profiles - Add Battle Recovery and Current Power fields if missing
+    try
+    {
+        var hasAttackPowerCurrent = false;
+        var hasDefensePowerCurrent = false;
+        var hasLastBattlePowerRecoveryTime = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Profiles);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var colName = reader["name"].ToString();
+                    if (colName == "AttackPowerCurrent") hasAttackPowerCurrent = true;
+                    if (colName == "DefensePowerCurrent") hasDefensePowerCurrent = true;
+                    if (colName == "LastBattlePowerRecoveryTime") hasLastBattlePowerRecoveryTime = true;
+                }
+            }
+        }
+
+        if (!hasAttackPowerCurrent)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN AttackPowerCurrent INTEGER NOT NULL DEFAULT 100;");
+            logger.LogInformation("Database migration: Added AttackPowerCurrent column to Profiles.");
+        }
+        if (!hasDefensePowerCurrent)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN DefensePowerCurrent INTEGER NOT NULL DEFAULT 100;");
+            logger.LogInformation("Database migration: Added DefensePowerCurrent column to Profiles.");
+        }
+        if (!hasLastBattlePowerRecoveryTime)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Profiles ADD COLUMN LastBattlePowerRecoveryTime TEXT NOT NULL DEFAULT '2026-05-23 00:00:00';");
+            logger.LogInformation("Database migration: Added LastBattlePowerRecoveryTime column to Profiles.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Profiles Battle Power fields): {ex.Message}");
+    }
+
+    // 6. Create BattleRecords table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS BattleRecords (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                AttackerProfileId INTEGER NOT NULL,
+                DefenderProfileId INTEGER NOT NULL,
+                WinnerProfileId INTEGER NOT NULL,
+                AttackerFinalPower INTEGER NOT NULL,
+                DefenderFinalPower INTEGER NOT NULL,
+                SilverExchanged INTEGER NOT NULL,
+                MasteryEarned INTEGER NOT NULL,
+                BattleTime TEXT NOT NULL,
+                IsSparring INTEGER NOT NULL DEFAULT 0,
+                DetailsJson TEXT NOT NULL DEFAULT '[]',
+                FOREIGN KEY (AttackerProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE,
+                FOREIGN KEY (DefenderProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured BattleRecords table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (BattleRecords table): {ex.Message}");
+    }
+
+    // 7. Ensure healthy default Attack/Defense deck capacity limits for all profiles
     try
     {
         var minLimit = Math.Min(MwohServer.Models.GameplaySettings.DefaultAttackPower, MwohServer.Models.GameplaySettings.DefaultDefensePower) * 0.8;
@@ -357,8 +434,10 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database auto-healing failed (Deck Power limits): {ex.Message}");
     }
 
+
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
+    DatabaseSeeder.SeedRivals(dbContext, logger);
     
     // Start background banner downloader task (non-blocking)
     _ = Task.Run(() => DatabaseSeeder.DownloadOperationBanners(logger));
@@ -432,10 +511,49 @@ public static class AdminConsoleEngine
             Console.WriteLine("  help                                           - Display help details");
             Console.WriteLine("  status                                         - Show active server/DB metrics");
             Console.WriteLine("  reload                                         - Reload gameplay & gacha configurations");
+            Console.WriteLine("  runtests                                       - Execute card ability evaluation unit tests");
+            Console.WriteLine("  runbattletests                                 - Execute S.H.I.E.L.D. Battle Engine unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
             Console.WriteLine("  <username> resetattributes                     - Revert agent parameters and refund Attribute Points\n");
+            return;
+        }
+
+        if (primary == "runtests")
+        {
+            var evaluator = new CardAbilityEvaluator();
+            var success = MwohServer.Tests.CardAbilityEvaluatorTests.Run(evaluator);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] Card Ability Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: Card Ability Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runbattletests")
+        {
+            var evaluator = new CardAbilityEvaluator();
+            var loggerFactory = new LoggerFactory();
+            var logger = loggerFactory.CreateLogger<BattleEngine>();
+            var battleEngine = new BattleEngine(logger, db, evaluator);
+            var success = MwohServer.Tests.BattleEngineTests.Run(battleEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Battle Engine Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Battle Engine Test Suite failed!");
+                Console.ResetColor();
+            }
             return;
         }
 

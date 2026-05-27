@@ -30,6 +30,7 @@ namespace MwohServer.Controllers
         private readonly ISessionGateway _sessionGateway;
         private readonly IDeckManager _deckManager;
         private readonly ILeaderManager _leaderManager;
+        private readonly IBattleEngine _battleEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -41,7 +42,8 @@ namespace MwohServer.Controllers
             IItemLedger itemLedger,
             ISessionGateway sessionGateway,
             IDeckManager deckManager,
-            ILeaderManager leaderManager)
+            ILeaderManager leaderManager,
+            IBattleEngine battleEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -53,6 +55,7 @@ namespace MwohServer.Controllers
             _sessionGateway = sessionGateway;
             _deckManager = deckManager;
             _leaderManager = leaderManager;
+            _battleEngine = battleEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -1095,7 +1098,6 @@ namespace MwohServer.Controllers
         [HttpGet("shop")]
         [HttpGet("trade_response/trade_list_advance")]
         [HttpGet("wish")]
-        [HttpGet("results")]
         [HttpGet("archive")]
         [HttpGet("advise/index/top")]
         [HttpGet("nexus/portal")]
@@ -1258,12 +1260,6 @@ namespace MwohServer.Controllers
             };
 
             return Content(RenderTemplate("friend.html", replacements), "text/html");
-        }
-
-        [HttpGet("search_users")]
-        public IActionResult SearchUsersRedirect()
-        {
-            return Redirect("/ultimate/friend?tab=directory");
         }
 
         [HttpGet("friend/search")]
@@ -2328,6 +2324,168 @@ namespace MwohServer.Controllers
             return Content(RenderTemplate("agent_dossier.html", replacements), "text/html");
         }
 
+        [HttpGet("search_users")]
+        public IActionResult ServeSearchUsersPage()
+        {
+            _logger.LogInformation("[Cygames] ServeSearchUsersPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var currentPlayer = GetPlayerProfile(profileId);
+            if (currentPlayer == null) return RedirectToAction("ServeGameTopPage");
+
+            var rivals = _dbContext.Profiles
+                .Include(p => p.Cards)
+                    .ThenInclude(c => c.CardTemplate)
+                .Where(p => p.Id != currentPlayer.Id)
+                .ToList();
+
+            var rivalsJson = System.Text.Json.JsonSerializer.Serialize(rivals.Select(r => new
+            {
+                id = r.Id,
+                nickname = r.Nickname,
+                level = r.Level,
+                silver = r.SilverBalance,
+                leaderCard = r.Cards.FirstOrDefault(c => c.IsLeader)?.CardTemplate?.VisualTitle ?? "Standard Recruit",
+                leaderImage = r.Cards.FirstOrDefault(c => c.IsLeader)?.CardTemplate?.ImageFileName ?? "default_leader.jpg",
+                alignment = r.Cards.FirstOrDefault(c => c.IsLeader)?.CardTemplate?.Alignment ?? "Bruiser"
+            }));
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "currentPlayerName", currentPlayer.Nickname },
+                { "currentPlayerLevel", currentPlayer.Level.ToString() },
+                { "currentPlayerSilver", currentPlayer.SilverBalance.ToString("N0") },
+                { "currentPlayerAttackPower", $"{currentPlayer.AttackPowerCurrent}/{currentPlayer.AttackPower}" },
+                { "currentPlayerDefensePower", $"{currentPlayer.DefensePowerCurrent}/{currentPlayer.DefensePower}" },
+                { "rivalsJson", rivalsJson }
+            };
+
+            return Content(RenderTemplate("search_users.html", replacements), "text/html");
+        }
+
+        [HttpGet("results")]
+        public IActionResult ServeResultsPage()
+        {
+            _logger.LogInformation("[Cygames] ServeResultsPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var currentPlayer = GetPlayerProfile(profileId);
+            if (currentPlayer == null) return RedirectToAction("ServeGameTopPage");
+
+            var records = _dbContext.BattleRecords
+                .Include(r => r.Attacker)
+                .Include(r => r.Defender)
+                .Where(r => r.AttackerProfileId == currentPlayer.Id || r.DefenderProfileId == currentPlayer.Id)
+                .OrderByDescending(r => r.BattleTime)
+                .Take(50)
+                .ToList();
+
+            var recordsJson = System.Text.Json.JsonSerializer.Serialize(records.Select(r => new
+            {
+                id = r.Id,
+                attackerId = r.AttackerProfileId,
+                attackerName = r.Attacker?.Nickname ?? "Unknown Agent",
+                defenderId = r.DefenderProfileId,
+                defenderName = r.Defender?.Nickname ?? "Unknown Agent",
+                winnerId = r.WinnerProfileId,
+                attackerPower = r.AttackerFinalPower,
+                defenderPower = r.DefenderFinalPower,
+                silver = r.SilverExchanged,
+                mastery = r.MasteryEarned,
+                time = r.BattleTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                isSparring = r.IsSparring,
+                details = r.DetailsJson
+            }));
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "currentPlayerId", currentPlayer.Id.ToString() },
+                { "currentPlayerName", currentPlayer.Nickname },
+                { "recordsJson", recordsJson }
+            };
+
+            return Content(RenderTemplate("results.html", replacements), "text/html");
+        }
+
+        [HttpGet("battle/fight/{defenderId}")]
+        public IActionResult ServeFightPage(int defenderId)
+        {
+            _logger.LogInformation($"[Cygames] ServeFightPage called for defender: {defenderId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var currentPlayer = GetPlayerProfile(profileId);
+            if (currentPlayer == null) return RedirectToAction("ServeGameTopPage");
+
+            var defender = _dbContext.Profiles
+                .Include(p => p.Cards)
+                    .ThenInclude(c => c.CardTemplate)
+                .FirstOrDefault(p => p.Id == defenderId);
+
+            if (defender == null) return NotFound("Rival S.H.I.E.L.D. Agent not found.");
+            if (defender.Id == currentPlayer.Id) return Redirect("/ultimate/search_users");
+
+            var attackerLeader = currentPlayer.Cards.FirstOrDefault(c => c.IsLeader) ?? currentPlayer.Cards.FirstOrDefault();
+            var defenderLeader = defender.Cards.FirstOrDefault(c => c.IsLeader) ?? defender.Cards.FirstOrDefault();
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "currentPlayerId", currentPlayer.Id.ToString() },
+                { "currentPlayerName", currentPlayer.Nickname },
+                { "currentPlayerLevel", currentPlayer.Level.ToString() },
+                { "currentPlayerAttackPower", currentPlayer.AttackPowerCurrent.ToString() },
+                { "currentPlayerAttackPowerMax", currentPlayer.AttackPower.ToString() },
+                { "defenderId", defender.Id.ToString() },
+                { "defenderName", defender.Nickname },
+                { "defenderLevel", defender.Level.ToString() },
+                { "attackerLeaderName", attackerLeader?.CardTemplate?.VisualTitle ?? "Standard Recruit" },
+                { "attackerLeaderImage", attackerLeader?.CardTemplate?.ImageFileName ?? "default_leader.jpg" },
+                { "defenderLeaderName", defenderLeader?.CardTemplate?.VisualTitle ?? "Standard Recruit" },
+                { "defenderLeaderImage", defenderLeader?.CardTemplate?.ImageFileName ?? "default_leader.jpg" }
+            };
+
+            return Content(RenderTemplate("battle.html", replacements), "text/html");
+        }
+
+        [HttpPost("battle/engage")]
+        public IActionResult EngageBattle([FromBody] EngageBattleRequest req)
+        {
+            _logger.LogInformation($"[Cygames] EngageBattle API called: defenderId={req.DefenderId}, isSparring={req.IsSparring}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var result = _battleEngine.ResolveBattle(profileId, req.DefenderId, req.IsSparring);
+            if (!result.Success)
+            {
+                return Ok(new { success = false, message = result.Message });
+            }
+
+            return Ok(new
+            {
+                success = true,
+                attackerWon = result.AttackerWon,
+                attackerFinalPower = result.AttackerFinalPower,
+                defenderFinalPower = result.DefenderFinalPower,
+                silverExchanged = result.SilverExchanged,
+                masteryEarned = result.MasteryEarned,
+                attackerAttackPowerBefore = result.AttackerAttackPowerBefore,
+                attackerAttackPowerAfter = result.AttackerAttackPowerAfter,
+                attackerAttackPowerMax = result.AttackerAttackPowerMax,
+                defenderDefensePowerBefore = result.DefenderDefensePowerBefore,
+                defenderDefensePowerAfter = result.DefenderDefensePowerAfter,
+                defenderDefensePowerMax = result.DefenderDefensePowerMax,
+                logLines = result.LogLines
+            });
+        }
+
+        public class EngageBattleRequest
+        {
+            public int DefenderId { get; set; }
+            public bool IsSparring { get; set; }
+        }
+
         private PlayerProfile? GetPlayerProfile(int profileId, bool includeInventory = false)
         {
             var query = _dbContext.Profiles
@@ -2350,6 +2508,7 @@ namespace MwohServer.Controllers
             if (profile != null)
             {
                 _missionEngine.RestoreEnergy(profile);
+                _battleEngine.RestoreBattlePower(profile);
             }
 
             return profile;

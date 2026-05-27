@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Tactical Mainframe | Tactical Engagement</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .vs-arena {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(13, 20, 35, 0.45);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+        }
+        .vs-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .vs-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 2px solid var(--hud-blue);
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+            margin-bottom: 8px;
+        }
+        .vs-card.defender .vs-avatar {
+            border-color: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+        .vs-name {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            color: #f8fafc;
+            max-width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .vs-lvl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #94a3b8;
+        }
+        .vs-divider {
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #64748b;
+            text-shadow: 0 0 8px rgba(255,255,255,0.1);
+        }
+        .console-terminal {
+            background: #050b14;
+            border: 1px solid rgba(0, 240, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            height: 220px;
+            overflow-y: auto;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .terminal-line {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: #cbd5e1;
+            line-height: 1.4;
+            opacity: 0;
+            transform: translateY(4px);
+            animation: printLine 0.3s ease-out forwards;
+        }
+        @keyframes printLine {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .terminal-line.system {
+            color: #64748b;
+            font-weight: 700;
+        }
+        .terminal-line.dossier {
+            color: #e2e8f0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+        }
+        .terminal-line.ability {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.05);
+            border-left: 2px solid #38bdf8;
+            padding-left: 6px;
+        }
+        .terminal-line.warning {
+            color: #eab308;
+            background: rgba(234, 179, 8, 0.05);
+            border-left: 2px solid #eab308;
+            padding-left: 6px;
+        }
+        .terminal-line.victory {
+            color: var(--hud-blue);
+            font-weight: 700;
+        }
+        .terminal-line.defeat {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .hologram-banner {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: pulseHologram 2s infinite alternate;
+        }
+        .hologram-result {
+            font-family: 'Outfit', sans-serif;
+            font-size: 32px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px var(--hud-blue-glow);
+        }
+        .hologram-banner.win .hologram-result {
+            color: var(--hud-blue);
+            text-shadow: 0 0 20px var(--hud-blue-glow);
+        }
+        .hologram-banner.loss .hologram-result {
+            color: #ef4444;
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+        }
+        @keyframes pulseHologram {
+            from { transform: scale(0.98); opacity: 0.95; }
+            to { transform: scale(1.02); opacity: 1; }
+        }
+
+        .battle-controls {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .engagement-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .opt-card {
+            background: rgba(13, 20, 35, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .opt-card.selected {
+            border-color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+        .opt-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+        .opt-desc {
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .opt-card.selected .opt-title {
+            color: var(--hud-blue);
+        }
+        .opt-card.selected .opt-desc {
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/search_users" class="back-btn" style="position: absolute; left: 15px; text-decoration: none; font-size: 14px;">📡</a>
+        <h1>TACTICAL ARENA</h1>
+        <div class="agent-badge">{{currentPlayerName}}</div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto;">
+        
+        <div class="vs-arena">
+            <div class="vs-card attacker">
+                <div class="vs-avatar" style="background-image: url('/images/cards/{{attackerLeaderImage}}'), url('/images/placeholder_card.jpg');"></div>
+                <span class="vs-name">{{currentPlayerName}}</span>
+                <span class="vs-lvl">LVL {{currentPlayerLevel}}</span>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="vs-card defender">
+                <div class="vs-avatar" style="background-image: url('/images/cards/{{defenderLeaderImage}}'), url('/images/placeholder_card.jpg');"></div>
+                <span class="vs-name">{{defenderName}}</span>
+                <span class="vs-lvl">LVL {{defenderLevel}}</span>
+            </div>
+        </div>
+
+        <div id="setup-panel">
+            <div class="division-header active-core" style="margin-bottom: 12px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 6px; background: rgba(0, 240, 255, 0.06); border-left: 3px solid var(--hud-blue); color: var(--hud-blue);">
+                📡 CONFIGURE ENGAGEMENT MODE
+            </div>
+
+            <div class="engagement-options">
+                <div class="opt-card selected" id="opt-ranked" onclick="selectMode(false)">
+                    <div class="opt-title">RANKED COMBAT</div>
+                    <div class="opt-desc">Consumes AP. Exchanges silver, resources, & boosts mastery.</div>
+                </div>
+                <div class="opt-card" id="opt-sparring" onclick="selectMode(true)">
+                    <div class="opt-title">TACTICAL SPARRING</div>
+                    <div class="opt-desc">Consumes AP. No silver loss or theft. Safety practice.</div>
+                </div>
+            </div>
+
+            <button onclick="startEngagement()" class="hud-btn glow-blue" style="width: 100%; padding: 12px; font-family: 'Outfit'; font-weight: 800; font-size: 14px; letter-spacing: 1px;">
+                🚀 COMMENCE BATTLE PROTOCOL
+            </button>
+        </div>
+
+        <div id="battle-panel" style="display: none;">
+            <div class="console-terminal" id="terminal">
+                <div class="terminal-line system">[SYSTEM] Syncing combat parameters...</div>
+            </div>
+
+            <div class="hologram-banner win" id="hologram-win">
+                <div class="hologram-result">VICTORY</div>
+                <div style="font-family: 'Space Mono', monospace; font-size: 8px; color: var(--hud-blue); margin-top: 4px;">SECURE DATA LINK RETAINED</div>
+            </div>
+
+            <div class="hologram-banner loss" id="hologram-loss">
+                <div class="hologram-result">DEFEAT</div>
+                <div style="font-family: 'Space Mono', monospace; font-size: 8px; color: #ef4444; margin-top: 4px;">TACTICAL LINK TERMINATED</div>
+            </div>
+
+            <div class="battle-controls" id="battle-controls">
+                <a href="/ultimate/search_users" class="hud-btn glow-blue" style="width: 100%; padding: 12px; text-decoration: none; text-align: center; font-family: 'Outfit'; font-weight: 800; font-size: 12px;">
+                    📡 RETURN TO SCANNER
+                </a>
+                <a href="/ultimate/results" class="hud-btn" style="width: 100%; padding: 12px; text-decoration: none; text-align: center; font-family: 'Outfit'; font-weight: 800; font-size: 12px; background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: #cbd5e1; margin-top: 8px;">
+                    📁 VIEW HISTORICAL RECORDS
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        // COMBAT SIMULATION CORE
+    </div>
+
+    <script>
+        const defenderId = {{defenderId}};
+        let isSparring = false;
+
+        function selectMode(sparring) {
+            isSparring = sparring;
+            document.getElementById('opt-ranked').classList.toggle('selected', !sparring);
+            document.getElementById('opt-sparring').classList.toggle('selected', sparring);
+        }
+
+        function startEngagement() {
+            document.getElementById('setup-panel').style.display = 'none';
+            document.getElementById('battle-panel').style.display = 'block';
+
+            fetch('/ultimate/battle/engage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    defenderId: defenderId,
+                    isSparring: isSparring
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    printError(data.message);
+                } else {
+                    animateCombat(data);
+                }
+            })
+            .catch(err => {
+                printError("Failed to communicate with S.H.I.E.L.D. battle network.");
+            });
+        }
+
+        function printError(msg) {
+            const term = document.getElementById('terminal');
+            term.innerHTML = `<div class="terminal-line defeat">[ERROR] ${msg}</div>`;
+            document.getElementById('battle-controls').style.display = 'flex';
+        }
+
+        function animateCombat(data) {
+            const term = document.getElementById('terminal');
+            term.innerHTML = ''; 
+
+            let lineIndex = 0;
+            const lines = data.logLines;
+
+            function printNextLine() {
+                if (lineIndex < lines.length) {
+                    const line = lines[lineIndex];
+                    const div = document.createElement('div');
+                    
+                    let typeClass = 'terminal-line';
+                    if (line.startsWith('[SYSTEM LOG]')) typeClass += ' system';
+                    else if (line.startsWith('[AGENT DOSSIER]')) typeClass += ' dossier';
+                    else if (line.includes('[ABILITY TRIGGER]')) typeClass += ' ability';
+                    else if (line.includes('[WARNING]')) typeClass += ' warning';
+                    else if (line.includes('[REWARD TRANSFER]') || line.includes('[MASTERY UPDATE]') || line.includes('VICTORY!')) typeClass += ' victory';
+                    else if (line.includes('[TACTICAL FAILURE]') || line.includes('DEFEAT!')) typeClass += ' defeat';
+
+                    div.className = typeClass;
+                    div.textContent = line;
+                    term.appendChild(div);
+                    
+                    term.scrollTop = term.scrollHeight;
+                    
+                    lineIndex++;
+                    setTimeout(printNextLine, 500); 
+                } else {
+                    if (data.attackerWon) {
+                        document.getElementById('hologram-win').style.display = 'flex';
+                    } else {
+                        document.getElementById('hologram-loss').style.display = 'flex';
+                    }
+                    document.getElementById('battle-controls').style.display = 'flex';
+                }
+            }
+
+            printNextLine();
+        }
+    </script>
+</body>
+</html>
