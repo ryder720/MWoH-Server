@@ -15,12 +15,25 @@
             padding-bottom: 0 !important;
         }
 
+        .header {
+            position: relative !important;
+            top: auto !important;
+            z-index: 100 !important;
+        }
+
+        .tab-bar {
+            position: relative !important;
+            top: auto !important;
+            z-index: 99 !important;
+        }
+
         .container {
             flex: 1;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             padding-bottom: 75px; /* Leave space for bottom fixed bar */
+            min-height: 0 !important;
         }
 
         .selection-list {
@@ -28,6 +41,7 @@
             overflow-y: auto;
             max-height: none !important;
             padding-right: 4px;
+            min-height: 0 !important;
         }
 
         .card-thumbnail {
@@ -54,7 +68,7 @@
     </div>
 
     <!-- Mode Tabs Sub-header -->
-    <div class="tab-bar" style="position: sticky; top: 52px; width: 100%; max-width: 480px; padding: 6px 15px; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px); border-radius: 0; border-left: none; border-right: none; border-top: none; border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 99; margin: 0 auto; box-sizing: border-box; display: flex; gap: 8px; flex-shrink: 0;">
+    <div class="tab-bar" style="width: 100%; max-width: 480px; padding: 6px 15px; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px); border-radius: 0; border-left: none; border-right: none; border-top: none; border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 99; margin: 0 auto; box-sizing: border-box; display: flex; gap: 8px; flex-shrink: 0;">
         <button class="tab-btn active" id="tab-attack" onclick="setMode('attack')" style="flex: 1; padding: 8px 10px;">ATTACK SQUAD</button>
         <button class="tab-btn" id="tab-defense" onclick="setMode('defense')" style="flex: 1; padding: 8px 10px;">DEFENSE SQUAD</button>
     </div>
