@@ -640,6 +640,8 @@ body {
 .footer-action {
     position: fixed;
     bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
     max-width: 480px;
     padding: 12px 15px;
@@ -802,6 +804,8 @@ body {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .modal.open {
@@ -821,6 +825,7 @@ body {
     gap: 12px;
     position: relative;
     box-shadow: 0 0 25px var(--hud-blue-glow);
+    margin: auto;
 }
 
 .close-btn {
