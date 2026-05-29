@@ -12,11 +12,13 @@ namespace MwohServer.Services
     {
         private readonly MwohDbContext _dbContext;
         private readonly ILogger<CardGrowthEngine> _logger;
+        private readonly IAssignmentEngine _assignmentEngine;
 
-        public CardGrowthEngine(MwohDbContext dbContext, ILogger<CardGrowthEngine> logger)
+        public CardGrowthEngine(MwohDbContext dbContext, ILogger<CardGrowthEngine> logger, IAssignmentEngine assignmentEngine)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _assignmentEngine = assignmentEngine;
         }
 
         #region Helper Formulas
@@ -267,6 +269,8 @@ namespace MwohServer.Services
             try
             {
                 _dbContext.SaveChanges();
+                // Trigger assignment hook
+                _assignmentEngine.RecordEvent(profileId, GoalType.EnhanceCard, 1);
             }
             catch (Exception ex)
             {
@@ -418,6 +422,8 @@ namespace MwohServer.Services
             try
             {
                 _dbContext.SaveChanges();
+                // Trigger assignment hook
+                _assignmentEngine.RecordEvent(profileId, GoalType.FuseCard, 1);
             }
             catch (Exception ex)
             {

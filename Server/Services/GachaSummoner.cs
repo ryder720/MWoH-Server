@@ -14,11 +14,13 @@ namespace MwohServer.Services
     {
         private readonly MwohDbContext _dbContext;
         private readonly ILogger<GachaSummoner> _logger;
+        private readonly IAssignmentEngine _assignmentEngine;
 
-        public GachaSummoner(MwohDbContext dbContext, ILogger<GachaSummoner> logger)
+        public GachaSummoner(MwohDbContext dbContext, ILogger<GachaSummoner> logger, IAssignmentEngine assignmentEngine)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _assignmentEngine = assignmentEngine;
         }
 
         public GachaResult Pull(int profileId, int packId, string currencyType, int pullCount)
@@ -228,6 +230,12 @@ namespace MwohServer.Services
             {
                 // Save changes in a single SQL transaction
                 _dbContext.SaveChanges();
+                
+                // Trigger assignment hook
+                if (currencyType == "Rally")
+                {
+                    _assignmentEngine.RecordEvent(profileId, GoalType.DrawRallyPack, pullCount);
+                }
             }
             catch (Exception ex)
             {

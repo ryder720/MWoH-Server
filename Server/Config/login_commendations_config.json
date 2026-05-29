@@ -1,0 +1,57 @@
+[
+  {
+    "id": "winter_celebration_2026",
+    "title": "S.H.I.E.L.D. Winter Celebration",
+    "description": "Log in daily during the seasonal winter window to unlock progressive high-clearance restorative items, premium currencies, and the rare Spider-Man card!",
+    "is_active": true,
+    "start_date": "2026-12-20T00:00:00Z",
+    "end_date": "2026-12-31T23:59:59Z",
+    "fallback_reward_type": "Silver",
+    "fallback_reward_value": 10000,
+    "fallback_reward_quantity": 1,
+    "rewards": [
+      {
+        "day": 1,
+        "reward_type": "Silver",
+        "reward_value": 50000,
+        "reward_quantity": 1
+      },
+      {
+        "day": 2,
+        "reward_type": "RallyPoints",
+        "reward_value": 2000,
+        "reward_quantity": 1
+      },
+      {
+        "day": 3,
+        "reward_type": "Item",
+        "reward_value": 1,
+        "reward_quantity": 1
+      },
+      {
+        "day": 4,
+        "reward_type": "Item",
+        "reward_value": 5,
+        "reward_quantity": 1
+      },
+      {
+        "day": 5,
+        "reward_type": "MobaCoin",
+        "reward_value": 100,
+        "reward_quantity": 1
+      },
+      {
+        "day": 6,
+        "reward_type": "Item",
+        "reward_value": 2,
+        "reward_quantity": 1
+      },
+      {
+        "day": 7,
+        "reward_type": "Card",
+        "reward_value": 0,
+        "reward_quantity": 1
+      }
+    ]
+  }
+]

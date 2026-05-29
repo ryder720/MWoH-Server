@@ -16,18 +16,22 @@ namespace MwohServer.Services
         private readonly IAllianceEngine _allianceEngine;
         private readonly ISpecialComboEngine _specialComboEngine;
 
+        private readonly IAssignmentEngine? _assignmentEngine;
+
         public BattleEngine(
             ILogger<BattleEngine> logger,
             MwohDbContext dbContext,
             ICardAbilityEvaluator abilityEvaluator,
             IAllianceEngine allianceEngine,
-            ISpecialComboEngine specialComboEngine)
+            ISpecialComboEngine specialComboEngine,
+            IAssignmentEngine? assignmentEngine = null)
         {
             _logger = logger;
             _dbContext = dbContext;
             _abilityEvaluator = abilityEvaluator;
             _allianceEngine = allianceEngine;
             _specialComboEngine = specialComboEngine;
+            _assignmentEngine = assignmentEngine;
         }
 
         public void RestoreBattlePower(PlayerProfile profile)
@@ -526,6 +530,55 @@ namespace MwohServer.Services
 
             _dbContext.BattleRecords.Add(record);
             _dbContext.SaveChanges();
+
+            // S.H.I.E.L.D. Assignment Hooks
+            try
+            {
+                _assignmentEngine?.RecordEvent(attackerProfileId, GoalType.PvpBattle, 1);
+                if (attackerWon)
+                {
+                    _assignmentEngine?.RecordEvent(attackerProfileId, GoalType.PvpWin, 1);
+                    
+                    if (attackerTriggerCount > 0)
+                    {
+                        _assignmentEngine?.RecordEvent(attackerProfileId, GoalType.SkillsActivated, 1);
+                    }
+                    
+                    var hasMorale = attacker.AllianceId != null || attackerCards.GroupBy(c => c.CardTemplate?.Alignment).Any(g => g.Count() >= 3);
+                    if (hasMorale)
+                    {
+                        _assignmentEngine?.RecordEvent(attackerProfileId, GoalType.MoraleWin, 1);
+                    }
+
+                    // Win Streak Calculation
+                    var lastBattles = _dbContext.BattleRecords
+                        .Where(r => r.AttackerProfileId == attackerProfileId && !r.IsSparring)
+                        .OrderByDescending(r => r.BattleTime)
+                        .Take(10)
+                        .ToList();
+
+                    int currentStreak = 0;
+                    foreach (var b in lastBattles)
+                    {
+                        if (b.WinnerProfileId == attackerProfileId)
+                        {
+                            currentStreak++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    if (currentStreak > 0)
+                    {
+                        _assignmentEngine?.RecordEvent(attackerProfileId, GoalType.WinStreak, currentStreak);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[BattleEngine] Failed to record assignment progress: {ex.Message}");
+            }
 
             result.Success = true;
             result.Message = attackerWon ? "Victory!" : "Defeat!";

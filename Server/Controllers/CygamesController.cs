@@ -33,6 +33,8 @@ namespace MwohServer.Controllers
         private readonly IBattleEngine _battleEngine;
         private readonly IAllianceEngine _allianceEngine;
         private readonly ITradeEngine _tradeEngine;
+        private readonly IAssignmentEngine _assignmentEngine;
+        private readonly ILoginCommendationEngine _loginCommendationEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -47,7 +49,9 @@ namespace MwohServer.Controllers
             ILeaderManager leaderManager,
             IBattleEngine battleEngine,
             IAllianceEngine allianceEngine,
-            ITradeEngine tradeEngine)
+            ITradeEngine tradeEngine,
+            IAssignmentEngine assignmentEngine,
+            ILoginCommendationEngine loginCommendationEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -62,6 +66,8 @@ namespace MwohServer.Controllers
             _battleEngine = battleEngine;
             _allianceEngine = allianceEngine;
             _tradeEngine = tradeEngine;
+            _assignmentEngine = assignmentEngine;
+            _loginCommendationEngine = loginCommendationEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -879,6 +885,54 @@ namespace MwohServer.Controllers
             var profile = GetPlayerProfile(profileId);
             if (profile == null) return RedirectToAction("ServeGameTopPage");
 
+            var loginPopupScript = "";
+            try
+            {
+                var loginResult = _loginCommendationEngine.ProcessDailyLogin(profileId);
+                if (loginResult.UnlockedReward)
+                {
+                    profile.SilverBalance = loginResult.SilverBalance;
+                    profile.RallyPoints = loginResult.RallyPoints;
+                    profile.MobaCoinBalance = loginResult.MobaCoinBalance;
+
+                    var formattedMessage = loginResult.Message.Replace("\n", "<br>");
+                    loginPopupScript = $$"""
+                    <!-- Tech Login Commendation Modal -->
+                    <div id="login-modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 999999; padding: 20px; box-sizing: border-box; font-family: 'Outfit', sans-serif;">
+                        <div style="background: rgba(13, 20, 35, 0.95); border: 1px solid #00f0ff; border-radius: 8px; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0, 240, 255, 0.35); overflow: hidden; animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+                            <div style="background: rgba(0, 240, 255, 0.05); border-bottom: 1px solid rgba(0, 240, 255, 0.15); padding: 12px; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 16px; color: #00f0ff; filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.4)); animation: pulse 1.5s infinite;">📡</span>
+                                <span style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; color: #00f0ff; letter-spacing: 1px;">// S.H.I.E.L.D. SECURE LOGIN STAMP</span>
+                            </div>
+                            <div style="padding: 20px; font-size: 13px; color: #e2e8f0; line-height: 1.5; text-align: center;">
+                                <div style="font-size: 28px; margin-bottom: 12px; filter: drop-shadow(0 0 8px rgba(0, 240, 255, 0.3));">📅</div>
+                                <p style="margin: 0; font-family: 'Space Mono', monospace; font-size: 11px; color: #94a3b8; text-transform: uppercase;">-- Daily Commendations Dossier --</p>
+                                <p style="margin: 10px 0 0 0; text-align: left; background: rgba(0, 240, 255, 0.02); border: 1px dashed rgba(0, 240, 255, 0.12); border-radius: 4px; padding: 10px;">{{formattedMessage}}</p>
+                            </div>
+                            <div style="padding: 12px; border-top: 1px solid rgba(255, 255, 255, 0.04); display: flex; justify-content: center;">
+                                <button onclick="document.getElementById('login-modal-overlay').remove()" style="background: rgba(0, 240, 255, 0.1); border: 1px solid #00f0ff; color: #00f0ff; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; padding: 8px 16px; border-radius: 4px; cursor: pointer; letter-spacing: 1px; transition: all 0.2s ease;">DISMISS DOSSIER</button>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes zoomIn {
+                            from { opacity: 0; transform: scale(0.9); }
+                            to { opacity: 1; transform: scale(1); }
+                        }
+                        @keyframes pulse {
+                            0% { opacity: 0.7; }
+                            50% { opacity: 1; }
+                            100% { opacity: 0.7; }
+                        }
+                    </style>
+                    """ ;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[ServeMyPage] Daily login commendation failed: {ex.Message}");
+            }
+
             var cardsList = profile.Cards.ToList();
             var leader = cardsList.FirstOrDefault(c => c.IsLeader);
             
@@ -1006,7 +1060,8 @@ namespace MwohServer.Controllers
                 { "defenseDeckCost", defenseDeckCost.ToString() },
                 { "defensePower", defensePower.ToString("N0") },
                 { "defenseCapacity", profile.DefensePower.ToString() },
-                { "statPoints", profile.StatPoints.ToString() }
+                { "statPoints", profile.StatPoints.ToString() },
+                { "loginPopupScript", loginPopupScript }
             };
 
             return Content(RenderTemplate("mypage.html", replacements), "text/html");
@@ -1459,6 +1514,9 @@ namespace MwohServer.Controllers
             };
             _dbContext.ShieldTeamMembers.Add(proposal);
             _dbContext.SaveChanges();
+
+            // Trigger assignment hook
+            _assignmentEngine.RecordEvent(profile.Id, GoalType.ShieldRequest, 1);
 
             return Ok(new { success = true, message = $"S.H.I.E.L.D. Team proposal successfully transmitted to agent {target.Nickname}." });
         }
@@ -3350,6 +3408,432 @@ namespace MwohServer.Controllers
                 return Ok(new { success = true, message = res.Message });
             }
             return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpGet("mypage/commendations")]
+        public IActionResult ServeLoginCommendationsHub()
+        {
+            _logger.LogInformation("[Cygames] ServeLoginCommendationsHub called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var progressDtos = _loginCommendationEngine.GetPlayerProgress(profileId);
+            var calendarsHtmlList = new List<string>();
+
+            foreach (var dto in progressDtos)
+            {
+                var campaign = dto.Campaign;
+                var total = dto.TotalLogins;
+                var claimed = dto.ClaimedDays;
+                var alreadyLoggedToday = dto.AlreadyLoggedToday;
+                var nextClaimDay = dto.NextDayToClaim;
+
+                var boxesHtmlList = new List<string>();
+                foreach (var reward in campaign.Rewards.OrderBy(r => r.Day))
+                {
+                    var isClaimed = claimed.Contains(reward.Day);
+                    var isActive = !alreadyLoggedToday && reward.Day == nextClaimDay;
+
+                    var boxClass = "day-box";
+                    if (isClaimed) boxClass += " claimed";
+                    else if (isActive) boxClass += " active";
+                    else boxClass += " locked";
+
+                    var rewardText = "";
+                    var rewardIcon = "🎁";
+                    if (string.Equals(reward.RewardType, "Silver", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rewardText = $"{reward.RewardValue:N0}<br>Silver";
+                        rewardIcon = "🪙";
+                    }
+                    else if (string.Equals(reward.RewardType, "RallyPoints", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rewardText = $"{reward.RewardValue:N0}<br>Rally Pts";
+                        rewardIcon = "⚡";
+                    }
+                    else if (string.Equals(reward.RewardType, "MobaCoin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rewardText = $"{reward.RewardValue:N0}<br>MobaCoins";
+                        rewardIcon = "🪙";
+                    }
+                    else if (string.Equals(reward.RewardType, "CardStock", StringComparison.OrdinalIgnoreCase))
+                    {
+                        rewardText = $"+{reward.RewardValue}<br>Hero Slots";
+                        rewardIcon = "📦";
+                    }
+                    else if (string.Equals(reward.RewardType, "Item", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var itemName = reward.RewardValue switch
+                        {
+                            1 => "Energy ISO-8",
+                            2 => "Ultimate Ticket",
+                            3 => "Attack ISO-8",
+                            5 => "Shield Barrier",
+                            _ => "Restorative"
+                        };
+                        rewardText = $"{reward.RewardQuantity}x<br>{itemName}";
+                        rewardIcon = "📦";
+                    }
+                    else if (string.Equals(reward.RewardType, "Card", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cardName = reward.RewardValue switch
+                        {
+                            0 => "Ho Ho Ho Spider-Man",
+                            _ => "Hero Card"
+                        };
+                        rewardText = $"{reward.RewardQuantity}x<br>{cardName}";
+                        rewardIcon = "🃏";
+                    }
+
+                    var statusLabel = "";
+                    if (isClaimed) statusLabel = "<span class=\"status-lbl\">STAMPED ✓</span>";
+                    else if (isActive) statusLabel = "<span class=\"status-lbl pulsing-cyan\">READY TODAY</span>";
+                    else statusLabel = "<span class=\"status-lbl\">LOCKED</span>";
+
+                    boxesHtmlList.Add($"""
+                    <div class="{boxClass}">
+                        <div class="day-num">DAY {reward.Day}</div>
+                        <div class="day-icon">{rewardIcon}</div>
+                        <div class="day-reward">{rewardText}</div>
+                        {statusLabel}
+                    </div>
+                    """);
+                }
+
+                var timerHtml = "";
+                if (dto.SecondsUntilReset > 0)
+                {
+                    timerHtml = $"<div class=\"commendation-timer\" data-seconds=\"{dto.SecondsUntilReset}\">⏱️ NEXT CYCLE STAMP IN: CALCULATING...</div>";
+                }
+                else
+                {
+                    timerHtml = "<div class=\"commendation-timer infinite\">⏱️ UNRESTRICTED ACCESS ACTIVE</div>";
+                }
+
+                var statusHeaderMsg = alreadyLoggedToday 
+                    ? "<span style='color: var(--hud-green);'>✓ SECURED TODAY</span>" 
+                    : "<span style='color: var(--hud-blue);' class='pulsing-cyan'>📡 STAMP PENDING</span>";
+
+                calendarsHtmlList.Add($"""
+                <div class="campaign-container">
+                    <div class="campaign-header-row">
+                        <div>
+                            <h2 class="campaign-title">{campaign.Title}</h2>
+                            <p class="campaign-desc">{campaign.Description}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="campaign-status">{statusHeaderMsg}</div>
+                            {timerHtml}
+                        </div>
+                    </div>
+                    <div class="commendations-grid">
+                        {string.Join("\n", boxesHtmlList)}
+                    </div>
+                </div>
+                """);
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "level", profile.Level.ToString() },
+                { "agentName", profile.Nickname },
+                { "energyCur", profile.EnergyCurrent.ToString() },
+                { "energyMax", profile.EnergyMax.ToString() },
+                { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
+                { "commendationsHtml", string.Join("\n", calendarsHtmlList) }
+            };
+
+            return Content(RenderTemplate("login_commendations.html", replacements), "text/html");
+        }
+
+        [HttpGet("mypage/assignments")]
+        public IActionResult ServeAssignmentsHub()
+        {
+            _logger.LogInformation("[Cygames] ServeAssignmentsHub called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var progressDtos = _assignmentEngine.GetPlayerProgress(profileId);
+
+            var initialHtmlList = new List<string>();
+            var levelHtmlList = new List<string>();
+            var specialBatches = new Dictionary<(string GroupName, int Batch), List<PlayerAssignmentProgressDto>>();
+
+            foreach (var dto in progressDtos)
+            {
+                if (string.Equals(dto.Template.GroupName, "Initial", StringComparison.OrdinalIgnoreCase))
+                {
+                    initialHtmlList.Add(RenderAssignmentCard(dto));
+                }
+                else if (string.Equals(dto.Template.GroupName, "Level", StringComparison.OrdinalIgnoreCase))
+                {
+                    levelHtmlList.Add(RenderAssignmentCard(dto));
+                }
+                else
+                {
+                    var key = (dto.Template.GroupName, dto.Template.Batch);
+                    if (!specialBatches.ContainsKey(key))
+                    {
+                        specialBatches[key] = new List<PlayerAssignmentProgressDto>();
+                    }
+                    specialBatches[key].Add(dto);
+                }
+            }
+
+            var specialHtmlList = new List<string>();
+
+            foreach (var kvp in specialBatches.OrderBy(b => b.Key.GroupName).ThenBy(b => b.Key.Batch))
+            {
+                var groupName = kvp.Key.GroupName;
+                var batchNum = kvp.Key.Batch;
+                var batchQuests = kvp.Value;
+
+                var regularQuests = batchQuests.Where(q => !q.Template.IsCompletionBonus).OrderBy(q => q.Template.Id).ToList();
+                var completionBonus = batchQuests.FirstOrDefault(q => q.Template.IsCompletionBonus);
+
+                var regularHtml = string.Join("\n", regularQuests.Select(RenderAssignmentCard));
+                var bonusHtml = "";
+
+                if (completionBonus != null)
+                {
+                    var temp = completionBonus.Template;
+                    var isClaimed = completionBonus.IsClaimed;
+                    var isCompleted = completionBonus.IsCompleted;
+
+                    var cardClass = "bonus-card";
+                    if (isClaimed) cardClass += " claimed";
+                    else if (isCompleted) cardClass += " completed";
+                    else cardClass += " locked";
+
+                    var rewardText = "";
+                    if (string.Equals(temp.RewardType, "Card", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var cardName = temp.RewardValue switch
+                        {
+                            0 when temp.GroupName.Contains("Special Assignment 1") => "[Leopardess] Tigra",
+                            0 when temp.GroupName.Contains("Special Assignment 2") => "[Cosmic Energy] Havok",
+                            _ => $"Hero Card {temp.RewardValue}"
+                        };
+                        rewardText = $"{cardName}";
+                    }
+                    else
+                    {
+                        rewardText = $"{temp.RewardType} x{temp.RewardQuantity}";
+                    }
+
+                    var statusLabel = "";
+                    if (isClaimed) statusLabel = "<span class=\"bonus-status-tag claimed\">SECURED</span>";
+                    else if (isCompleted) statusLabel = "<span class=\"bonus-status-tag ready\">READY</span>";
+                    else statusLabel = "<span class=\"bonus-status-tag locked\">LOCKED</span>";
+
+                    bonusHtml = $"""
+                    <div class="{cardClass}" id="card-{temp.Id}">
+                        <div class="bonus-glow"></div>
+                        <div class="bonus-header">
+                            <span class="bonus-title">// BATCH {batchNum} COMPLETION BONUS</span>
+                            {statusLabel}
+                        </div>
+                        <div class="bonus-body">
+                            <div class="bonus-asset-icon">🎁</div>
+                            <div class="bonus-details">
+                                <h4>{temp.Title}</h4>
+                                <p>{temp.Description}</p>
+                                <div class="bonus-reward-value">TACTICAL ASSET: <span>{rewardText}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    """;
+                }
+
+                var firstQuest = batchQuests.FirstOrDefault();
+                var secondsRemaining = firstQuest?.SecondsRemaining ?? -1;
+                var timerHtml = "";
+
+                if (secondsRemaining > 0)
+                {
+                    timerHtml = $"<div class=\"batch-timer\" data-seconds=\"{secondsRemaining}\">⏱️ DETECTING WINDOW: CALCULATING...</div>";
+                }
+                else if (secondsRemaining == 0)
+                {
+                    timerHtml = "<div class=\"batch-timer expired\">⏱️ TIME-WINDOW EXPIRED</div>";
+                }
+                else
+                {
+                    timerHtml = "<div class=\"batch-timer infinite\">⏱️ UNRESTRICTED ACCESS ACTIVE</div>";
+                }
+
+                specialHtmlList.Add($"""
+                <div class="special-batch-container">
+                    <div class="batch-header-bar">
+                        <div class="batch-title">// OPERATION: {groupName.ToUpper()} [BATCH {batchNum}]</div>
+                        {timerHtml}
+                    </div>
+                    <div class="batch-quests-grid">
+                        {regularHtml}
+                    </div>
+                    {bonusHtml}
+                </div>
+                """);
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "level", profile.Level.ToString() },
+                { "agentName", profile.Nickname },
+                { "energyCur", profile.EnergyCurrent.ToString() },
+                { "energyMax", profile.EnergyMax.ToString() },
+                { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
+                { "initialAssignmentsHtml", initialHtmlList.Count > 0 ? string.Join("\n", initialHtmlList) : "<div class='no-quests'>// ALL INITIAL ONBOARDING GOALS CLEARED</div>" },
+                { "levelAssignmentsHtml", levelHtmlList.Count > 0 ? string.Join("\n", levelHtmlList) : "<div class='no-quests'>// LEVELING GOALS COMPLETED</div>" },
+                { "specialAssignmentsHtml", specialHtmlList.Count > 0 ? string.Join("\n", specialHtmlList) : "<div class='no-quests'>// NO SPECIAL EVENTS ACTIVE IN THIS SECTOR</div>" }
+            };
+
+            return Content(RenderTemplate("assignments.html", replacements), "text/html");
+        }
+
+        [HttpPost("mypage/assignments/claim/{assignmentId}")]
+        public IActionResult ClaimAssignment(string assignmentId)
+        {
+            _logger.LogInformation($"[Cygames] ClaimAssignment called for assignment: {assignmentId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var result = _assignmentEngine.ClaimReward(profileId, assignmentId);
+            return Ok(result);
+        }
+
+        private string RenderAssignmentCard(PlayerAssignmentProgressDto dto)
+        {
+            var temp = dto.Template;
+            var isClaimed = dto.IsClaimed;
+            var isCompleted = dto.IsCompleted;
+            var current = dto.CurrentProgress;
+            var target = temp.GoalTarget;
+
+            var cardClass = "assignment-card";
+            if (isClaimed) cardClass += " claimed";
+            else if (isCompleted) cardClass += " completed";
+            else cardClass += " active";
+
+            var rewardText = "";
+            if (string.Equals(temp.RewardType, "Silver", StringComparison.OrdinalIgnoreCase))
+            {
+                rewardText = $"🪙 {temp.RewardValue:N0} Silver";
+            }
+            else if (string.Equals(temp.RewardType, "RallyPoints", StringComparison.OrdinalIgnoreCase))
+            {
+                rewardText = $"⚡ {temp.RewardValue:N0} Rally Points";
+            }
+            else if (string.Equals(temp.RewardType, "MobaCoin", StringComparison.OrdinalIgnoreCase))
+            {
+                rewardText = $"🪙 {temp.RewardValue:N0} MobaCoins";
+            }
+            else if (string.Equals(temp.RewardType, "CardStock", StringComparison.OrdinalIgnoreCase))
+            {
+                rewardText = $"📦 +{temp.RewardValue} Hero Slots";
+            }
+            else if (string.Equals(temp.RewardType, "Item", StringComparison.OrdinalIgnoreCase))
+            {
+                var itemName = temp.RewardValue switch
+                {
+                    1 => "Energy ISO-8 (L)",
+                    2 => "Ultimate Gacha Ticket",
+                    3 => "Attack ISO-8 (L)",
+                    5 => "Shield Barrier",
+                    _ => $"Supply Item {temp.RewardValue}"
+                };
+                rewardText = $"📦 {itemName} (x{temp.RewardQuantity})";
+            }
+            else if (string.Equals(temp.RewardType, "Card", StringComparison.OrdinalIgnoreCase))
+            {
+                var cardName = temp.RewardValue switch
+                {
+                    0 when temp.GroupName.Contains("Special Assignment 1") => "[Leopardess] Tigra",
+                    0 when temp.GroupName.Contains("Special Assignment 2") => "[Cosmic Energy] Havok",
+                    _ => $"Hero Card {temp.RewardValue}"
+                };
+                rewardText = $"🃏 {cardName} (x{temp.RewardQuantity})";
+            }
+
+            var progressPct = target > 0 ? Math.Min(100, (double)current / target * 100) : 0;
+            var progressText = $"{current} / {target}";
+
+            var goalBadge = temp.GoalType switch
+            {
+                "DrawRallyPack" => "RECRUITMENT",
+                "EnhanceCard" => "UPGRADE",
+                "PvpBattle" => "COMBAT ENGAGEMENT",
+                "CompleteOperation" => "STORY TARGET",
+                "ShieldRequest" => "ALLIANCE REACH",
+                "LoginTomorrow" => "DAILY LINK",
+                "LevelUp" => "CLEARANCE PROGRESSION",
+                "WinStreak" => "TACTICAL STREAK",
+                "PvpWin" => "FIELD VICTORY",
+                "SkillsActivated" => "ABILITY SYNCHRONIZATION",
+                "MoraleWin" => "SYNERGY VICTORY",
+                "StartMission" => "SECTOR DEPLOYMENT",
+                "FuseCard" => "FUSION SYNTHESIS",
+                _ => temp.GoalType.ToUpper()
+            };
+
+            var buttonHtml = "";
+            if (isClaimed)
+            {
+                buttonHtml = "<button class=\"claim-btn claimed\" disabled>SECURED</button>";
+            }
+            else if (isCompleted)
+            {
+                buttonHtml = $"<button class=\"claim-btn ready\" onclick=\"claimAssignment('{temp.Id}', this)\">CLAIM REWARD</button>";
+            }
+            else
+            {
+                buttonHtml = "<button class=\"claim-btn locked\" disabled>IN PROGRESS</button>";
+            }
+
+            var progressBarHtml = "";
+            if (!temp.IsCompletionBonus)
+            {
+                progressBarHtml = $"""
+                <div class="progress-container">
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar-fill" style="width: {progressPct:N0}%;"></div>
+                    </div>
+                    <div class="progress-label">{progressText}</div>
+                </div>
+                """;
+            }
+            else
+            {
+                progressBarHtml = """
+                <div class="progress-container completion-bonus">
+                    <div class="bonus-tag">// BATCH REWARD</div>
+                </div>
+                """;
+            }
+
+            return $"""
+            <div class="{cardClass}" id="card-{temp.Id}">
+                <div class="card-inner">
+                    <div class="card-glow"></div>
+                    <div class="card-header">
+                        <span class="card-badge">{goalBadge}</span>
+                        <span class="card-reward-label">{rewardText}</span>
+                    </div>
+                    <h3 class="card-title">{temp.Title}</h3>
+                    <p class="card-desc">{temp.Description}</p>
+                    {progressBarHtml}
+                    <div class="card-action">
+                        {buttonHtml}
+                    </div>
+                </div>
+            </div>
+            """;
         }
 
         private string RenderTemplate(string templateName, Dictionary<string, string> replacements)

@@ -77,10 +77,13 @@ namespace MwohServer.Services
             }
         }
 
-        public MissionEngine(ILogger<MissionEngine> logger, MwohDbContext dbContext)
+        private readonly IAssignmentEngine _assignmentEngine;
+
+        public MissionEngine(ILogger<MissionEngine> logger, MwohDbContext dbContext, IAssignmentEngine assignmentEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _assignmentEngine = assignmentEngine;
         }
 
         public List<OperationBlueprint> GetOperations()
@@ -183,6 +186,7 @@ namespace MwohServer.Services
             }
 
             profile.EnergyCurrent -= activeMission.EnergyCost;
+            _assignmentEngine.RecordEvent(profileId, GoalType.StartMission, 1);
             var progressState = GetPlayerMissionProgress(profile);
             progressState.ActiveMissionProgress = Math.Min(100, progressState.ActiveMissionProgress + 20);
 
@@ -207,6 +211,7 @@ namespace MwohServer.Services
                     {
                         profile.Experience -= nextExpNeeded;
                         profile.Level++;
+                        _assignmentEngine.RecordEvent(profileId, GoalType.LevelUp, profile.Level);
                         profile.StatPoints += 3;
                         profile.EnergyCurrent = profile.EnergyMax;
                         levelUp = true;
@@ -402,6 +407,13 @@ namespace MwohServer.Services
 
             profile.SilverBalance += activeOp.BossSilverReward;
 
+            // Trigger CompleteOperation assignment hook
+            var partsCode = missionCode.Split('-');
+            if (partsCode.Length > 0 && int.TryParse(partsCode[0], out int finishedOpId))
+            {
+                _assignmentEngine.RecordEvent(profileId, GoalType.CompleteOperation, finishedOpId);
+            }
+
             var progressState = GetPlayerMissionProgress(profile);
             if (!progressState.CompletedMissions.ContainsKey(missionCode))
             {
@@ -442,8 +454,8 @@ namespace MwohServer.Services
             try
             {
                 var rand = new Random();
-                var partsCode = missionCode.Split('-');
-                if (partsCode.Length > 0 && int.TryParse(partsCode[0], out int opId) && opId >= 2 && opId <= 29)
+                var resourcePartsCode = missionCode.Split('-');
+                if (resourcePartsCode.Length > 0 && int.TryParse(resourcePartsCode[0], out int opId) && opId >= 2 && opId <= 29)
                 {
                     var dropRate = GameplaySettings.ResourceDropRatePercentage;
                     if (rand.Next(1, 101) <= dropRate)

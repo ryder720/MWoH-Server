@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Assignments Command Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Glassmorphic Tabs Styles */
+        .tabs-container {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 3px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(8px);
+        }
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 10px 4px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        .tab-btn.active {
+            background: rgba(0, 240, 255, 0.08);
+            color: var(--hud-blue);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+        
+        /* Assignments Card Styles */
+        .assignment-card {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 12px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .assignment-card.active {
+            border-color: rgba(0, 240, 255, 0.15);
+        }
+        .assignment-card.completed {
+            border-color: rgba(16, 185, 129, 0.35);
+            background: rgba(16, 185, 129, 0.02);
+        }
+        .assignment-card.claimed {
+            opacity: 0.6;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        .assignment-card:hover:not(.claimed) {
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.1);
+        }
+        .card-inner {
+            position: relative;
+            z-index: 2;
+        }
+        .card-glow {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.3), transparent);
+        }
+        .assignment-card.completed .card-glow {
+            background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.5), transparent);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .card-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        .card-reward-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 4px 0;
+            letter-spacing: 0.5px;
+        }
+        .card-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 2px 0 10px 0;
+            line-height: 1.35;
+        }
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .progress-bar-wrapper {
+            flex-grow: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--hud-blue), #00a8cc);
+            box-shadow: 0 0 6px var(--hud-blue-glow);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .assignment-card.completed .progress-bar-fill {
+            background: linear-gradient(90deg, var(--hud-green), #10b981);
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
+        }
+        .progress-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-color);
+            min-width: 45px;
+            text-align: right;
+        }
+        
+        .claim-btn {
+            display: block;
+            width: 100%;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            padding: 9px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+        .claim-btn.locked {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+        .claim-btn.ready {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--hud-green);
+            color: var(--hud-green);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+        }
+        .claim-btn.ready:hover {
+            background: var(--hud-green);
+            color: var(--bg-color);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+        }
+        .claim-btn.claimed {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Special Operations / Batches Layout */
+        .special-batch-container {
+            background: rgba(13, 20, 35, 0.3);
+            border: 1px solid rgba(0, 240, 255, 0.12);
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 20px;
+            position: relative;
+            backdrop-filter: blur(10px);
+        }
+        .batch-header-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 12px;
+            border-bottom: 1px dashed rgba(0, 240, 255, 0.15);
+            padding-bottom: 8px;
+        }
+        .batch-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            letter-spacing: 0.5px;
+        }
+        .batch-timer {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .batch-timer.expired {
+            color: var(--accent-red);
+        }
+        .batch-timer.infinite {
+            color: var(--hud-green);
+        }
+        .batch-quests-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* Bonus Asset Card */
+        .bonus-card {
+            background: rgba(245, 158, 11, 0.03);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 12px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .bonus-card.locked {
+            opacity: 0.65;
+            border-color: rgba(255, 255, 255, 0.08);
+            background: rgba(255, 255, 255, 0.01);
+        }
+        .bonus-card.claimed {
+            opacity: 0.5;
+            border-color: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.01);
+        }
+        .bonus-glow {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.4), transparent);
+        }
+        .bonus-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .bonus-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            letter-spacing: 0.5px;
+        }
+        .bonus-status-tag {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 3px;
+            letter-spacing: 0.5px;
+        }
+        .bonus-status-tag.locked {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .bonus-status-tag.ready {
+            color: var(--hud-green);
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 6px rgba(16, 185, 129, 0.2);
+        }
+        .bonus-status-tag.claimed {
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .bonus-body {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .bonus-asset-icon {
+            font-size: 24px;
+            filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.3));
+        }
+        .bonus-details h4 {
+            font-size: 12px;
+            color: #ffffff;
+            margin: 0 0 2px 0;
+            font-weight: 700;
+        }
+        .bonus-details p {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin: 0 0 4px 0;
+            line-height: 1.25;
+        }
+        .bonus-reward-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text-color);
+        }
+        .bonus-reward-value span {
+            color: var(--accent-gold);
+            font-weight: 700;
+        }
+
+        /* Tech Glassmorphic Modal */
+        .tech-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .tech-modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .tech-modal-box {
+            background: rgba(13, 20, 35, 0.95);
+            border: 1px solid var(--hud-blue);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0, 240, 255, 0.25);
+            transform: scale(0.9);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+        .tech-modal-overlay.show .tech-modal-box {
+            transform: scale(1);
+        }
+        .modal-header {
+            background: rgba(0, 240, 255, 0.05);
+            border-bottom: 1px solid rgba(0, 240, 255, 0.15);
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-alert-icon {
+            font-size: 16px;
+            color: var(--hud-blue);
+            filter: drop-shadow(0 0 6px var(--hud-blue-glow));
+            animation: pulse 1.5s infinite;
+        }
+        .modal-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--hud-blue);
+            letter-spacing: 1px;
+        }
+        .modal-body {
+            padding: 20px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            color: var(--text-color);
+            line-height: 1.5;
+            text-align: center;
+        }
+        .modal-footer {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            justify-content: center;
+        }
+        .modal-close-btn {
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--hud-blue);
+            color: var(--hud-blue);
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+        .modal-close-btn:active {
+            background: var(--hud-blue);
+            color: var(--bg-color);
+            box-shadow: 0 0 10px var(--hud-blue-glow);
+        }
+
+        .no-quests {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1>ASSIGNMENTS TERMINAL</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container" style="padding-bottom: 60px;">
+        
+        <!-- Tabs Navigation -->
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('initial', this)">Initial Quests</button>
+            <button class="tab-btn" onclick="switchTab('level', this)">Milestones</button>
+            <button class="tab-btn" onclick="switchTab('special', this)">Special Events</button>
+        </div>
+
+        <!-- TAB CONTENT: INITIAL -->
+        <div id="tab-initial" class="tab-panel">
+            <div class="section-hdr">// ONBOARDING TASKS INITIALIZATION</div>
+            <div class="quests-list">
+                {{initialAssignmentsHtml}}
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: LEVEL -->
+        <div id="tab-level" class="tab-panel" style="display: none;">
+            <div class="section-hdr">// CLEARANCE LEVEL MILESTONES</div>
+            <div class="quests-list">
+                {{levelAssignmentsHtml}}
+            </div>
+        </div>
+
+        <!-- TAB CONTENT: SPECIAL -->
+        <div id="tab-special" class="tab-panel" style="display: none;">
+            <div class="section-hdr">// DATE-LOCKED SPECIAL OPERATIONS</div>
+            <div class="quests-list">
+                {{specialAssignmentsHtml}}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TRANSMISSION POPUP MODAL -->
+    <div id="tech-modal" class="tech-modal-overlay" onclick="closeTechModal(event)">
+        <div class="tech-modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-alert-icon">📡</span>
+                <span class="modal-title">// SECURE LINK REWARD DISBURSED</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">// INCOMING ASSET DATA...</p>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-close-btn" onclick="closeTechModal()">DISMISS LINK</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        // MAIN OPERATIONS SECURE CHANNEL ACTIVE // AGENT: {{agentName}}
+    </div>
+
+    <script>
+        function switchTab(tabId, btnEl) {
+            // Update Active tab button
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => btn.classList.remove('active'));
+            btnEl.classList.add('active');
+
+            // Toggle panels
+            const panels = document.querySelectorAll('.tab-panel');
+            panels.forEach(p => p.style.display = 'none');
+            
+            document.getElementById('tab-' + tabId).style.display = 'block';
+        }
+
+        // Live Countdown Timers
+        function initializeTimers() {
+            const timerElements = document.querySelectorAll('.batch-timer[data-seconds]');
+            
+            timerElements.forEach(el => {
+                let seconds = parseInt(el.getAttribute('data-seconds'), 10);
+                if (isNaN(seconds) || seconds <= 0) return;
+
+                function update() {
+                    if (seconds <= 0) {
+                        el.innerHTML = "⏱️ TIME-WINDOW EXPIRED";
+                        el.className = "batch-timer expired";
+                        return;
+                    }
+                    
+                    const days = Math.floor(seconds / (24 * 3600));
+                    let rem = seconds % (24 * 3600);
+                    const hours = Math.floor(rem / 3600);
+                    rem %= 3600;
+                    const mins = Math.floor(rem / 60);
+                    const secs = rem % 60;
+
+                    const daysStr = days > 0 ? `${days}d ` : '';
+                    const hoursStr = String(hours).padStart(2, '0');
+                    const minsStr = String(mins).padStart(2, '0');
+                    const secsStr = String(secs).padStart(2, '0');
+
+                    el.innerHTML = `⏱️ EVENT WINDOW: ${daysStr}${hoursStr}h ${minsStr}m ${secsStr}s`;
+                    seconds--;
+                }
+                
+                update();
+                setInterval(update, 1000);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeTimers);
+
+        // Async Quest Claiming
+        function claimAssignment(assignmentId, buttonEl) {
+            buttonEl.disabled = true;
+            buttonEl.innerText = "LINKING...";
+
+            fetch(`/ultimate/mypage/assignments/claim/${assignmentId}`, {
+                method: 'POST'
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('SECURE NETWORK CONNECTION ERROR');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show custom tech modal with dynamic response
+                    showTechModal(data.message);
+
+                    // Mark card claimed
+                    const card = document.getElementById(`card-${assignmentId}`);
+                    if (card) {
+                        card.classList.remove('completed');
+                        card.classList.add('claimed');
+                    }
+
+                    // Update button
+                    buttonEl.className = "claim-btn claimed";
+                    buttonEl.innerText = "SECURED";
+                    
+                    // If batch completion bonus was unlocked, check if we need to reload or update the bonus card in the page
+                    if (data.message && data.message.includes('BATCH COMPLETION BONUS')) {
+                        // Locate if there's a bonus card in the parent batch and mark it claimed
+                        const batchContainer = buttonEl.closest('.special-batch-container');
+                        if (batchContainer) {
+                            const bonusCard = batchContainer.querySelector('.bonus-card');
+                            if (bonusCard) {
+                                bonusCard.className = "bonus-card claimed";
+                                const statusTag = bonusCard.querySelector('.bonus-status-tag');
+                                if (statusTag) {
+                                    statusTag.className = "bonus-status-tag claimed";
+                                    statusTag.innerText = "SECURED";
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    showTechModal(data.message);
+                    buttonEl.disabled = false;
+                    buttonEl.innerText = "CLAIM REWARD";
+                }
+            })
+            .catch(err => {
+                showTechModal("⚠️ SECURE ROUTING SYSTEM ERROR // Could not disburse reward credits.");
+                buttonEl.disabled = false;
+                buttonEl.innerText = "CLAIM REWARD";
+            });
+        }
+
+        // Custom High-Tech Modal handlers
+        function showTechModal(message) {
+            const formattedMsg = message.replace(/\n/g, '<br>');
+            document.getElementById('modal-message').innerHTML = formattedMsg;
+            document.getElementById('tech-modal').classList.add('show');
+        }
+
+        function closeTechModal(event) {
+            document.getElementById('tech-modal').classList.remove('show');
+        }
+    </script>
+</body>
+</html>

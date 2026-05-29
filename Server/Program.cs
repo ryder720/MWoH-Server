@@ -45,6 +45,8 @@ builder.Services.AddSingleton<ISpecialComboEngine, SpecialComboEngine>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
 builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
 builder.Services.AddScoped<ITradeEngine, TradeEngine>();
+builder.Services.AddScoped<IAssignmentEngine, AssignmentEngine>();
+builder.Services.AddScoped<ILoginCommendationEngine, LoginCommendationEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -590,6 +592,48 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (Trades table): {ex.Message}");
     }
 
+    // 10. Create PlayerAssignmentProgress table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS PlayerAssignmentProgress (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PlayerProfileId INTEGER NOT NULL,
+                AssignmentId TEXT NOT NULL,
+                CurrentProgress INTEGER NOT NULL DEFAULT 0,
+                IsCompleted INTEGER NOT NULL DEFAULT 0,
+                IsClaimed INTEGER NOT NULL DEFAULT 0,
+                LastUpdated TEXT NOT NULL,
+                FOREIGN KEY (PlayerProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured PlayerAssignmentProgress table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (PlayerAssignmentProgress table): {ex.Message}");
+    }
+
+    // 11. Create PlayerLoginCommendations table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS PlayerLoginCommendations (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PlayerProfileId INTEGER NOT NULL,
+                CampaignId TEXT NOT NULL,
+                TotalLogins INTEGER NOT NULL DEFAULT 0,
+                LastLoginDate TEXT NOT NULL,
+                ClaimedDaysJson TEXT NOT NULL DEFAULT '[]',
+                FOREIGN KEY (PlayerProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured PlayerLoginCommendations table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (PlayerLoginCommendations table): {ex.Message}");
+    }
 
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
@@ -643,7 +687,7 @@ public static class AdminConsoleEngine
                     using (var scope = app.Services.CreateScope())
                     {
                         var dbContext = scope.ServiceProvider.GetRequiredService<MwohDbContext>();
-                        ExecuteCommand(line.Trim(), dbContext);
+                        ExecuteCommand(line.Trim(), dbContext, scope.ServiceProvider);
                     }
                 }
                 catch (Exception ex)
@@ -654,7 +698,7 @@ public static class AdminConsoleEngine
         });
     }
 
-    private static void ExecuteCommand(string commandLine, MwohDbContext db)
+    private static void ExecuteCommand(string commandLine, MwohDbContext db, IServiceProvider serviceProvider)
     {
         var args = commandLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (args.Length == 0) return;
@@ -667,15 +711,127 @@ public static class AdminConsoleEngine
             Console.WriteLine("  help                                           - Display help details");
             Console.WriteLine("  status                                         - Show active server/DB metrics");
             Console.WriteLine("  reload                                         - Reload gameplay & gacha configurations");
+            Console.WriteLine("  assignments reload                             - Reload all active assignment blueprints");
+            Console.WriteLine("  assignments list                               - List currently active quest templates");
+            Console.WriteLine("  commendations reload                           - Reload daily commendation blueprints");
+            Console.WriteLine("  commendations list                             - List currently active login calendars");
             Console.WriteLine("  runtests                                       - Execute card ability evaluation unit tests");
             Console.WriteLine("  runbattletests                                 - Execute S.H.I.E.L.D. Battle Engine unit tests");
             Console.WriteLine("  runalliancetests                               - Execute S.H.I.E.L.D. Alliance System unit tests");
             Console.WriteLine("  runcombotests                                  - Execute S.H.I.E.L.D. Special Combos unit tests");
             Console.WriteLine("  runtradetests                                  - Execute S.H.I.E.L.D. Material Requisition unit tests");
+            Console.WriteLine("  runassignmenttests                             - Execute S.H.I.E.L.D. Assignments unit tests");
+            Console.WriteLine("  runcommendationtests                           - Execute S.H.I.E.L.D. Daily Commendations unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
-            Console.WriteLine("  <username> resetattributes                     - Revert agent parameters and refund Attribute Points\n");
+            Console.WriteLine("  <username> resetattributes                     - Revert agent parameters and refund Attribute Points");
+            Console.WriteLine("  <username> resetassignments                    - Wipe all assignment progress for agent");
+            Console.WriteLine("  <username> resetcommendations                  - Wipe all daily login progress for agent\n");
+            return;
+        }
+
+        if (primary == "assignments")
+        {
+            if (args.Length < 2)
+            {
+                Console.WriteLine("[Admin Console] Error: Specify action. Syntax is 'assignments <reload|list>'");
+                return;
+            }
+
+            var actionArg = args[1].ToLower();
+            var assignmentEngine = (MwohServer.Services.IAssignmentEngine)serviceProvider.GetService(typeof(MwohServer.Services.IAssignmentEngine))!;
+
+            if (actionArg == "reload")
+            {
+                assignmentEngine.ReloadTemplates();
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Assignment blueprints successfully reloaded.");
+            }
+            else if (actionArg == "list")
+            {
+                var templates = assignmentEngine.GetActiveTemplates();
+                Console.WriteLine($"\n--- ACTIVE ASSIGNMENT TEMPLATES ({templates.Count}) ---");
+                foreach (var t in templates)
+                {
+                    Console.WriteLine($"  [{t.Id}] Group: {t.GroupName} | Title: {t.Title} | Goal: {t.GoalType} ({t.GoalTarget}) | Reward: {t.RewardType} (Val: {t.RewardValue}, Qty: {t.RewardQuantity})");
+                }
+                Console.WriteLine();
+            }
+            else
+            {
+                Console.WriteLine($"[Admin Console] Error: Unknown assignments action '{actionArg}'. Use 'reload' or 'list'.");
+            }
+            return;
+        }
+
+        if (primary == "commendations")
+        {
+            if (args.Length < 2)
+            {
+                Console.WriteLine("[Admin Console] Error: Specify action. Syntax is 'commendations <reload|list>'");
+                return;
+            }
+
+            var actionArg = args[1].ToLower();
+            var commendationEngine = (MwohServer.Services.ILoginCommendationEngine)serviceProvider.GetService(typeof(MwohServer.Services.ILoginCommendationEngine))!;
+
+            if (actionArg == "reload")
+            {
+                commendationEngine.ReloadTemplates();
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Login Commendation blueprints successfully reloaded.");
+            }
+            else if (actionArg == "list")
+            {
+                var campaigns = commendationEngine.GetActiveCampaigns();
+                Console.WriteLine($"\n--- ACTIVE LOGIN COMMENDATION CAMPAIGNS ({campaigns.Count}) ---");
+                foreach (var c in campaigns)
+                {
+                    Console.WriteLine($"  [{c.Id}] Title: {c.Title} | Days: {c.Rewards.Count} | Active: {c.StartDate:yyyy-MM-dd} to {c.EndDate:yyyy-MM-dd} | Status: {(c.IsActive ? "ACTIVE" : "INACTIVE")}");
+                    foreach (var r in c.Rewards.OrderBy(x => x.Day))
+                    {
+                        Console.WriteLine($"    - Day {r.Day}: {r.RewardType} (Val: {r.RewardValue}, Qty: {r.RewardQuantity})");
+                    }
+                }
+                Console.WriteLine();
+            }
+            else
+            {
+                Console.WriteLine($"[Admin Console] Error: Unknown commendations action '{actionArg}'. Use 'reload' or 'list'.");
+            }
+            return;
+        }
+
+        if (primary == "runassignmenttests")
+        {
+            var assignmentEngine = (MwohServer.Services.IAssignmentEngine)serviceProvider.GetService(typeof(MwohServer.Services.IAssignmentEngine))!;
+            var success = MwohServer.Tests.AssignmentEngineTests.Run(assignmentEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Assignments Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Assignments Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runcommendationtests")
+        {
+            var commendationEngine = (MwohServer.Services.ILoginCommendationEngine)serviceProvider.GetService(typeof(MwohServer.Services.ILoginCommendationEngine))!;
+            var success = MwohServer.Tests.LoginCommendationTests.Run(commendationEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Login Commendations Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Login Commendations Test Suite failed!");
+                Console.ResetColor();
+            }
             return;
         }
 
@@ -808,6 +964,24 @@ public static class AdminConsoleEngine
         }
 
         var profile = user.Profile;
+
+        if (action == "resetassignments")
+        {
+            var records = db.PlayerAssignmentProgress.Where(p => p.PlayerProfileId == profile.Id).ToList();
+            db.PlayerAssignmentProgress.RemoveRange(records);
+            db.SaveChanges();
+            Console.WriteLine($"[Admin Console] Wiped {records.Count} quest progress entries for S.H.I.E.L.D. Agent '{username}'. All assignments reset to zero/uncompleted.");
+            return;
+        }
+
+        if (action == "resetcommendations")
+        {
+            var records = db.PlayerLoginCommendations.Where(p => p.PlayerProfileId == profile.Id).ToList();
+            db.PlayerLoginCommendations.RemoveRange(records);
+            db.SaveChanges();
+            Console.WriteLine($"[Admin Console] Wiped {records.Count} daily login progress entries for S.H.I.E.L.D. Agent '{username}'. Daily login progress reset.");
+            return;
+        }
 
         if (action == "addcurrency")
         {

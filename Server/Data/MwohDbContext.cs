@@ -17,6 +17,8 @@ namespace MwohServer.Data
         public DbSet<Alliance> Alliances => Set<Alliance>();
         public DbSet<AllianceJoinRequest> AllianceJoinRequests => Set<AllianceJoinRequest>();
         public DbSet<Trade> Trades => Set<Trade>();
+        public DbSet<PlayerAssignmentProgress> PlayerAssignmentProgress => Set<PlayerAssignmentProgress>();
+        public DbSet<PlayerLoginCommendationProgress> PlayerLoginCommendations => Set<PlayerLoginCommendationProgress>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -131,6 +133,18 @@ namespace MwohServer.Data
                 .HasOne(t => t.ReceiverProfile)
                 .WithMany()
                 .HasForeignKey(t => t.ReceiverProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlayerAssignmentProgress>()
+                .HasOne(ap => ap.PlayerProfile)
+                .WithMany(p => p.AssignmentProgresses)
+                .HasForeignKey(ap => ap.PlayerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PlayerLoginCommendationProgress>()
+                .HasOne(lc => lc.PlayerProfile)
+                .WithMany(p => p.LoginCommendations)
+                .HasForeignKey(lc => lc.PlayerProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Seed default test account

@@ -79,6 +79,8 @@ namespace MwohServer.Models
         public Alliance? Alliance { get; set; }
         public System.Collections.Generic.ICollection<PlayerCard> Cards { get; set; } = new System.Collections.Generic.List<PlayerCard>();
         public System.Collections.Generic.ICollection<PlayerInventoryItem> InventoryItems { get; set; } = new System.Collections.Generic.List<PlayerInventoryItem>();
+        public System.Collections.Generic.ICollection<PlayerAssignmentProgress> AssignmentProgresses { get; set; } = new System.Collections.Generic.List<PlayerAssignmentProgress>();
+        public System.Collections.Generic.ICollection<PlayerLoginCommendationProgress> LoginCommendations { get; set; } = new System.Collections.Generic.List<PlayerLoginCommendationProgress>();
     }
 
     public class ShieldTeamMember
@@ -312,6 +314,8 @@ namespace MwohServer.Models
         public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
         public static int ResourceDropRatePercentage { get; set; } = 100;
         public static bool EnableFriendRemoval24HourPenalty { get; set; } = true;
+        public static bool IgnoreAssignmentDates { get; set; } = false;
+        public static bool IgnoreLoginCommendationDates { get; set; } = false;
         public static int TradeCooldownDays { get; set; } = 14;
         public static int TradeMinLevel { get; set; } = 10;
         public static int TradeMaxCards { get; set; } = 3;
@@ -387,6 +391,14 @@ namespace MwohServer.Models
                             {
                                 EnableFriendRemoval24HourPenalty = fPenaltyProp.GetBoolean();
                             }
+                            if (gameplayNode.TryGetProperty("IgnoreAssignmentDates", out var ignoreProp))
+                            {
+                                IgnoreAssignmentDates = ignoreProp.GetBoolean();
+                            }
+                            if (gameplayNode.TryGetProperty("IgnoreLoginCommendationDates", out var ignoreLoginDatesProp))
+                            {
+                                IgnoreLoginCommendationDates = ignoreLoginDatesProp.GetBoolean();
+                            }
                             if (gameplayNode.TryGetProperty("TradeCooldownDays", out var tCooldownProp))
                             {
                                 TradeCooldownDays = tCooldownProp.GetInt32();
@@ -438,6 +450,7 @@ namespace MwohServer.Models
     ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server"",
     ""ResourceDropRatePercentage"": 100,
     ""EnableFriendRemoval24HourPenalty"": true,
+    ""IgnoreAssignmentDates"": false,
     ""TradeCooldownDays"": 14,
     ""TradeMinLevel"": 10,
     ""TradeMaxCards"": 3
