@@ -1149,6 +1149,66 @@ namespace MwohServer.Controllers
             return Content(RenderTemplate("catalog.html", replacements), "text/html");
         }
 
+        [HttpGet("mypage/card/{id}")]
+        public IActionResult ServeCardDetailsPage(int id)
+        {
+            _logger.LogInformation($"[Cygames] ServeCardDetailsPage called for Card ID: {id}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var card = _dbContext.PlayerCards
+                .Include(c => c.CardTemplate)
+                .FirstOrDefault(c => c.Id == id && c.PlayerProfileId == profileId);
+
+            if (card == null)
+            {
+                return RedirectToAction("ServeCardCatalogPage");
+            }
+
+            var masteryCur = card.CurrentMastery;
+            var masteryMax = card.CardTemplate?.MaxMastery ?? 100;
+            var masteryBonusAtk = card.CardTemplate?.MasteryBonusAtk ?? 0;
+            var masteryBonusDef = card.CardTemplate?.MasteryBonusDef ?? 0;
+
+            var activeMasteryAtk = masteryMax > 0 ? (int)Math.Round((double)(masteryBonusAtk * masteryCur) / masteryMax) : 0;
+            var activeMasteryDef = masteryMax > 0 ? (int)Math.Round((double)(masteryBonusDef * masteryCur) / masteryMax) : 0;
+
+            var baseLevelAtk = card.CurrentAtk - activeMasteryAtk;
+            var baseLevelDef = card.CurrentDef - activeMasteryDef;
+
+            var masteryPct = masteryMax > 0 ? (int)Math.Round((double)(masteryCur * 100) / masteryMax) : 0;
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "id", card.Id.ToString() },
+                { "title", card.CardTemplate?.Title ?? "Unknown Hero" },
+                { "alignment", card.CardTemplate?.Alignment ?? "Speed" },
+                { "alignmentUpper", (card.CardTemplate?.Alignment ?? "Speed").ToUpper() },
+                { "rarity", card.CardTemplate?.Rarity ?? "Normal" },
+                { "rarityUpper", (card.CardTemplate?.Rarity ?? "Normal").ToUpper() },
+                { "level", card.CurrentLevel.ToString() },
+                { "cost", (card.CardTemplate?.PowerRequirement ?? 5).ToString() },
+                { "atk", card.CurrentAtk.ToString("N0") },
+                { "atkBase", baseLevelAtk.ToString("N0") },
+                { "atkMastery", activeMasteryAtk.ToString("N0") },
+                { "def", card.CurrentDef.ToString("N0") },
+                { "defBase", baseLevelDef.ToString("N0") },
+                { "defMastery", activeMasteryDef.ToString("N0") },
+                { "masteryCur", masteryCur.ToString() },
+                { "masteryMax", masteryMax.ToString() },
+                { "masteryPct", masteryPct.ToString() },
+                { "abilityName", (card.CardTemplate?.AbilityName ?? "None").ToUpper() },
+                { "abilityEffect", card.CardTemplate?.AbilityEffect ?? "No active sync ability." },
+                { "quote", card.CardTemplate?.Quote ?? "With great power comes great responsibility!" },
+                { "imageFile", card.CardTemplate?.ImageFileName ?? "" },
+                { "isLeader", card.IsLeader ? "true" : "false" },
+                { "leaderStatusText", card.IsLeader ? "ACTIVE REPRESENTATIVE" : "SET AS ACTIVE LEADER" },
+                { "leaderDisabledAttr", card.IsLeader ? "disabled" : "" }
+            };
+
+            return Content(RenderTemplate("card_details.html", replacements), "text/html");
+        }
+
         [HttpGet("card_str")]
         public IActionResult ServeCardStrRedirect()
         {

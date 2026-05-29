@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Hero File: {{title}}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Dedicated Full-Screen details page overrides */
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding-bottom: 30px; /* Space at bottom */
+        }
+
+        .card-art-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-full-art {
+            width: 100%;
+            max-width: 320px;
+            aspect-ratio: 2/3;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-color: rgba(3, 7, 18, 0.6);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        .modal-vertical-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .card-stat-vertical {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(3, 7, 18, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 4px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-level { border-left-color: var(--accent-gold); }
+        .stat-cost  { border-left-color: var(--hud-blue); }
+        .stat-atk   { border-left-color: #ef4444; }
+        .stat-def   { border-left-color: #10b981; }
+
+        .stat-lbl-vertical {
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .stat-val-vertical {
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .active-glow {
+            border-color: var(--theme-color) !important;
+            box-shadow: 0 0 20px var(--glow-color) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage/catalog" class="back-btn">&lt; CATALOG</a>
+        <h1 style="font-size: 13px; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">FILE // {{title}}</h1>
+        <a href="/ultimate/mypage" class="back-btn" style="color: var(--hud-blue); border-color: rgba(0, 240, 255, 0.3); background: rgba(0, 240, 255, 0.05); font-size: 10px;">🏠 MY PAGE</a>
+    </div>
+
+    <div class="container" id="details-container">
+        
+        <!-- Large Card Image -->
+        <div class="card-art-container">
+            <div class="modal-full-art" id="details-artwork-frame">🛡️</div>
+        </div>
+
+        <!-- Identity & Codename details -->
+        <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 15px; display: flex; justify-content: space-between; align-items: flex-start; backdrop-filter: blur(8px);">
+            <div>
+                <span class="modal-lbl" style="font-size: 9px; font-family: 'Space Mono', monospace;">CODENAME // {{alignmentUpper}}</span>
+                <h2 style="font-size: 20px; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">{{title}}</h2>
+            </div>
+            <div class="badge-lvl" style="color: var(--accent-gold); border-color: var(--accent-gold); font-size: 10px; padding: 3px 8px; margin-top: 2px;">{{rarityUpper}}</div>
+        </div>
+
+        <!-- Stats vertical stack -->
+        <div class="modal-vertical-stats">
+            <div class="card-stat-vertical stat-level">
+                <span class="stat-lbl-vertical">CLEARANCE LEVEL</span>
+                <span class="stat-val-vertical" style="color: var(--accent-gold);">LVL {{level}}</span>
+            </div>
+            <div class="card-stat-vertical stat-cost">
+                <span class="stat-lbl-vertical">POWER REQUIRED</span>
+                <span class="stat-val-vertical" style="color: var(--hud-blue);">{{cost}} PWR</span>
+            </div>
+            <div class="card-stat-vertical stat-atk">
+                <div style="display: flex; flex-direction: column;">
+                    <span class="stat-lbl-vertical">ATTACK FORCE</span>
+                    <span style="font-size: 8px; color: var(--text-muted); margin-top: 2px; font-family: 'Space Mono', monospace;">Base {{atkBase}} + Mastery {{atkMastery}}</span>
+                </div>
+                <span class="stat-val-vertical" style="color: #ef4444;">{{atk}}</span>
+            </div>
+            <div class="card-stat-vertical stat-def">
+                <div style="display: flex; flex-direction: column;">
+                    <span class="stat-lbl-vertical">DEFENSE FACTOR</span>
+                    <span style="font-size: 8px; color: var(--text-muted); margin-top: 2px; font-family: 'Space Mono', monospace;">Base {{defBase}} + Mastery {{defMastery}}</span>
+                </div>
+                <span class="stat-val-vertical" style="color: #10b981;">{{def}}</span>
+            </div>
+
+            <!-- Hero Mastery Bar -->
+            <div class="card-stat-vertical" style="border-left-color: #a855f7; display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 10px 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="stat-lbl-vertical" style="color: #c084fc;">HERO MASTERY</span>
+                    <span class="stat-val-vertical" style="color: #c084fc; font-size: 11px;">{{masteryCur}} / {{masteryMax}} ({{masteryPct}}%)</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: rgba(0, 0, 0, 0.5); border: 1px solid rgba(168, 85, 247, 0.2); border-radius: 3px; overflow: hidden; margin-top: 2px;">
+                    <div style="width: {{masteryPct}}%; height: 100%; background: linear-gradient(90deg, #a855f7, #c084fc); box-shadow: 0 0 8px rgba(168, 85, 247, 0.6); transition: width 0.4s ease;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ability Panel -->
+        <div class="modal-ability-panel" style="background: var(--panel-bg); border: 1px solid var(--border-color); backdrop-filter: blur(8px); padding: 12px 16px; border-radius: 8px;">
+            <span class="modal-lbl" style="font-size: 9px; font-family: 'Space Mono', monospace;">ACTIVE SYNC ABILITY</span>
+            <div class="ability-title" style="margin-top: 4px; font-size: 12px; letter-spacing: 1px;">{{abilityName}}</div>
+            <div class="ability-desc" style="margin-top: 4px; font-size: 10px;">{{abilityEffect}}</div>
+        </div>
+
+        <!-- Character Quote -->
+        <div class="card-footer-quote" style="background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.03); padding: 10px 15px; border-radius: 8px; font-size: 11px;">
+            "{{quote}}"
+        </div>
+
+        <!-- Set Leader Button -->
+        <button class="set-leader-btn" id="leader-action-btn" onclick="setAsLeader()" {{leaderDisabledAttr}} style="padding: 14px; font-size: 13px; margin-top: 8px;">{{leaderStatusText}}</button>
+    </div>
+
+    <div class="toast" id="leader-toast">ACTIVE LEADER SET SUCCESSFULLY</div>
+
+    <script>
+        const cardId = {{id}};
+        const alignment = "{{alignment}}";
+        const isLeaderInitial = {{isLeader}};
+
+        // Apply theme coloring dynamically on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const artworkFrame = document.getElementById('details-artwork-frame');
+            const imageFile = "{{imageFile}}";
+            
+            if (imageFile) {
+                artworkFrame.style.backgroundImage = `url('/images/cards/${imageFile}')`;
+                artworkFrame.style.backgroundSize = 'cover';
+                artworkFrame.style.backgroundPosition = 'center';
+                artworkFrame.textContent = '';
+            }
+
+            const glowColor = alignment === 'Speed' ? 'rgba(0, 240, 255, 0.4)' : (alignment === 'Bruiser' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)');
+            const neonColor = alignment === 'Speed' ? '#00f0ff' : (alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+            
+            const container = document.getElementById('details-container');
+            
+            // Dynamic highlights
+            artworkFrame.style.borderColor = neonColor;
+            artworkFrame.addEventListener('mouseenter', () => {
+                artworkFrame.style.boxShadow = `0 15px 40px ${glowColor}`;
+            });
+            artworkFrame.addEventListener('mouseleave', () => {
+                artworkFrame.style.boxShadow = `0 10px 30px rgba(0,0,0,0.7)`;
+            });
+
+            // Adjust button glow based on alignment if active
+            const btn = document.getElementById('leader-action-btn');
+            if (!isLeaderInitial) {
+                btn.style.background = neonColor;
+                btn.style.boxShadow = `0 4px 12px ${glowColor}`;
+            } else {
+                btn.style.background = '#1e293b';
+                btn.style.boxShadow = 'none';
+            }
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('leader-toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        function setAsLeader() {
+            const btn = document.getElementById('leader-action-btn');
+            btn.disabled = true;
+            btn.textContent = 'TRANSMITTING...';
+
+            fetch('/ultimate/mypage/set_leader', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `card_id=${cardId}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message || 'Leader representative successfully secured!');
+                    
+                    // Update button view state
+                    btn.disabled = true;
+                    btn.textContent = 'ACTIVE REPRESENTATIVE';
+                    btn.style.background = '#1e293b';
+                    btn.style.boxShadow = 'none';
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'SET AS ACTIVE LEADER';
+                    alert(data.message || 'Transmission failed.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.textContent = 'SET AS ACTIVE LEADER';
+                console.error(err);
+                alert('Connection failure to secure terminal node.');
+            });
+        }
+    </script>
+</body>
+</html>
