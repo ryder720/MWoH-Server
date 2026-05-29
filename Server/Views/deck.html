@@ -93,6 +93,12 @@
             </div>
             <div class="hud-lbl" id="error-msg" style="color: var(--accent-red); font-size: 10px; display: none;">WARNING: Power requirement exceeds available clearance capacity!</div>
             
+            <!-- Secondary In-flow Mode Switcher -->
+            <div style="display: flex; gap: 8px; margin-top: 15px; margin-bottom: 5px;">
+                <button class="tab-btn active" id="mode-attack-btn" onclick="setMode('attack')" style="flex: 1; padding: 10px; border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; background: rgba(0, 240, 255, 0.15); border: 1px solid rgba(0, 240, 255, 0.3); color: #ffffff;">ATTACK SQUAD</button>
+                <button class="tab-btn" id="mode-defense-btn" onclick="setMode('defense')" style="flex: 1; padding: 10px; border-radius: 6px; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05); color: var(--text-muted);">DEFENSE SQUAD</button>
+            </div>
+            
             <!-- In-flow scrollable save control -->
             <button class="submit-btn" id="hud-save-btn" onclick="saveLineup()" style="margin-top: 15px; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.4); color: #ffffff; padding: 10px; font-size: 11px; box-shadow: 0 4px 10px rgba(0, 240, 255, 0.15);">💾 SAVE SQUAD CONFIG</button>
         </div>
@@ -121,8 +127,28 @@
 
         function setMode(mode) {
             currentMode = mode;
-            document.getElementById('tab-attack').classList.toggle('active', mode === 'attack');
-            document.getElementById('tab-defense').classList.toggle('active', mode === 'defense');
+            
+            // Sync top header tabs (if visible)
+            const topAtk = document.getElementById('tab-attack');
+            const topDef = document.getElementById('tab-defense');
+            if (topAtk) topAtk.classList.toggle('active', mode === 'attack');
+            if (topDef) topDef.classList.toggle('active', mode === 'defense');
+            
+            // Sync in-flow HUD buttons
+            const hudAtk = document.getElementById('mode-attack-btn');
+            const hudDef = document.getElementById('mode-defense-btn');
+            if (hudAtk) {
+                hudAtk.classList.toggle('active', mode === 'attack');
+                hudAtk.style.background = mode === 'attack' ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.02)';
+                hudAtk.style.borderColor = mode === 'attack' ? 'rgba(0, 240, 255, 0.3)' : 'rgba(255, 255, 255, 0.05)';
+                hudAtk.style.color = mode === 'attack' ? '#ffffff' : 'var(--text-muted)';
+            }
+            if (hudDef) {
+                hudDef.classList.toggle('active', mode === 'defense');
+                hudDef.style.background = mode === 'defense' ? 'rgba(0, 240, 255, 0.15)' : 'rgba(255, 255, 255, 0.02)';
+                hudDef.style.borderColor = mode === 'defense' ? 'rgba(0, 240, 255, 0.3)' : 'rgba(255, 255, 255, 0.05)';
+                hudDef.style.color = mode === 'defense' ? '#ffffff' : 'var(--text-muted)';
+            }
             
             const cap = (mode === 'attack') ? atkCapacity : defCapacity;
             document.getElementById('power-counter').textContent = '0 / ' + cap;
