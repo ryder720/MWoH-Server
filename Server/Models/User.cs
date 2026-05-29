@@ -189,6 +189,7 @@ namespace MwohServer.Models
         public bool IsLeader { get; set; } = false;
         public bool IsInAttackDeck { get; set; } = false;
         public bool IsInDefenseDeck { get; set; } = false;
+        public bool IsInTrade { get; set; } = false;
         
         // Navigation properties
         public PlayerProfile? PlayerProfile { get; set; }
@@ -311,6 +312,9 @@ namespace MwohServer.Models
         public static string CommunityUrl { get; set; } = "https://github.com/ryder720/MWoH-Server";
         public static int ResourceDropRatePercentage { get; set; } = 100;
         public static bool EnableFriendRemoval24HourPenalty { get; set; } = true;
+        public static int TradeCooldownDays { get; set; } = 14;
+        public static int TradeMinLevel { get; set; } = 10;
+        public static int TradeMaxCards { get; set; } = 3;
 
         public static void Load()
         {
@@ -383,6 +387,18 @@ namespace MwohServer.Models
                             {
                                 EnableFriendRemoval24HourPenalty = fPenaltyProp.GetBoolean();
                             }
+                            if (gameplayNode.TryGetProperty("TradeCooldownDays", out var tCooldownProp))
+                            {
+                                TradeCooldownDays = tCooldownProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("TradeMinLevel", out var tMinLvlProp))
+                            {
+                                TradeMinLevel = tMinLvlProp.GetInt32();
+                            }
+                            if (gameplayNode.TryGetProperty("TradeMaxCards", out var tMaxCardsProp))
+                            {
+                                TradeMaxCards = tMaxCardsProp.GetInt32();
+                            }
                         }
                     }
                 }
@@ -421,7 +437,10 @@ namespace MwohServer.Models
     },
     ""CommunityUrl"": ""https://github.com/ryder720/MWoH-Server"",
     ""ResourceDropRatePercentage"": 100,
-    ""EnableFriendRemoval24HourPenalty"": true
+    ""EnableFriendRemoval24HourPenalty"": true,
+    ""TradeCooldownDays"": 14,
+    ""TradeMinLevel"": 10,
+    ""TradeMaxCards"": 3
   }
 }";
                 try
@@ -475,6 +494,37 @@ namespace MwohServer.Models
 
         public Alliance? Alliance { get; set; }
         public PlayerProfile? PlayerProfile { get; set; }
+    }
+
+    public class Trade
+    {
+        [Key]
+        public int Id { get; set; }
+        
+        public int SenderProfileId { get; set; }
+        public int ReceiverProfileId { get; set; }
+        
+        // Status: "Pending", "Completed", "Declined", "Canceled"
+        public string Status { get; set; } = "Pending";
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
+        
+        // Financial assets
+        public long OfferedSilver { get; set; }
+        public long RequestedSilver { get; set; }
+        
+        // Cards (PlayerCard IDs serialized to JSON arrays)
+        public string OfferedCardIdsJson { get; set; } = "[]";
+        public string RequestedCardIdsJson { get; set; } = "[]";
+        
+        // Items (JSON array representing list of ItemTemplateId + Quantity)
+        public string OfferedItemsJson { get; set; } = "[]";
+        public string RequestedItemsJson { get; set; } = "[]";
+
+        // Navigation
+        public PlayerProfile? SenderProfile { get; set; }
+        public PlayerProfile? ReceiverProfile { get; set; }
     }
 }
 

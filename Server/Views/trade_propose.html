@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Trade Requisition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .trade-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            width: 100%;
+            max-width: 900px;
+            margin: 15px auto;
+            box-sizing: border-box;
+        }
+
+        @media (max-width: 768px) {
+            .trade-grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .exchange-column {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+        }
+
+        .column-header {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Asset selectors */
+        .section-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 8px 12px;
+            gap: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group:focus-within {
+            border-color: var(--accent-gold);
+        }
+
+        .input-group span {
+            font-size: 14px;
+        }
+
+        .input-group input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            width: 100%;
+            outline: none;
+        }
+
+        /* Card grids */
+        .card-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .card-selection-item {
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            background: #030712;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+            position: relative;
+            user-select: none;
+        }
+
+        .card-selection-item:hover {
+            border-color: rgba(245, 158, 11, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .card-selection-item.selected {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .card-selection-item img {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .card-selection-item .card-placeholder {
+            width: 100%;
+            aspect-ratio: 3/4;
+            background: #111827;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            color: rgba(255,255,255,0.1);
+            border-radius: 4px;
+        }
+
+        .card-selection-item .card-title {
+            font-size: 7px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            height: 18px;
+            line-height: 9px;
+        }
+
+        .card-selection-item .card-level {
+            font-family: 'Space Mono', monospace;
+            font-size: 6px;
+            color: var(--hud-blue);
+        }
+
+        .card-selection-item.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 2px; right: 2px;
+            background: var(--accent-gold);
+            color: #030712;
+            font-weight: bold;
+            font-size: 8px;
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Items selector */
+        .items-selector-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 180px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 8px;
+        }
+
+        .item-selection-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 6px;
+            padding: 6px 10px;
+        }
+
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .item-icon-box {
+            width: 28px; height: 28px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 16px;
+        }
+
+        .item-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-name {
+            font-size: 10px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .item-stock {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: var(--text-muted);
+        }
+
+        .item-counter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .counter-btn {
+            width: 22px; height: 22px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #ffffff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            display: flex; justify-content: center; align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .counter-btn:hover {
+            border-color: var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .item-qty-input {
+            width: 24px;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            outline: none;
+        }
+
+        /* Console Footer */
+        .trade-console-footer {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px 20px;
+            box-sizing: border-box;
+            backdrop-filter: blur(20px);
+            margin: 15px auto 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .console-summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            color: var(--text-muted);
+            border-bottom: 1px dashed rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+        }
+
+        .console-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .transmit-trade-btn {
+            flex: 1;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 800;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.4) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.6);
+            color: var(--accent-gold);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+
+        .transmit-trade-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(245, 158, 11, 0.65) 100%);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .transmit-trade-btn:disabled {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .trade-cancel-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            padding: 15px 25px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .trade-cancel-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate/mypage/agent/{{receiverId}}" class="back-btn">&lt; DOSSIER</a>
+        <h1>SECURE MATERIAL EXCHANGES</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 900px; margin: 0 auto 10px auto; box-sizing: border-box;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURE EXCHANGE PARTNERS</span>
+                <span class="hud-val" style="font-size:12px; color:#ffffff;">{{agentName}} ⚖️ {{(receiverName)}} [LVL {{receiverLevel}}]</span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURE ATTRIBUTE COOLDOWN</span>
+                <span class="hud-val" style="font-size:12px; color:var(--accent-gold);">🟢 ONLINE // DELAY EXEMPT</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="trade-grid-container">
+        <!-- LEFT COLUMN: YOUR CONSIGNMENT (OFFER) -->
+        <div class="exchange-column">
+            <div class="column-header">
+                <span>Consignment Offer</span>
+                <span style="color: var(--text-muted);">Sender</span>
+            </div>
+
+            <!-- Silver Credits -->
+            <div>
+                <label class="section-label">SILVER CREDITS OFFERED</label>
+                <div class="input-group">
+                    <span>🪙</span>
+                    <input type="number" id="offered-silver" min="0" placeholder="0" oninput="updateSummary()">
+                </div>
+                <span style="font-family:'Space Mono',monospace; font-size:7px; color:var(--text-muted); margin-top:3px; display:block;">AVAILABLE CAPITAL BALANCE: {{senderSilver}} SILVER</span>
+            </div>
+
+            <!-- Card Selector -->
+            <div>
+                <label class="section-label" id="offered-cards-label">HERO CARDS CONSIGNED (0 / {{tradeMaxCards}})</label>
+                <div class="card-selector-grid" id="sender-cards-grid">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Items list -->
+            <div>
+                <label class="section-label">ISO-8 / MATERIAL ASSETS CONSIGNED</label>
+                <div class="items-selector-list" id="sender-items-list">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: REQUISITION TARGETS (REQUEST) -->
+        <div class="exchange-column">
+            <div class="column-header">
+                <span>Requisition Targets</span>
+                <span style="color: var(--text-muted);">Receiver</span>
+            </div>
+
+            <!-- Silver Credits Requisition -->
+            <div>
+                <label class="section-label">SILVER CREDITS REQUISITIONED</label>
+                <div class="input-group">
+                    <span>🪙</span>
+                    <input type="number" id="requested-silver" min="0" placeholder="0" oninput="updateSummary()">
+                </div>
+                <span style="font-family:'Space Mono',monospace; font-size:7px; color:var(--text-muted); margin-top:3px; display:block;">CREDITED TO YOUR DEPOSIT INVOICES</span>
+            </div>
+
+            <!-- Card Selector (Receiver) -->
+            <div>
+                <label class="section-label" id="requested-cards-label">HERO CARDS REQUISITIONED (0 / {{tradeMaxCards}})</label>
+                <div class="card-selector-grid" id="receiver-cards-grid">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+
+            <!-- Requested Items -->
+            <div>
+                <label class="section-label">ISO-8 / MATERIAL ASSETS REQUISITIONED</label>
+                <div class="items-selector-list" id="receiver-items-list">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secure Console Footer -->
+    <div class="trade-console-footer">
+        <div class="console-summary-row">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span>// MATERIAL OUTFLOW CONSIGNMENT SUMMARY</span>
+                <span id="sender-summary-desc" style="color:#ffffff; font-size:10px; font-weight:bold;">0 Hero Cards // 🪙 0 Silver // 0 Items</span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span>// MATERIAL INFLOW REQUISITION SUMMARY</span>
+                <span id="receiver-summary-desc" style="color:var(--accent-gold); font-size:10px; font-weight:bold;">0 Hero Cards // 🪙 0 Silver // 0 Items</span>
+            </div>
+        </div>
+
+        <div class="console-actions">
+            <a href="/ultimate/mypage/agent/{{receiverId}}" class="trade-cancel-btn">Abort Link</a>
+            <button id="transmit-proposal-btn" class="transmit-trade-btn" onclick="submitProposal()">
+                ⚖️ Transmit Material Proposal
+            </button>
+        </div>
+    </div>
+
+    <div class="toast" id="trade-toast">TRANSMITTING UPLINK DATA</div>
+
+    <script>
+        // Seed parameters
+        const receiverId = parseInt("{{receiverId}}");
+        const maxCardsLimit = parseInt("{{tradeMaxCards}}");
+        const senderCards = JSON.parse('{{senderCardsJson}}');
+        const receiverCards = JSON.parse('{{receiverCardsJson}}');
+        const senderItems = JSON.parse('{{senderItemsJson}}');
+        const allItems = JSON.parse('{{allItemsJson}}');
+        const senderMaxSilver = parseInt("{{senderSilver}}");
+
+        // UI State tracker
+        const selectedSenderCards = new Set();
+        const selectedReceiverCards = new Set();
+        const offeredItemQuantities = {}; // itemTemplateId -> quantity
+        const requestedItemQuantities = {}; // itemTemplateId -> quantity
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('trade-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        // Render grids
+        function renderGrids() {
+            // Sender Cards Grid
+            const senderGrid = document.getElementById('sender-cards-grid');
+            if (senderCards.length > 0) {
+                senderGrid.innerHTML = senderCards.map(c => `
+                    <div class="card-selection-item" id="sender-card-${c.id}" onclick="toggleCard(${c.id}, 'sender')">
+                        ${c.image ? `<img src="/images/cards/${c.image}.jpg" onerror="this.outerHTML='<div class=\\'card-placeholder\\'>👤</div>';">` : `<div class="card-placeholder">👤</div>`}
+                        <div class="card-title">${c.title}</div>
+                        <div class="card-level">LV. ${c.level}</div>
+                    </div>
+                `).join('');
+            } else {
+                senderGrid.innerHTML = `<div style="grid-column: span 10; color: var(--text-muted); font-size: 10px; text-align:center; padding: 20px 0;">No active eligible Hero cards in stock archives.</div>`;
+            }
+
+            // Receiver Cards Grid
+            const receiverGrid = document.getElementById('receiver-cards-grid');
+            if (receiverCards.length > 0) {
+                receiverGrid.innerHTML = receiverCards.map(c => `
+                    <div class="card-selection-item" id="receiver-card-${c.id}" onclick="toggleCard(${c.id}, 'receiver')">
+                        ${c.image ? `<img src="/images/cards/${c.image}.jpg" onerror="this.outerHTML='<div class=\\'card-placeholder\\'>👤</div>';">` : `<div class="card-placeholder">👤</div>`}
+                        <div class="card-title">${c.title}</div>
+                        <div class="card-level">LV. ${c.level}</div>
+                    </div>
+                `).join('');
+            } else {
+                receiverGrid.innerHTML = `<div style="grid-column: span 10; color: var(--text-muted); font-size: 10px; text-align:center; padding: 20px 0;">No active deployable Hero cards found in target archives.</div>`;
+            }
+
+            // Sender items rows
+            const senderItemsList = document.getElementById('sender-items-list');
+            if (senderItems.length > 0) {
+                senderItemsList.innerHTML = senderItems.map(i => `
+                    <div class="item-selection-row">
+                        <div class="item-info">
+                            <div class="item-icon-box">📦</div>
+                            <div class="item-details">
+                                <span class="item-name">${i.name}</span>
+                                <span class="item-stock">Stock: ${i.quantity}</span>
+                            </div>
+                        </div>
+                        <div class="item-counter">
+                            <button class="counter-btn" onclick="adjustItem(${i.id}, -1, ${i.quantity}, 'sender')">-</button>
+                            <input type="text" class="item-qty-input" id="sender-item-qty-${i.id}" value="0" readonly>
+                            <button class="counter-btn" onclick="adjustItem(${i.id}, 1, ${i.quantity}, 'sender')">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                senderItemsList.innerHTML = `<div style="color: var(--text-muted); font-size: 10px; text-align:center; padding: 15px 0;">No material stock ready for transport.</div>`;
+            }
+
+            // Receiver item request list (all catalog items)
+            const receiverItemsList = document.getElementById('receiver-items-list');
+            if (allItems.length > 0) {
+                receiverItemsList.innerHTML = allItems.map(i => `
+                    <div class="item-selection-row">
+                        <div class="item-info">
+                            <div class="item-icon-box">📦</div>
+                            <div class="item-details">
+                                <span class="item-name">${i.name}</span>
+                                <span class="item-stock">Requisition Quantity</span>
+                            </div>
+                        </div>
+                        <div class="item-counter">
+                            <button class="counter-btn" onclick="adjustItem(${i.id}, -1, 999, 'receiver')">-</button>
+                            <input type="text" class="item-qty-input" id="receiver-item-qty-${i.id}" value="0" readonly>
+                            <button class="counter-btn" onclick="adjustItem(${i.id}, 1, 999, 'receiver')">+</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                receiverItemsList.innerHTML = `<div style="color: var(--text-muted); font-size: 10px; text-align:center; padding: 15px 0;">No asset templates catalogued.</div>`;
+            }
+        }
+
+        // Toggle card select
+        function toggleCard(cardId, side) {
+            if (side === 'sender') {
+                if (selectedSenderCards.has(cardId)) {
+                    selectedSenderCards.delete(cardId);
+                    document.getElementById(`sender-card-${cardId}`).classList.remove('selected');
+                } else {
+                    if (selectedSenderCards.size >= maxCardsLimit) {
+                        showToast(`⚠️ WARNING // Consignment limit reached. You can only offer up to ${maxCardsLimit} cards.`, true);
+                        return;
+                    }
+                    selectedSenderCards.add(cardId);
+                    document.getElementById(`sender-card-${cardId}`).classList.add('selected');
+                }
+                document.getElementById('offered-cards-label').textContent = `HERO CARDS CONSIGNED (${selectedSenderCards.size} / ${maxCardsLimit})`;
+            } else {
+                if (selectedReceiverCards.has(cardId)) {
+                    selectedReceiverCards.delete(cardId);
+                    document.getElementById(`receiver-card-${cardId}`).classList.remove('selected');
+                } else {
+                    if (selectedReceiverCards.size >= maxCardsLimit) {
+                        showToast(`⚠️ WARNING // Requisition limit reached. You can only request up to ${maxCardsLimit} cards.`, true);
+                        return;
+                    }
+                    selectedReceiverCards.add(cardId);
+                    document.getElementById(`receiver-card-${cardId}`).classList.add('selected');
+                }
+                document.getElementById('requested-cards-label').textContent = `HERO CARDS REQUISITIONED (${selectedReceiverCards.size} / ${maxCardsLimit})`;
+            }
+            updateSummary();
+        }
+
+        // Adjust item offer
+        function adjustItem(itemId, delta, stockLimit, side) {
+            const qtyMap = side === 'sender' ? offeredItemQuantities : requestedItemQuantities;
+            const inputId = side === 'sender' ? `sender-item-qty-${itemId}` : `receiver-item-qty-${itemId}`;
+            const currentQty = qtyMap[itemId] || 0;
+            const nextQty = Math.max(0, Math.min(stockLimit, currentQty + delta));
+
+            qtyMap[itemId] = nextQty;
+            document.getElementById(inputId).value = nextQty;
+            updateSummary();
+        }
+
+        // Update Summary Footer
+        function updateSummary() {
+            // Outflow Offer
+            const offeredSilver = parseInt(document.getElementById('offered-silver').value) || 0;
+            let offeredItemsCount = 0;
+            for (let id in offeredItemQuantities) {
+                offeredItemsCount += offeredItemQuantities[id];
+            }
+
+            const senderSummary = `${selectedSenderCards.size} Cards // 🪙 ${offeredSilver.toLocaleString()} Silver // ${offeredItemsCount} Items`;
+            document.getElementById('sender-summary-desc').innerHTML = senderSummary;
+
+            // Inflow Request
+            const requestedSilver = parseInt(document.getElementById('requested-silver').value) || 0;
+            let requestedItemsCount = 0;
+            for (let id in requestedItemQuantities) {
+                requestedItemsCount += requestedItemQuantities[id];
+            }
+
+            const receiverSummary = `${selectedReceiverCards.size} Cards // 🪙 ${requestedSilver.toLocaleString()} Silver // ${requestedItemsCount} Items`;
+            document.getElementById('receiver-summary-desc').innerHTML = receiverSummary;
+        }
+
+        // Submit proposal
+        function submitProposal() {
+            const offeredSilver = parseInt(document.getElementById('offered-silver').value) || 0;
+            const requestedSilver = parseInt(document.getElementById('requested-silver').value) || 0;
+
+            if (offeredSilver > senderMaxSilver) {
+                showToast("⚠️ ACCESS LOCKED // Offered credits exceed your current available balance.", true);
+                return;
+            }
+
+            const offeredCardIds = Array.from(selectedSenderCards);
+            const requestedCardIds = Array.from(selectedReceiverCards);
+
+            const offeredItems = [];
+            for (let id in offeredItemQuantities) {
+                if (offeredItemQuantities[id] > 0) {
+                    offeredItems.push({
+                        ItemTemplateId: parseInt(id),
+                        Quantity: offeredItemQuantities[id]
+                    });
+                }
+            }
+
+            const requestedItems = [];
+            for (let id in requestedItemQuantities) {
+                if (requestedItemQuantities[id] > 0) {
+                    requestedItems.push({
+                        ItemTemplateId: parseInt(id),
+                        Quantity: requestedItemQuantities[id]
+                    });
+                }
+            }
+
+            // At least one asset must be offered or requested
+            if (offeredSilver === 0 && requestedSilver === 0 && offeredCardIds.length === 0 && requestedCardIds.length === 0 && offeredItems.length === 0 && requestedItems.length === 0) {
+                showToast("⚠️ CONSOLE ABORTED // Trade proposal is empty. You must offer or request at least one asset.", true);
+                return;
+            }
+
+            const transmitBtn = document.getElementById('transmit-proposal-btn');
+            transmitBtn.disabled = true;
+            const origText = transmitBtn.textContent;
+            transmitBtn.textContent = "SYNCHRONIZING MAINFRAME...";
+
+            const requestBody = {
+                OfferedSilver: offeredSilver,
+                RequestedSilver: requestedSilver,
+                OfferedCardIds: offeredCardIds,
+                RequestedCardIds: requestedCardIds,
+                OfferedItems: offeredItems,
+                RequestedItems: requestedItems
+            };
+
+            fetch(`/ultimate/trade/propose/${receiverId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => {
+                        window.location.href = '/ultimate/trade_response/trade_list_advance';
+                    }, 2000);
+                } else {
+                    transmitBtn.disabled = false;
+                    transmitBtn.textContent = origText;
+                    showToast(data.message || "Exchange proposal rejected.", true);
+                }
+            })
+            .catch(err => {
+                transmitBtn.disabled = false;
+                transmitBtn.textContent = origText;
+                console.error(err);
+                showToast("UPLINK INTERRUPTED. RETRY CO-OP LINK.", true);
+            });
+        }
+
+        // Init
+        renderGrids();
+        updateSummary();
+    </script>
+</body>
+</html>

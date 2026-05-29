@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Agency Trading Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .trade-hub-panel {
+            width: 100%;
+            max-width: 600px;
+            margin: 15px auto;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Tactical Tabs */
+        .tactical-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .tab-trigger {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: 700;
+            padding: 10px 4px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-trigger:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-trigger.active {
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: var(--accent-gold);
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+        }
+
+        /* Trade Proposal Cards */
+        .trade-panel-section {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        .trade-panel-section.active {
+            display: flex;
+        }
+
+        .trade-proposal-card {
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 18px;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .trade-proposal-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .trade-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 8px;
+        }
+
+        .trade-partner {
+            font-size: 13px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+        }
+
+        .trade-partner-lvl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: var(--hud-blue);
+            margin-left: 5px;
+        }
+
+        .trade-time {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: var(--text-muted);
+        }
+
+        /* Asset boxes */
+        .trade-assets-box {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .trade-assets-box.offer {
+            border-left: 2px solid var(--hud-green);
+        }
+
+        .trade-assets-box.request {
+            border-left: 2px solid var(--accent-red);
+        }
+
+        .trade-assets-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Interactive Buttons */
+        .trade-action-btn {
+            flex: 1;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .trade-action-btn.accept {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #10b981;
+        }
+
+        .trade-action-btn.accept:hover:not(:disabled) {
+            background: rgba(16, 185, 129, 0.25);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .trade-action-btn.decline {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--accent-red);
+        }
+
+        .trade-action-btn.decline:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--accent-red);
+            transform: translateY(-1px);
+        }
+
+        .trade-action-btn.cancel {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+        }
+
+        .trade-action-btn.cancel:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+            transform: translateY(-1px);
+        }
+
+        .trade-action-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/ultimate" class="back-btn">&lt; HUB</a>
+        <h1>AGENCY TRADING CENTER</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <!-- HUD Status -->
+    <div class="status-hud" style="width: 100%; max-width: 600px; margin: 0 auto 10px auto;">
+        <div class="status-row" style="margin-bottom: 0;">
+            <div style="display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">SECURE INTERFACE IDENT</span>
+                <span class="hud-val" style="font-size:14px; color:#ffffff;">{{agentName}}</span>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; gap:2px;">
+                <span class="hud-lbl">MIN CLEARANCE LEVEL</span>
+                <span class="hud-val" style="font-size:14px; color:var(--hud-blue);">🟢 CL-{{tradeMinLevel}} AUTHORIZED</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="trade-hub-panel">
+        <!-- Tactical Navigation tabs -->
+        <div class="tactical-tabs">
+            <button class="tab-trigger active" id="tab-incoming" onclick="switchSection('incoming')">
+                📥 Incoming
+            </button>
+            <button class="tab-trigger" id="tab-outgoing" onclick="switchSection('outgoing')">
+                📤 Outgoing
+            </button>
+            <button class="tab-trigger" id="tab-history" onclick="switchSection('history')">
+                📊 History Logs
+            </button>
+        </div>
+
+        <!-- INCOMING PROPOSALS SECTION -->
+        <div class="trade-panel-section active" id="section-incoming">
+            {{incomingProposalsHtml}}
+        </div>
+
+        <!-- OUTGOING CONSIGNMENTS SECTION -->
+        <div class="trade-panel-section" id="section-outgoing">
+            {{outgoingProposalsHtml}}
+        </div>
+
+        <!-- HISTORICAL TRANSCRIPT ARCHIVES -->
+        <div class="trade-panel-section" id="section-history">
+            {{tradeHistoryHtml}}
+        </div>
+    </div>
+
+    <div class="toast" id="trade-toast">PROCESSING TRANSACTION...</div>
+
+    <script>
+        function switchSection(section) {
+            // Manage triggers
+            document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`tab-${section}`).classList.add('active');
+
+            // Manage panels
+            document.querySelectorAll('.trade-panel-section').forEach(sec => sec.classList.remove('active'));
+            document.getElementById(`section-${section}`).classList.add('active');
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('trade-toast');
+            toast.textContent = message;
+            toast.style.background = isError ? 'rgba(239, 68, 68, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+            toast.style.borderColor = isError ? '#ef4444' : '#34d399';
+            toast.style.boxShadow = isError ? '0 10px 25px rgba(239,68,68,0.3)' : '0 10px 25px rgba(16,185,129,0.3)';
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3500);
+        }
+
+        function respondTrade(tradeId, action, buttonEl) {
+            // Disable all buttons in this card to prevent double submissions
+            const cardEl = document.getElementById(`trade-row-${tradeId}`);
+            const buttons = cardEl.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            const origText = buttonEl.textContent;
+            buttonEl.textContent = "...";
+
+            fetch(`/ultimate/trade/${action}/${tradeId}`, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => {
+                        // Reload center UI to refresh state
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    buttons.forEach(btn => btn.disabled = false);
+                    buttonEl.textContent = origText;
+                    showToast(data.message || "Failed to finalize authorization.", true);
+                }
+            })
+            .catch(err => {
+                buttons.forEach(btn => btn.disabled = false);
+                buttonEl.textContent = origText;
+                console.error(err);
+                showToast("SCANNER UPLINK COLLAPSED. RETRY TRANSMISSION.", true);
+            });
+        }
+    </script>
+</body>
+</html>

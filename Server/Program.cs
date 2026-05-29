@@ -44,6 +44,7 @@ builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
 builder.Services.AddSingleton<ISpecialComboEngine, SpecialComboEngine>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
 builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
+builder.Services.AddScoped<ITradeEngine, TradeEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -341,6 +342,46 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (FusionBonusAtk/Def): {ex.Message}");
     }
 
+    // 4b. Migrate PlayerCards - Add IsInTrade column if missing
+    try
+    {
+        var hasIsInTrade = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(PlayerCards);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    if (reader["name"].ToString() == "IsInTrade")
+                    {
+                        hasIsInTrade = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!hasIsInTrade)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE PlayerCards ADD COLUMN IsInTrade INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added IsInTrade column to PlayerCards.");
+        }
+        else
+        {
+            logger.LogInformation("Database migration check finished (IsInTrade): Already exists.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (IsInTrade): {ex.Message}");
+    }
+
     // 5. Migrate Profiles - Add Battle Recovery and Current Power fields if missing
     try
     {
@@ -521,6 +562,34 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (Alliance schema): {ex.Message}");
     }
 
+    // 9. Create Trades table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS Trades (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                SenderProfileId INTEGER NOT NULL,
+                ReceiverProfileId INTEGER NOT NULL,
+                Status TEXT NOT NULL DEFAULT 'Pending',
+                CreatedAt TEXT NOT NULL,
+                CompletedAt TEXT NULL,
+                OfferedSilver INTEGER NOT NULL DEFAULT 0,
+                RequestedSilver INTEGER NOT NULL DEFAULT 0,
+                OfferedCardIdsJson TEXT NOT NULL DEFAULT '[]',
+                RequestedCardIdsJson TEXT NOT NULL DEFAULT '[]',
+                OfferedItemsJson TEXT NOT NULL DEFAULT '[]',
+                RequestedItemsJson TEXT NOT NULL DEFAULT '[]',
+                FOREIGN KEY (SenderProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE,
+                FOREIGN KEY (ReceiverProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured Trades table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Trades table): {ex.Message}");
+    }
+
 
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
@@ -602,6 +671,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  runbattletests                                 - Execute S.H.I.E.L.D. Battle Engine unit tests");
             Console.WriteLine("  runalliancetests                               - Execute S.H.I.E.L.D. Alliance System unit tests");
             Console.WriteLine("  runcombotests                                  - Execute S.H.I.E.L.D. Special Combos unit tests");
+            Console.WriteLine("  runtradetests                                  - Execute S.H.I.E.L.D. Material Requisition unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
@@ -679,6 +749,23 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Special Combos Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runtradetests")
+        {
+            var tradeEngine = new TradeEngine(db);
+            var success = MwohServer.Tests.TradeEngineTests.Run(tradeEngine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Material Requisition Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Material Requisition Test Suite failed!");
                 Console.ResetColor();
             }
             return;

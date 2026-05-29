@@ -32,6 +32,7 @@ namespace MwohServer.Controllers
         private readonly ILeaderManager _leaderManager;
         private readonly IBattleEngine _battleEngine;
         private readonly IAllianceEngine _allianceEngine;
+        private readonly ITradeEngine _tradeEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -45,7 +46,8 @@ namespace MwohServer.Controllers
             IDeckManager deckManager,
             ILeaderManager leaderManager,
             IBattleEngine battleEngine,
-            IAllianceEngine allianceEngine)
+            IAllianceEngine allianceEngine,
+            ITradeEngine tradeEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -59,6 +61,7 @@ namespace MwohServer.Controllers
             _leaderManager = leaderManager;
             _battleEngine = battleEngine;
             _allianceEngine = allianceEngine;
+            _tradeEngine = tradeEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -1099,7 +1102,6 @@ namespace MwohServer.Controllers
         }
 
         [HttpGet("shop")]
-        [HttpGet("trade_response/trade_list_advance")]
         [HttpGet("wish")]
         [HttpGet("archive")]
         [HttpGet("advise/index/top")]
@@ -2960,6 +2962,394 @@ namespace MwohServer.Controllers
             }
 
             return Ok(new { success = false, message = "⚠️ DISBAND BLOCKED // Only the Alliance Leader can decommission this division." });
+        }
+
+        [HttpGet("trade_response/trade_list_advance")]
+        public IActionResult ServeTradeCenter()
+        {
+            _logger.LogInformation("[Cygames] ServeTradeCenter called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            if (profile.Level < GameplaySettings.TradeMinLevel)
+            {
+                return Content($"<html><body style='background:#030712; color:#ef4444; font-family:sans-serif; text-align:center; padding-top:50px;'><h2>⚠️ SECURITY OVERRIDE ACTIVE</h2><p>Agent Clearance Level insufficient. Access to the Material Exchange Mainframe requires Clearance Level {GameplaySettings.TradeMinLevel}.</p><a href='/ultimate' style='color:#00f0ff;'>Return to Mainframe</a></body></html>", "text/html");
+            }
+
+            // Load incoming trades
+            var incomingTrades = _dbContext.Trades
+                .Include(t => t.SenderProfile)
+                .Where(t => t.ReceiverProfileId == profile.Id && t.Status == "Pending")
+                .ToList();
+
+            // Load outgoing trades
+            var outgoingTrades = _dbContext.Trades
+                .Include(t => t.ReceiverProfile)
+                .Where(t => t.SenderProfileId == profile.Id && t.Status == "Pending")
+                .ToList();
+
+            // Load historical trades (last 20)
+            var tradeHistory = _dbContext.Trades
+                .Include(t => t.SenderProfile)
+                .Include(t => t.ReceiverProfile)
+                .Where(t => (t.SenderProfileId == profile.Id || t.ReceiverProfileId == profile.Id) && t.Status != "Pending")
+                .OrderByDescending(t => t.CompletedAt ?? t.CreatedAt)
+                .Take(20)
+                .ToList();
+
+            // Helper lists to build HTML
+            var incomingHtml = "";
+            var outgoingHtml = "";
+            var historyHtml = "";
+
+            // Helper to get card template details
+            var templates = _dbContext.CardTemplates.ToDictionary(t => t.Id, t => t);
+            var itemTemplates = _dbContext.ItemTemplates.ToDictionary(t => t.Id, t => t);
+
+            string FormatTradeDetails(Trade t, bool incoming)
+            {
+                var offeredCardIds = JsonSerializer.Deserialize<List<int>>(t.OfferedCardIdsJson) ?? new List<int>();
+                var requestedCardIds = JsonSerializer.Deserialize<List<int>>(t.RequestedCardIdsJson) ?? new List<int>();
+                var offeredItems = JsonSerializer.Deserialize<List<TradeItemOffer>>(t.OfferedItemsJson) ?? new List<TradeItemOffer>();
+                var requestedItems = JsonSerializer.Deserialize<List<TradeItemOffer>>(t.RequestedItemsJson) ?? new List<TradeItemOffer>();
+
+                var offerTextList = new List<string>();
+                var reqTextList = new List<string>();
+
+                if (t.OfferedSilver > 0) offerTextList.Add($"🪙 {t.OfferedSilver:N0} Silver");
+                if (t.RequestedSilver > 0) reqTextList.Add($"🪙 {t.RequestedSilver:N0} Silver");
+
+                foreach (var cid in offeredCardIds)
+                {
+                    var card = _dbContext.PlayerCards.Include(pc => pc.CardTemplate).FirstOrDefault(pc => pc.Id == cid);
+                    if (card != null && card.CardTemplate != null)
+                        offerTextList.Add($"🃏 {card.CardTemplate.Title} (Lv. {card.CurrentLevel})");
+                }
+
+                foreach (var cid in requestedCardIds)
+                {
+                    var card = _dbContext.PlayerCards.Include(pc => pc.CardTemplate).FirstOrDefault(pc => pc.Id == cid);
+                    if (card != null && card.CardTemplate != null)
+                        reqTextList.Add($"🃏 {card.CardTemplate.Title} (Lv. {card.CurrentLevel})");
+                }
+
+                foreach (var item in offeredItems)
+                {
+                    if (item.Quantity <= 0) continue;
+                    if (itemTemplates.TryGetValue(item.ItemTemplateId, out var template))
+                        offerTextList.Add($"🎒 {template.Name} x{item.Quantity}");
+                }
+
+                foreach (var item in requestedItems)
+                {
+                    if (item.Quantity <= 0) continue;
+                    if (itemTemplates.TryGetValue(item.ItemTemplateId, out var template))
+                        reqTextList.Add($"🎒 {template.Name} x{item.Quantity}");
+                }
+
+                string offerBox = offerTextList.Any() ? string.Join("<br>", offerTextList) : "<span style='color:var(--text-muted);'>No assets</span>";
+                string reqBox = reqTextList.Any() ? string.Join("<br>", reqTextList) : "<span style='color:var(--text-muted);'>No assets</span>";
+
+                if (incoming)
+                {
+                    return $@"
+                    <div style='display:flex; justify-content:space-between; gap:15px; margin-top:10px;'>
+                        <div class='trade-assets-box offer'>
+                            <div class='trade-assets-title'>THEIR OFFER</div>
+                            <div style='font-size:11px; font-family:""Space Mono"",monospace;'>{offerBox}</div>
+                        </div>
+                        <div class='trade-assets-box request'>
+                            <div class='trade-assets-title'>THEIR REQUEST (FROM YOU)</div>
+                            <div style='font-size:11px; font-family:""Space Mono"",monospace;'>{reqBox}</div>
+                        </div>
+                    </div>";
+                }
+                else
+                {
+                    return $@"
+                    <div style='display:flex; justify-content:space-between; gap:15px; margin-top:10px;'>
+                        <div class='trade-assets-box offer'>
+                            <div class='trade-assets-title'>YOUR OFFER</div>
+                            <div style='font-size:11px; font-family:""Space Mono"",monospace;'>{offerBox}</div>
+                        </div>
+                        <div class='trade-assets-box request'>
+                            <div class='trade-assets-title'>YOUR REQUEST</div>
+                            <div style='font-size:11px; font-family:""Space Mono"",monospace;'>{reqBox}</div>
+                        </div>
+                    </div>";
+                }
+            }
+
+            if (incomingTrades.Any())
+            {
+                foreach (var t in incomingTrades)
+                {
+                    var details = FormatTradeDetails(t, incoming: true);
+                    incomingHtml += $@"
+                    <div class='trade-proposal-card' id='trade-row-{t.Id}'>
+                        <div class='trade-card-header'>
+                            <div>
+                                <span class='trade-partner'>Operative: {t.SenderProfile?.Nickname ?? "Unknown"}</span>
+                                <span class='trade-partner-lvl'>[Lv. {t.SenderProfile?.Level ?? 1}]</span>
+                            </div>
+                            <span class='trade-time'>Proposed: {t.CreatedAt.ToString("yyyy-MM-dd HH:mm")}</span>
+                        </div>
+                        {details}
+                        <div style='display:flex; gap:10px; margin-top:15px;'>
+                            <button class='trade-action-btn accept' onclick='respondTrade({t.Id}, ""accept"", this)'>🟢 AUTHORIZE EXCHANGE</button>
+                            <button class='trade-action-btn decline' onclick='respondTrade({t.Id}, ""decline"", this)'>🔴 REFUSE PROPOSAL</button>
+                        </div>
+                    </div>";
+                }
+            }
+            else
+            {
+                incomingHtml = "<div class='no-records-card'>No pending material exchange proposals in incoming mainframe queues.</div>";
+            }
+
+            if (outgoingTrades.Any())
+            {
+                foreach (var t in outgoingTrades)
+                {
+                    var details = FormatTradeDetails(t, incoming: false);
+                    outgoingHtml += $@"
+                    <div class='trade-proposal-card' id='trade-row-{t.Id}'>
+                        <div class='trade-card-header'>
+                            <div>
+                                <span class='trade-partner'>Operative: {t.ReceiverProfile?.Nickname ?? "Unknown"}</span>
+                                <span class='trade-partner-lvl'>[Lv. {t.ReceiverProfile?.Level ?? 1}]</span>
+                            </div>
+                            <span class='trade-time'>Proposed: {t.CreatedAt.ToString("yyyy-MM-dd HH:mm")}</span>
+                        </div>
+                        {details}
+                        <div style='display:flex; gap:10px; margin-top:15px;'>
+                            <button class='trade-action-btn cancel' onclick='respondTrade({t.Id}, ""cancel"", this)'>🔴 ABORT CONSIGNMENT</button>
+                        </div>
+                    </div>";
+                }
+            }
+            else
+            {
+                outgoingHtml = "<div class='no-records-card'>No outgoing trade proposals registered in tactical logs.</div>";
+            }
+
+            if (tradeHistory.Any())
+            {
+                foreach (var t in tradeHistory)
+                {
+                    bool isSender = t.SenderProfileId == profile.Id;
+                    var otherPartner = isSender ? t.ReceiverProfile?.Nickname : t.SenderProfile?.Nickname;
+                    var direction = isSender ? "➡️ Sent to" : "⬅️ Recv from";
+                    var statusColor = t.Status switch
+                    {
+                        "Completed" => "#10b981",
+                        "Declined" => "#ef4444",
+                        "Canceled" => "#f59e0b",
+                        _ => "#9ca3af"
+                    };
+
+                    var details = FormatTradeDetails(t, incoming: !isSender);
+                    historyHtml += $@"
+                    <div class='trade-proposal-card' style='opacity: 0.8;'>
+                        <div class='trade-card-header'>
+                            <div>
+                                <span class='trade-partner'>{direction} Operative {otherPartner}</span>
+                                <span class='trade-status' style='color:{statusColor}; border-color:{statusColor}; font-size:8px; padding:1px 4px; border:1px solid; border-radius:3px; margin-left:8px; font-weight:bold;'>{t.Status.ToUpper()}</span>
+                            </div>
+                            <span class='trade-time'>Date: {(t.CompletedAt ?? t.CreatedAt).ToString("yyyy-MM-dd HH:mm")}</span>
+                        </div>
+                        {details}
+                    </div>";
+                }
+            }
+            else
+            {
+                historyHtml = "<div class='no-records-card'>No historical exchange operations in archive databanks.</div>";
+            }
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "incomingProposalsHtml", incomingHtml },
+                { "outgoingProposalsHtml", outgoingHtml },
+                { "tradeHistoryHtml", historyHtml },
+                { "agentName", profile.Nickname },
+                { "level", profile.Level.ToString() },
+                { "tradeMinLevel", GameplaySettings.TradeMinLevel.ToString() }
+            };
+
+            return Content(RenderTemplate("trade_center.html", replacements), "text/html");
+        }
+
+        [HttpGet("trade/propose/{receiverId}")]
+        public IActionResult ServeTradeProposalPage(int receiverId)
+        {
+            _logger.LogInformation($"[Cygames] ServeTradeProposalPage called for target receiver: {receiverId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = GetPlayerProfile(profileId, includeInventory: true);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            if (profile.Level < GameplaySettings.TradeMinLevel)
+            {
+                return Content("Clearance Level Insufficient.", "text/plain");
+            }
+
+            var receiver = _dbContext.Profiles
+                .Include(p => p.Cards)
+                    .ThenInclude(c => c.CardTemplate)
+                .FirstOrDefault(p => p.Id == receiverId);
+
+            if (receiver == null) return NotFound("Receiver agent profile not located.");
+
+            var eligibility = _tradeEngine.CheckTradingEligibility(profile.Id, receiver.Id);
+            if (!eligibility.Success)
+            {
+                return Content($"<html><body style='background:#030712; color:#ef4444; font-family:sans-serif; text-align:center; padding-top:50px;'><h2>⚠️ TRADE BLOCKED</h2><p>{eligibility.Message}</p><a href='/ultimate/mypage/agent/{receiverId}' style='color:#00f0ff;'>Return to Dossier</a></body></html>", "text/html");
+            }
+
+            // Build sender's cards select list (only cards not locked in trade, not leader, and not in decks)
+            var senderCards = profile.Cards
+                .Where(c => !c.IsInTrade && !c.IsLeader && !c.IsInAttackDeck && !c.IsInDefenseDeck)
+                .Select(c => new {
+                    id = c.Id,
+                    title = c.CardTemplate?.Title ?? "Unknown Card",
+                    rarity = c.CardTemplate?.Rarity ?? "Normal",
+                    level = c.CurrentLevel,
+                    image = c.CardTemplate?.VisualTitle ?? "Standard_Shield"
+                }).ToList();
+
+            // Build receiver's cards select list (only cards not locked in trade, not leader, and not in decks)
+            var receiverCards = receiver.Cards
+                .Where(c => !c.IsInTrade && !c.IsLeader && !c.IsInAttackDeck && !c.IsInDefenseDeck)
+                .Select(c => new {
+                    id = c.Id,
+                    title = c.CardTemplate?.Title ?? "Unknown Card",
+                    rarity = c.CardTemplate?.Rarity ?? "Normal",
+                    level = c.CurrentLevel,
+                    image = c.CardTemplate?.VisualTitle ?? "Standard_Shield"
+                }).ToList();
+
+            // Filter out sender's items
+            var senderItems = profile.InventoryItems
+                .Where(i => i.Quantity > 0 && i.ItemTemplate != null && i.ItemTemplate.Type != "GachaTicket")
+                .Select(i => new {
+                    id = i.ItemTemplateId,
+                    name = i.ItemTemplate?.Name ?? "Unknown Item",
+                    quantity = i.Quantity,
+                    image = i.ItemTemplate?.ImageFileName ?? "item_energy_full.png"
+                }).ToList();
+
+            // All possible tradeable items templates for receiver request select list
+            var allItems = _dbContext.ItemTemplates
+                .Where(t => t.Type != "GachaTicket")
+                .Select(t => new {
+                    id = t.Id,
+                    name = t.Name,
+                    image = t.ImageFileName
+                }).ToList();
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "receiverId", receiverId.ToString() },
+                { "receiverName", receiver.Nickname },
+                { "receiverLevel", receiver.Level.ToString() },
+                { "agentName", profile.Nickname },
+                { "senderSilver", profile.SilverBalance.ToString() },
+                { "senderCardsJson", JsonSerializer.Serialize(senderCards) },
+                { "receiverCardsJson", JsonSerializer.Serialize(receiverCards) },
+                { "senderItemsJson", JsonSerializer.Serialize(senderItems) },
+                { "allItemsJson", JsonSerializer.Serialize(allItems) },
+                { "tradeMaxCards", GameplaySettings.TradeMaxCards.ToString() }
+            };
+
+            return Content(RenderTemplate("trade_propose.html", replacements), "text/html");
+        }
+
+        public class ProposeTradeRequest
+        {
+            public long OfferedSilver { get; set; }
+            public long RequestedSilver { get; set; }
+            public List<int>? OfferedCardIds { get; set; }
+            public List<int>? RequestedCardIds { get; set; }
+            public List<TradeItemOffer>? OfferedItems { get; set; }
+            public List<TradeItemOffer>? RequestedItems { get; set; }
+        }
+
+        [HttpPost("trade/propose/{receiverId}")]
+        public IActionResult SubmitTradeProposal(int receiverId, [FromBody] ProposeTradeRequest req)
+        {
+            _logger.LogInformation($"[Cygames] SubmitTradeProposal called for target receiver: {receiverId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var offeredCardIds = req.OfferedCardIds ?? new List<int>();
+            var requestedCardIds = req.RequestedCardIds ?? new List<int>();
+            var offeredItems = req.OfferedItems ?? new List<TradeItemOffer>();
+            var requestedItems = req.RequestedItems ?? new List<TradeItemOffer>();
+
+            var res = _tradeEngine.ProposeTrade(
+                profileId, 
+                receiverId, 
+                req.OfferedSilver, 
+                req.RequestedSilver, 
+                offeredCardIds, 
+                requestedCardIds, 
+                offeredItems, 
+                requestedItems);
+
+            if (res.Success)
+            {
+                return Ok(new { success = true, message = res.Message });
+            }
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("trade/accept/{tradeId}")]
+        public IActionResult AcceptTradeProposal(int tradeId)
+        {
+            _logger.LogInformation($"[Cygames] AcceptTradeProposal called for trade: {tradeId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var res = _tradeEngine.AcceptTrade(tradeId, profileId);
+            if (res.Success)
+            {
+                return Ok(new { success = true, message = res.Message });
+            }
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("trade/decline/{tradeId}")]
+        public IActionResult DeclineTradeProposal(int tradeId)
+        {
+            _logger.LogInformation($"[Cygames] DeclineTradeProposal called for trade: {tradeId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var res = _tradeEngine.DeclineTrade(tradeId, profileId);
+            if (res.Success)
+            {
+                return Ok(new { success = true, message = res.Message });
+            }
+            return Ok(new { success = false, message = res.Message });
+        }
+
+        [HttpPost("trade/cancel/{tradeId}")]
+        public IActionResult CancelTradeProposal(int tradeId)
+        {
+            _logger.LogInformation($"[Cygames] CancelTradeProposal called for trade: {tradeId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var res = _tradeEngine.CancelTrade(tradeId, profileId);
+            if (res.Success)
+            {
+                return Ok(new { success = true, message = res.Message });
+            }
+            return Ok(new { success = false, message = res.Message });
         }
 
         private string RenderTemplate(string templateName, Dictionary<string, string> replacements)

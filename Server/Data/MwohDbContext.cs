@@ -16,6 +16,7 @@ namespace MwohServer.Data
         public DbSet<BattleRecord> BattleRecords => Set<BattleRecord>();
         public DbSet<Alliance> Alliances => Set<Alliance>();
         public DbSet<AllianceJoinRequest> AllianceJoinRequests => Set<AllianceJoinRequest>();
+        public DbSet<Trade> Trades => Set<Trade>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {
@@ -117,6 +118,19 @@ namespace MwohServer.Data
                 .HasOne(r => r.PlayerProfile)
                 .WithMany()
                 .HasForeignKey(r => r.PlayerProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure Trade relationships
+            modelBuilder.Entity<Trade>()
+                .HasOne(t => t.SenderProfile)
+                .WithMany()
+                .HasForeignKey(t => t.SenderProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Trade>()
+                .HasOne(t => t.ReceiverProfile)
+                .WithMany()
+                .HasForeignKey(t => t.ReceiverProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Seed default test account

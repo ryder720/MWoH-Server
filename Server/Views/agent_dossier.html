@@ -260,6 +260,47 @@
             letter-spacing: 0.5px;
             text-transform: uppercase;
         }
+
+        .big-trade-btn {
+            width: 100%;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 800;
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.4) 100%);
+            border: 1.5px solid rgba(245, 158, 11, 0.6);
+            color: var(--accent-gold);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+            margin-top: 10px;
+        }
+
+        .big-trade-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.3) 0%, rgba(245, 158, 11, 0.65) 100%);
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .big-trade-btn:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+
+        .big-trade-btn:disabled {
+            background: rgba(255, 255, 255, 0.02) !important;
+            border-color: rgba(255, 255, 255, 0.06) !important;
+            color: var(--text-muted) !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            transform: none !important;
+        }
     </style>
 </head>
 <body>
@@ -323,6 +364,10 @@
                 🟢 RALLY AGENT
             </button>
             <div id="cooldown-timer" class="cooldown-clock">RALLY TRANSMISSION READY</div>
+            
+            <button id="trade-agent-btn" class="big-trade-btn" onclick="triggerTrade()">
+                ⚖️ INITIATE TRADE
+            </button>
         </div>
     </div>
 
@@ -437,6 +482,9 @@
                 console.error(err);
                 showToast("SCANNER UPLINK COLLAPSED. RETRY TRANSMISSION.", true);
             });
+        }
+        function triggerTrade() {
+            window.location.href = `/ultimate/trade/propose/${agentId}`;
         }
     </script>
 </body>
