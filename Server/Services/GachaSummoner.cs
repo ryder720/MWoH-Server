@@ -174,6 +174,36 @@ namespace MwohServer.Services
                 ratesDict[prop.Name] = prop.Value.GetDouble();
             }
 
+            // 1. Read card pool filter from pack config
+            var cardPool = new List<string>();
+            if (selectedPackNode.TryGetProperty("card_pool", out var poolProp) && poolProp.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in poolProp.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var strVal = item.GetString();
+                        if (!string.IsNullOrEmpty(strVal))
+                        {
+                            cardPool.Add(strVal);
+                        }
+                    }
+                }
+            }
+
+            // 2. Read featured cards weights from pack config
+            var featuredCards = new Dictionary<string, double>();
+            if (selectedPackNode.TryGetProperty("featured_cards", out var featProp) && featProp.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in featProp.EnumerateObject())
+                {
+                    if (prop.Value.ValueKind == JsonValueKind.Number)
+                    {
+                        featuredCards[prop.Name] = prop.Value.GetDouble();
+                    }
+                }
+            }
+
             // Roll cards and construct entity objects
             var rand = new Random();
             var rolledCards = new List<PlayerCard>();
@@ -195,17 +225,60 @@ namespace MwohServer.Services
                 }
 
                 var rarityOptions = new List<string> { chosenRarity };
-                if (chosenRarity == "Super Rare") rarityOptions.Add("SR");
-                if (chosenRarity == "Legendary") rarityOptions.Add("Legend");
+                if (chosenRarity.Equals("Normal", StringComparison.OrdinalIgnoreCase))
+                {
+                    rarityOptions.Add("Common");
+                    rarityOptions.Add("Uncommon");
+                }
+                else if (chosenRarity.Equals("Rare", StringComparison.OrdinalIgnoreCase))
+                {
+                    rarityOptions.Add("Special Rare");
+                }
+                else if (chosenRarity.Equals("Super Rare", StringComparison.OrdinalIgnoreCase))
+                {
+                    rarityOptions.Add("SR");
+                    rarityOptions.Add("Super Special Rare");
+                    rarityOptions.Add("Ultimate Rare");
+                }
+                else if (chosenRarity.Equals("Legendary", StringComparison.OrdinalIgnoreCase))
+                {
+                    rarityOptions.Add("Legend");
+                    rarityOptions.Add("Ultimate Legendary");
+                }
 
+                // Retrieve all base (non-fused) templates matching rarity
                 var templates = _dbContext.CardTemplates
                     .AsEnumerable()
-                    .Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase))
+                    .Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase)
+                                && !t.VariantName.Contains("+")
+                                && !t.Title.Contains("+"))
                     .ToList();
 
+                // Apply card pool filter if defined
+                if (cardPool.Any())
+                {
+                    templates = templates
+                        .Where(t => cardPool.Any(title => t.Title.Equals(title, StringComparison.OrdinalIgnoreCase) 
+                                                         || t.Title.Contains(title, StringComparison.OrdinalIgnoreCase)))
+                        .ToList();
+                }
+
+                // Fallback: If no base templates found for this rarity, fall back to any base template
                 if (!templates.Any())
                 {
-                    templates = _dbContext.CardTemplates.ToList();
+                    templates = _dbContext.CardTemplates
+                        .AsEnumerable()
+                        .Where(t => !t.VariantName.Contains("+") && !t.Title.Contains("+"))
+                        .ToList();
+
+                    if (cardPool.Any())
+                    {
+                        var poolFallback = templates
+                            .Where(t => cardPool.Any(title => t.Title.Equals(title, StringComparison.OrdinalIgnoreCase) 
+                                                             || t.Title.Contains(title, StringComparison.OrdinalIgnoreCase)))
+                            .ToList();
+                        if (poolFallback.Any()) templates = poolFallback;
+                    }
                 }
 
                 if (!templates.Any())
@@ -213,7 +286,47 @@ namespace MwohServer.Services
                     return new GachaResult { Success = false, Message = "No tactical asset blueprints in database." };
                 }
 
-                var chosenTemplate = templates[rand.Next(templates.Count)];
+                // Weighted random selection based on featured rates
+                CardTemplate chosenTemplate;
+                if (featuredCards.Any())
+                {
+                    var weights = new List<(CardTemplate Template, double Weight)>();
+                    double totalWeight = 0.0;
+
+                    foreach (var t in templates)
+                    {
+                        double weight = 1.0;
+                        var matchedFeatKey = featuredCards.Keys.FirstOrDefault(k => 
+                            t.Title.Equals(k, StringComparison.OrdinalIgnoreCase) || 
+                            t.Title.Contains(k, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (matchedFeatKey != null)
+                        {
+                            weight = featuredCards[matchedFeatKey];
+                        }
+
+                        weights.Add((t, weight));
+                        totalWeight += weight;
+                    }
+
+                    var rollWeight = rand.NextDouble() * totalWeight;
+                    double currentWeightSum = 0.0;
+                    chosenTemplate = templates.First(); // Default
+
+                    foreach (var item in weights)
+                    {
+                        currentWeightSum += item.Weight;
+                        if (rollWeight <= currentWeightSum)
+                        {
+                            chosenTemplate = item.Template;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    chosenTemplate = templates[rand.Next(templates.Count)];
+                }
 
                 var newCard = new PlayerCard
                 {

@@ -13,7 +13,18 @@
       "Rare": 25.0,
       "Super Rare": 4.0,
       "Legendary": 1.0
-    }
+    },
+    "card_pool": [
+      "Spider-Man",
+      "Iron Man",
+      "Captain America",
+      "Black Widow",
+      "Hulk",
+      "Thor",
+      "Leopardess Tigra",
+      "Cosmic Energy Havok",
+      "A Lot Insane Bullseye"
+    ]
   },
   {
     "id": 2,
@@ -29,6 +40,10 @@
       "Rare": 45.0,
       "Super Rare": 12.0,
       "Legendary": 3.0
+    },
+    "featured_cards": {
+      "Behind the Mask Spider-Man": 5.0,
+      "A Lot Insane Bullseye": 3.0
     }
   },
   {

@@ -650,6 +650,32 @@
                     `;
                 }
 
+                // Render rate-up featured list if configured
+                let featuredHtml = '';
+                if (pack.featured_cards && Object.keys(pack.featured_cards).length > 0) {
+                    const featuredList = Object.entries(pack.featured_cards)
+                        .map(([name, multiplier]) => `${name} (${multiplier}x Rate)`)
+                        .join(', ');
+                    featuredHtml = `
+                        <div style="font-family: 'Space Mono', monospace; font-size: 8px; color: var(--accent-gold); border-top: 1px dashed rgba(245, 158, 11, 0.15); padding-top: 8px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
+                            <span style="font-weight: 800; letter-spacing: 0.5px;">⭐ FEATURED RATE-UP BLUEPRINTS:</span>
+                            <span style="color: #cbd5e1; font-family: 'Outfit', sans-serif; font-size: 10px; line-height: 1.3;">${featuredList}</span>
+                        </div>
+                    `;
+                }
+
+                // Render limited pool directory if configured
+                let poolHtml = '';
+                if (pack.card_pool && pack.card_pool.length > 0) {
+                    const poolList = pack.card_pool.join(', ');
+                    poolHtml = `
+                        <div style="font-family: 'Space Mono', monospace; font-size: 8px; color: var(--hud-blue); border-top: 1px dashed rgba(0, 240, 255, 0.15); padding-top: 8px; margin-top: 4px; display: flex; flex-direction: column; gap: 2px;">
+                            <span style="font-weight: 800; letter-spacing: 0.5px;">📡 BLUEPRINT DATABASE LIMITED POOL:</span>
+                            <span style="color: #cbd5e1; font-family: 'Outfit', sans-serif; font-size: 10px; line-height: 1.3;">${poolList}</span>
+                        </div>
+                    `;
+                }
+
                 card.innerHTML = `
                     <div class="banner-header">
                         <div class="banner-title" style="color: ${pack.theme_color};">${pack.name}</div>
@@ -658,6 +684,8 @@
                     <div class="rate-badge-row">
                         ${ratesHtml}
                     </div>
+                    ${featuredHtml}
+                    ${poolHtml}
                     <div class="actions-group">
                         ${actionsHtml}
                     </div>
