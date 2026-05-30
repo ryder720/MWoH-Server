@@ -29,12 +29,14 @@ namespace MwohServer.Controllers
         private readonly IItemLedger _itemLedger;
         private readonly ISessionGateway _sessionGateway;
         private readonly IDeckManager _deckManager;
-        private readonly ILeaderManager _leaderManager;
+        private readonly IProfileManager _profileManager;
         private readonly IBattleEngine _battleEngine;
         private readonly IAllianceEngine _allianceEngine;
         private readonly ITradeEngine _tradeEngine;
         private readonly IAssignmentEngine _assignmentEngine;
         private readonly ILoginCommendationEngine _loginCommendationEngine;
+        private readonly IShieldTeamEngine _shieldTeamEngine;
+        private readonly IResourceVaultEngine _resourceVaultEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -46,12 +48,14 @@ namespace MwohServer.Controllers
             IItemLedger itemLedger,
             ISessionGateway sessionGateway,
             IDeckManager deckManager,
-            ILeaderManager leaderManager,
+            IProfileManager profileManager,
             IBattleEngine battleEngine,
             IAllianceEngine allianceEngine,
             ITradeEngine tradeEngine,
             IAssignmentEngine assignmentEngine,
-            ILoginCommendationEngine loginCommendationEngine)
+            ILoginCommendationEngine loginCommendationEngine,
+            IShieldTeamEngine shieldTeamEngine,
+            IResourceVaultEngine resourceVaultEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -62,12 +66,14 @@ namespace MwohServer.Controllers
             _itemLedger = itemLedger;
             _sessionGateway = sessionGateway;
             _deckManager = deckManager;
-            _leaderManager = leaderManager;
+            _profileManager = profileManager;
             _battleEngine = battleEngine;
             _allianceEngine = allianceEngine;
             _tradeEngine = tradeEngine;
             _assignmentEngine = assignmentEngine;
             _loginCommendationEngine = loginCommendationEngine;
+            _shieldTeamEngine = shieldTeamEngine;
+            _resourceVaultEngine = resourceVaultEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -671,8 +677,6 @@ namespace MwohServer.Controllers
             _logger.LogInformation("[Cygames] RedeemResourceSet called.");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId, includeInventory: true);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
 
             var groupKey = Request.Form["group_key"].ToString();
             if (string.IsNullOrEmpty(groupKey))
@@ -680,153 +684,28 @@ namespace MwohServer.Controllers
                 return BadRequest(new { success = false, message = "Group key missing." });
             }
 
-            string groupName = "";
-            if (groupKey == "StormsCape") groupName = "Storm's Cape";
-            else if (groupKey == "Suitcase") groupName = "Suitcase";
-            else if (groupKey == "SwordOfProficiency") groupName = "Sword of Proficiency";
-            else if (groupKey == "AssassinsChoker") groupName = "Assassin's Choker";
-            else if (groupKey == "ChainBelt") groupName = "Chain Belt";
-            else if (groupKey == "Geirr") groupName = "Geirr";
-            else if (groupKey == "ProjectileArray") groupName = "Projectile Array";
-
-            if (string.IsNullOrEmpty(groupName))
+            var result = _resourceVaultEngine.Redeem(profileId, groupKey);
+            if (!result.Success)
             {
-                return BadRequest(new { success = false, message = "Invalid resource group." });
-            }
-
-            var redemptionsDict = new Dictionary<string, int>();
-            if (!string.IsNullOrEmpty(profile.ResourceRedemptionsJson))
-            {
-                try { redemptionsDict = JsonSerializer.Deserialize<Dictionary<string, int>>(profile.ResourceRedemptionsJson) ?? new(); } catch {}
-            }
-
-            int count = 0;
-            redemptionsDict.TryGetValue(groupKey, out count);
-            if (count >= 3)
-            {
-                return Ok(new { success = false, message = "⚠️ MAXIMUM REDEMPTIONS REACHED // S.H.I.E.L.D. data caps reached." });
-            }
-
-            var groupTemplates = _dbContext.ItemTemplates
-                .Where(t => t.Type == "Resource" && (
-                    (groupKey == "StormsCape" && t.Name.Contains("Storm's") && t.Name.Contains("Cape")) ||
-                    (groupKey == "Suitcase" && t.Name.Contains("Suitcase")) ||
-                    (groupKey == "SwordOfProficiency" && t.Name.Contains("Sword")) ||
-                    (groupKey == "AssassinsChoker" && t.Name.Contains("Assassin's") && t.Name.Contains("Choker")) ||
-                    (groupKey == "ChainBelt" && t.Name.Contains("Chain Belt")) ||
-                    (groupKey == "Geirr" && t.Name.Contains("Geirr")) ||
-                    (groupKey == "ProjectileArray" && t.Name.Contains("Projectile Array"))
-                )).ToList();
-
-            if (groupTemplates.Count < 6)
-            {
-                return Ok(new { success = false, message = "⚠️ SYSTEM ERROR // Template files corrupted." });
-            }
-
-            var inventoryMatch = new List<PlayerInventoryItem>();
-            foreach (var temp in groupTemplates)
-            {
-                var pItem = profile.InventoryItems.FirstOrDefault(pi => pi.ItemTemplateId == temp.Id && pi.Quantity >= 1);
-                if (pItem == null)
+                if (result.Message.Contains("missing") || result.Message.Contains("Invalid"))
                 {
-                    return Ok(new { success = false, message = $"⚠️ SET INCOMPLETE // Missing required colors." });
+                    return BadRequest(new { success = false, message = result.Message });
                 }
-                inventoryMatch.Add(pItem);
+                return Ok(new { success = false, message = result.Message });
             }
 
-            int setIndex = count + 1;
-            string rewardMessage = "";
-            string rewardCardTitle = "";
-            bool isCardReward = true;
-
-            if (setIndex == 1 || setIndex == 3)
+            var mappedResources = result.UpdatedResources.Select(ur => new
             {
-                if (groupKey == "StormsCape") rewardCardTitle = "Queen of Lightning Storm";
-                else if (groupKey == "Suitcase") rewardCardTitle = "Legal Eagle She-Hulk";
-                else if (groupKey == "SwordOfProficiency") rewardCardTitle = "Taskmaster";
-                else if (groupKey == "AssassinsChoker") rewardCardTitle = "X-23";
-                else if (groupKey == "ChainBelt") rewardCardTitle = "Knuckle Up Luke Cage";
-                else if (groupKey == "Geirr") rewardCardTitle = "Escort of Souls Valkyrie";
-                else if (groupKey == "ProjectileArray") rewardCardTitle = "Friend In Need War Machine";
-
-                int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-                if (currentCardCount >= profile.MaxCardCapacity)
-                {
-                    return Ok(new { success = false, message = $"⚠️ DEPLOYMENT REJECTED // SQUAD FILES FULL ({profile.MaxCardCapacity}/{profile.MaxCardCapacity})." });
-                }
-            }
-            else
-            {
-                isCardReward = false;
-            }
-
-            foreach (var pItem in inventoryMatch)
-            {
-                pItem.Quantity = Math.Max(0, pItem.Quantity - 1);
-            }
-
-            if (isCardReward)
-            {
-                var cardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == rewardCardTitle);
-                if (cardTemplate == null)
-                {
-                    cardTemplate = _dbContext.CardTemplates.FirstOrDefault();
-                }
-
-                if (cardTemplate != null)
-                {
-                    var newCard = new PlayerCard { PlayerProfileId = profile.Id };
-                    newCard.InitializeStats(cardTemplate, GameplaySettings.DefaultMasteryPercentage);
-                    _dbContext.PlayerCards.Add(newCard);
-                    rewardMessage = $"RECOVERED HERO: {cardTemplate.VisualTitle ?? cardTemplate.Title} added to your deck roster!";
-                }
-            }
-            else
-            {
-                var serumTemplate = _dbContext.ItemTemplates.FirstOrDefault(t => t.Type == "LevelUpSerum");
-                if (serumTemplate != null)
-                {
-                    var pItem = _dbContext.PlayerInventoryItems.FirstOrDefault(pi => pi.PlayerProfileId == profile.Id && pi.ItemTemplateId == serumTemplate.Id);
-                    if (pItem == null)
-                    {
-                        pItem = new PlayerInventoryItem
-                        {
-                            PlayerProfileId = profile.Id,
-                            ItemTemplateId = serumTemplate.Id,
-                            Quantity = 3
-                        };
-                        _dbContext.PlayerInventoryItems.Add(pItem);
-                    }
-                    else
-                    {
-                        pItem.Quantity += 3;
-                    }
-                    rewardMessage = $"SECURED SUPPLIES: Added 3x Level-Up ISO-8 Serums to tactical depot!";
-                }
-                else
-                {
-                    rewardMessage = "ISO-8 supply seeder failed.";
-                }
-            }
-
-            redemptionsDict[groupKey] = count + 1;
-            profile.ResourceRedemptionsJson = JsonSerializer.Serialize(redemptionsDict);
-
-            _dbContext.SaveChanges();
-
-            var updatedResources = profile.InventoryItems
-                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
-                .Select(pi => new {
-                    id = pi.ItemTemplateId,
-                    qty = pi.Quantity
-                }).ToList();
+                id = ur.Id,
+                qty = ur.Qty
+            }).ToList();
 
             return Ok(new
             {
                 success = true,
-                message = $"CONGRATULATIONS // {rewardMessage}",
-                redemptions = redemptionsDict,
-                resources = updatedResources
+                message = result.Message,
+                redemptions = result.Redemptions,
+                resources = mappedResources
             });
         }
 
@@ -836,8 +715,6 @@ namespace MwohServer.Controllers
             _logger.LogInformation("[Cygames] DonateResources called.");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId, includeInventory: true);
-            if (profile == null) return BadRequest(new { success = false, message = "Profile mismatch." });
 
             var groupKey = Request.Form["group_key"].ToString();
             if (string.IsNullOrEmpty(groupKey))
@@ -845,51 +722,28 @@ namespace MwohServer.Controllers
                 return BadRequest(new { success = false, message = "Group key missing." });
             }
 
-            var groupResources = profile.InventoryItems
-                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource" && (
-                    (groupKey == "StormsCape" && pi.ItemTemplate.Name.Contains("Storm's") && pi.ItemTemplate.Name.Contains("Cape")) ||
-                    (groupKey == "Suitcase" && pi.ItemTemplate.Name.Contains("Suitcase")) ||
-                    (groupKey == "SwordOfProficiency" && pi.ItemTemplate.Name.Contains("Sword")) ||
-                    (groupKey == "AssassinsChoker" && pi.ItemTemplate.Name.Contains("Assassin's") && pi.ItemTemplate.Name.Contains("Choker")) ||
-                    (groupKey == "ChainBelt" && pi.ItemTemplate.Name.Contains("Chain Belt")) ||
-                    (groupKey == "Geirr" && pi.ItemTemplate.Name.Contains("Geirr")) ||
-                    (groupKey == "ProjectileArray" && pi.ItemTemplate.Name.Contains("Projectile Array"))
-                ) && pi.Quantity > 0).ToList();
-
-            if (groupResources.Count == 0)
+            var result = _resourceVaultEngine.Donate(profileId, groupKey);
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "⚠️ RESOURCE STOCK EMPTY // No excess drops to donate." });
+                if (result.Message.Contains("missing") || result.Message.Contains("mismatch"))
+                {
+                    return BadRequest(new { success = false, message = result.Message });
+                }
+                return Ok(new { success = false, message = result.Message });
             }
 
-            long totalSilverGained = 0;
-            int totalItemsDonated = 0;
-
-            foreach (var pi in groupResources)
+            var mappedResources = result.UpdatedResources.Select(ur => new
             {
-                int quantity = pi.Quantity;
-                int valuePerItem = pi.ItemTemplate?.EffectValue ?? 2000;
-                totalSilverGained += (long)quantity * valuePerItem;
-                totalItemsDonated += quantity;
-
-                pi.Quantity = 0;
-            }
-
-            profile.SilverBalance += totalSilverGained;
-            _dbContext.SaveChanges();
-
-            var updatedResources = profile.InventoryItems
-                .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
-                .Select(pi => new {
-                    id = pi.ItemTemplateId,
-                    qty = pi.Quantity
-                }).ToList();
+                id = ur.Id,
+                qty = ur.Qty
+            }).ToList();
 
             return Ok(new
             {
                 success = true,
-                message = $"DONATION COMPLETE // Contributed {totalItemsDonated} assets to S.H.I.E.L.D. tactical mainframe. Credited +{totalSilverGained} Silver!",
-                silverBalance = profile.SilverBalance,
-                resources = updatedResources
+                message = result.Message,
+                silverBalance = result.SilverBalance,
+                resources = mappedResources
             });
         }
 
@@ -1486,70 +1340,24 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] RallyAgent called for targetId: {targetId}");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            
-            var sender = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
-            var receiver = _dbContext.Profiles.FirstOrDefault(p => p.Id == targetId);
 
-            if (sender == null) return BadRequest("Sender profile not found.");
-            if (receiver == null) return BadRequest("Target profile not found.");
-            if (sender.Id == receiver.Id) return BadRequest("You cannot rally yourself, Agent!");
-
-            // Check standard 24h cooldown
-            var cutoff = DateTime.UtcNow.AddHours(-24);
-            var existingRally = _dbContext.RallyLogs
-                .FirstOrDefault(rl => rl.SenderProfileId == sender.Id && rl.ReceiverProfileId == receiver.Id && rl.RalliedAt >= cutoff);
-
-            if (existingRally != null)
+            var result = _shieldTeamEngine.Rally(profileId, targetId);
+            if (!result.Success)
             {
-                var timeRemaining = existingRally.RalliedAt.AddHours(24) - DateTime.UtcNow;
-                var hours = (int)timeRemaining.TotalHours;
-                var minutes = timeRemaining.Minutes;
-                return Ok(new
+                if (result.Message.Contains("not found"))
                 {
-                    success = false,
-                    message = $"Cooldown active. You can rally this agent again in {hours}h {minutes}m."
-                });
-            }
-
-            // Determine if they are S.H.I.E.L.D. Team members
-            var isFriend = _dbContext.ShieldTeamMembers
-                .Any(m => m.Status == "Accepted" &&
-                         ((m.ProfileId == sender.Id && m.MemberProfileId == receiver.Id) ||
-                          (m.ProfileId == receiver.Id && m.MemberProfileId == sender.Id)));
-
-            int senderPoints = isFriend ? 20 : 10;
-            int receiverPoints = isFriend ? 10 : 5;
-
-            // Update points
-            sender.RallyPoints += senderPoints;
-            receiver.RallyPoints += receiverPoints;
-
-            // Log rally activity
-            var log = new RallyLog
-            {
-                SenderProfileId = sender.Id,
-                ReceiverProfileId = receiver.Id,
-                RalliedAt = DateTime.UtcNow
-            };
-            _dbContext.RallyLogs.Add(log);
-
-            try
-            {
-                _dbContext.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Cygames] Failed to process rally point transaction.");
-                return Ok(new { success = false, message = "Database error occurred during rally point credit." });
+                    return BadRequest(result.Message);
+                }
+                return Ok(new { success = false, message = result.Message });
             }
 
             return Ok(new
             {
                 success = true,
-                message = $"Successfully rallied {receiver.Nickname}! You gained +{senderPoints} Rally Points. {receiver.Nickname} gained +{receiverPoints}.",
-                senderPoints = senderPoints,
-                receiverPoints = receiverPoints,
-                newRallyPoints = sender.RallyPoints
+                message = result.Message,
+                senderPoints = result.SenderPointsGained,
+                receiverPoints = result.ReceiverPointsGained,
+                newRallyPoints = result.NewRallyPoints
             });
         }
 
@@ -1559,61 +1367,9 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] ProposeTeamMember targetId: {targetId}");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
 
-            if (profile.Id == targetId)
-            {
-                return Ok(new { success = false, message = "You cannot propose S.H.I.E.L.D. Team membership to yourself." });
-            }
-
-            var target = _dbContext.Profiles.FirstOrDefault(p => p.Id == targetId);
-            if (target == null)
-            {
-                return Ok(new { success = false, message = "Proposed Agent could not be located in S.H.I.E.L.D. directory." });
-            }
-
-            // Check if relationship already exists
-            var existing = _dbContext.ShieldTeamMembers
-                .FirstOrDefault(m => (m.ProfileId == profile.Id && m.MemberProfileId == targetId) || (m.ProfileId == targetId && m.MemberProfileId == profile.Id));
-
-            if (existing != null)
-            {
-                if (existing.Status == "Accepted")
-                    return Ok(new { success = false, message = "This agent is already on your active S.H.I.E.L.D. Team." });
-                else
-                    return Ok(new { success = false, message = "A S.H.I.E.L.D. Team proposal is already pending with this agent." });
-            }
-
-            // Check capacity for both
-            int myMax = profile.Level >= 10 ? Math.Min(50, 6 + (profile.Level - 10) / 2) : 5;
-            int myCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted");
-            if (myCount >= myMax)
-            {
-                return Ok(new { success = false, message = "⚠️ PROPOSAL DENIED // Your S.H.I.E.L.D. Team capacity has reached maximum limits." });
-            }
-
-            int targetMax = target.Level >= 10 ? Math.Min(50, 6 + (target.Level - 10) / 2) : 5;
-            int targetCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == targetId || m.MemberProfileId == targetId) && m.Status == "Accepted");
-            if (targetCount >= targetMax)
-            {
-                return Ok(new { success = false, message = "⚠️ PROPOSAL DENIED // The target Agent has reached their maximum S.H.I.E.L.D. Team capacity." });
-            }
-
-            var proposal = new ShieldTeamMember
-            {
-                ProfileId = profile.Id,
-                MemberProfileId = targetId,
-                Status = "Pending",
-                CreatedAt = DateTime.UtcNow
-            };
-            _dbContext.ShieldTeamMembers.Add(proposal);
-            _dbContext.SaveChanges();
-
-            // Trigger assignment hook
-            _assignmentEngine.RecordEvent(profile.Id, GoalType.ShieldRequest, 1);
-
-            return Ok(new { success = true, message = $"S.H.I.E.L.D. Team proposal successfully transmitted to agent {target.Nickname}." });
+            var result = _shieldTeamEngine.Propose(profileId, targetId);
+            return Ok(new { success = result.Success, message = result.Message });
         }
 
         [HttpPost("friend/accept")]
@@ -1622,47 +1378,9 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] AcceptTeamProposal proposerId: {proposerId}");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
 
-            var proposal = _dbContext.ShieldTeamMembers
-                .FirstOrDefault(m => m.ProfileId == proposerId && m.MemberProfileId == profile.Id && m.Status == "Pending");
-
-            if (proposal == null)
-            {
-                return Ok(new { success = false, message = "No pending S.H.I.E.L.D. Team proposal from this agent." });
-            }
-
-            var proposer = _dbContext.Profiles.FirstOrDefault(p => p.Id == proposerId);
-            if (proposer == null)
-            {
-                return Ok(new { success = false, message = "Proposer profile not located." });
-            }
-
-            // Check capacity
-            int myMax = profile.Level >= 10 ? Math.Min(50, 6 + (profile.Level - 10) / 2) : 5;
-            int myCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == profile.Id || m.MemberProfileId == profile.Id) && m.Status == "Accepted");
-            if (myCount >= myMax)
-            {
-                return Ok(new { success = false, message = "⚠️ TRANSITION FAILED // Your S.H.I.E.L.D. Team has reached maximum limits. You must dismiss an agent first." });
-            }
-
-            int proposerMax = proposer.Level >= 10 ? Math.Min(50, 6 + (proposer.Level - 10) / 2) : 5;
-            int proposerCount = _dbContext.ShieldTeamMembers.Count(m => (m.ProfileId == proposerId || m.MemberProfileId == proposerId) && m.Status == "Accepted");
-            if (proposerCount >= proposerMax)
-            {
-                return Ok(new { success = false, message = "⚠️ TRANSITION FAILED // Proposer's S.H.I.E.L.D. Team capacity is at maximum limits." });
-            }
-
-            // Set to accepted and award points
-            proposal.Status = "Accepted";
-            
-            profile.StatPoints += 5;
-            proposer.StatPoints += 5;
-
-            _dbContext.SaveChanges();
-
-            return Ok(new { success = true, message = $"Proposal accepted! You are now team members with {proposer.Nickname}. Both agents have received 5 S.H.I.E.L.D. Attribute points!" });
+            var result = _shieldTeamEngine.Accept(profileId, proposerId);
+            return Ok(new { success = result.Success, message = result.Message });
         }
 
         [HttpPost("friend/ignore")]
@@ -1671,19 +1389,9 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] IgnoreTeamProposal proposerId: {proposerId}");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
 
-            var proposal = _dbContext.ShieldTeamMembers
-                .FirstOrDefault(m => m.ProfileId == proposerId && m.MemberProfileId == profile.Id && m.Status == "Pending");
-
-            if (proposal != null)
-            {
-                _dbContext.ShieldTeamMembers.Remove(proposal);
-                _dbContext.SaveChanges();
-            }
-
-            return Ok(new { success = true, message = "S.H.I.E.L.D. Team proposal dismissed." });
+            var result = _shieldTeamEngine.Ignore(profileId, proposerId);
+            return Ok(new { success = result.Success, message = result.Message });
         }
 
         [HttpPost("friend/remove")]
@@ -1692,93 +1400,9 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] RemoveTeamMember memberId: {memberId}");
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null) return Ok(new { success = false, message = "Profile not synced." });
 
-            var relation = _dbContext.ShieldTeamMembers
-                .FirstOrDefault(m => ((m.ProfileId == profile.Id && m.MemberProfileId == memberId) || (m.ProfileId == memberId && m.MemberProfileId == profile.Id)) && m.Status == "Accepted");
-
-            if (relation == null)
-            {
-                return Ok(new { success = false, message = "Agent is not currently a member of your S.H.I.E.L.D. Team." });
-            }
-
-            var other = _dbContext.Profiles.FirstOrDefault(p => p.Id == memberId);
-            if (other == null)
-            {
-                return Ok(new { success = false, message = "Target profile not located." });
-            }
-
-            // Remove connection
-            _dbContext.ShieldTeamMembers.Remove(relation);
-
-            // Apply points deduction to active player
-            int pointsToDeduct = 5;
-            bool wasSubsequentRemovalPenaltyApplied = false;
-
-            if (GameplaySettings.EnableFriendRemoval24HourPenalty)
-            {
-                if (profile.LastRemovalTime.HasValue && (DateTime.UtcNow - profile.LastRemovalTime.Value).TotalHours < 24)
-                {
-                    pointsToDeduct = 6;
-                    wasSubsequentRemovalPenaltyApplied = true;
-                }
-            }
-
-            for (int i = 0; i < pointsToDeduct; i++)
-            {
-                if (profile.EnergyMax >= profile.AttackPower && profile.EnergyMax >= profile.DefensePower)
-                {
-                    profile.EnergyMax = Math.Max(10, profile.EnergyMax - 1);
-                    if (profile.EnergyCurrent > profile.EnergyMax)
-                    {
-                        profile.EnergyCurrent = profile.EnergyMax;
-                    }
-                }
-                else if (profile.AttackPower >= profile.EnergyMax && profile.AttackPower >= profile.DefensePower)
-                {
-                    profile.AttackPower = Math.Max(1, profile.AttackPower - 1);
-                }
-                else
-                {
-                    profile.DefensePower = Math.Max(1, profile.DefensePower - 1);
-                }
-            }
-
-            profile.LastRemovalTime = DateTime.UtcNow;
-            profile.RemovalsInLast24Hours++;
-
-            // Apply points deduction (exactly 5) to the dismissed other player
-            for (int i = 0; i < 5; i++)
-            {
-                if (other.EnergyMax >= other.AttackPower && other.EnergyMax >= other.DefensePower)
-                {
-                    other.EnergyMax = Math.Max(10, other.EnergyMax - 1);
-                    if (other.EnergyCurrent > other.EnergyMax)
-                    {
-                        other.EnergyCurrent = other.EnergyMax;
-                    }
-                }
-                else if (other.AttackPower >= other.EnergyMax && other.AttackPower >= other.DefensePower)
-                {
-                    other.AttackPower = Math.Max(1, other.AttackPower - 1);
-                }
-                else
-                {
-                    other.DefensePower = Math.Max(1, other.DefensePower - 1);
-                }
-            }
-
-            _dbContext.SaveChanges();
-
-            string penaltyAlert = wasSubsequentRemovalPenaltyApplied 
-                ? "⚠️ 24-HOUR DOUBLE DISMISSAL PENALTY ENFORCED: 6 S.H.I.E.L.D. points subtracted from parameters!"
-                : "5 S.H.I.E.L.D. points subtracted from parameters.";
-
-            return Ok(new { 
-                success = true, 
-                message = $"Dismissal completed. Agent {other.Nickname} has been dismissed from your S.H.I.E.L.D. Team. {penaltyAlert}" 
-            });
+            var result = _shieldTeamEngine.Remove(profileId, memberId);
+            return Ok(new { success = result.Success, message = result.Message });
         }
 
         [HttpGet("mypage/enhance")]
@@ -1954,53 +1578,25 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var profile = GetPlayerProfile(profileId);
-            if (profile == null)
-            {
-                return Ok(new { success = false, message = "Profile not synced." });
-            }
-
             int.TryParse(Request.Form["energy"].ToString(), out var energyPoints);
             int.TryParse(Request.Form["attack"].ToString(), out var attackPoints);
             int.TryParse(Request.Form["defense"].ToString(), out var defensePoints);
 
-            var totalAllocated = energyPoints + attackPoints + defensePoints;
-            if (totalAllocated <= 0)
+            var result = _profileManager.AllocateStatPoints(profileId, energyPoints, attackPoints, defensePoints);
+            if (!result.Success)
             {
-                return Ok(new { success = false, message = "Allocated points must be greater than zero." });
-            }
-
-            if (totalAllocated > profile.StatPoints)
-            {
-                return Ok(new { success = false, message = "Allocated points exceed available unallocated S.H.I.E.L.D. points." });
-            }
-
-            // Deduct and apply stat increments
-            profile.StatPoints -= totalAllocated;
-            profile.EnergyMax += energyPoints;
-            profile.EnergyCurrent += energyPoints;
-            profile.AttackPower += attackPoints;
-            profile.DefensePower += defensePoints;
-
-            try
-            {
-                _dbContext.SaveChanges();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "[Cygames] Failed to save stat point allocations to SQLite.");
-                return Ok(new { success = false, message = "Database write error occurred." });
+                return Ok(new { success = false, message = result.Message });
             }
 
             return Ok(new
             {
                 success = true,
-                message = "S.H.I.E.L.D. Agent parameters successfully updated and synced!",
-                remainingStatPoints = profile.StatPoints,
-                newEnergyMax = profile.EnergyMax,
-                newEnergyCurrent = profile.EnergyCurrent,
-                newAttackCapacity = profile.AttackPower,
-                newDefenseCapacity = profile.DefensePower
+                message = result.Message,
+                remainingStatPoints = result.RemainingStatPoints,
+                newEnergyMax = result.NewEnergyMax,
+                newEnergyCurrent = result.NewEnergyCurrent,
+                newAttackCapacity = result.NewAttackCapacity,
+                newDefenseCapacity = result.NewDefenseCapacity
             });
         }
 
@@ -2014,7 +1610,7 @@ namespace MwohServer.Controllers
             int.TryParse(Request.Form["card_id"].ToString(), out var cardId);
             if (cardId <= 0) return Ok(new { success = false, message = "Missing card_id." });
 
-            var result = _leaderManager.DesignateLeader(profileId, cardId);
+            var result = _profileManager.DesignateLeader(profileId, cardId);
             if (!result.Success)
             {
                 return Ok(new { success = false, message = result.Message });

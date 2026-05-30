@@ -39,7 +39,9 @@ builder.Services.AddScoped<IMissionEngine, MissionEngine>();
 builder.Services.AddScoped<IItemLedger, ItemLedger>();
 builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<IDeckManager, DeckManager>();
-builder.Services.AddScoped<ILeaderManager, LeaderManager>();
+builder.Services.AddScoped<IProfileManager, ProfileManager>();
+builder.Services.AddScoped<IShieldTeamEngine, ShieldTeamEngine>();
+builder.Services.AddScoped<IResourceVaultEngine, ResourceVaultEngine>();
 builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
 builder.Services.AddSingleton<ISpecialComboEngine, SpecialComboEngine>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
@@ -663,6 +665,8 @@ using (var scope = app.Services.CreateScope())
     DatabaseSeeder.SeedItems(dbContext, logger);
     DatabaseSeeder.SeedRivals(dbContext, logger);
     
+
+
     // Start background banner downloader task (non-blocking)
     _ = Task.Run(() => DatabaseSeeder.DownloadOperationBanners(logger));
 }
@@ -746,6 +750,9 @@ public static class AdminConsoleEngine
             Console.WriteLine("  runtradetests                                  - Execute S.H.I.E.L.D. Material Requisition unit tests");
             Console.WriteLine("  runassignmenttests                             - Execute S.H.I.E.L.D. Assignments unit tests");
             Console.WriteLine("  runcommendationtests                           - Execute S.H.I.E.L.D. Daily Commendations unit tests");
+            Console.WriteLine("  runshieldtests                                 - Execute S.H.I.E.L.D. Team Engine unit tests");
+            Console.WriteLine("  runvaulttests                                  - Execute S.H.I.E.L.D. Resource Vault unit tests");
+            Console.WriteLine("  runprofiletests                                - Execute S.H.I.E.L.D. Profile Manager unit tests");
             Console.WriteLine("  events reload                                  - Reload all active event templates");
             Console.WriteLine("  events list                                    - List all event templates and statuses");
             Console.WriteLine("  events calculate <eventId>                     - Force rank compiles and award dispatch");
@@ -1002,6 +1009,57 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Material Requisition Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runshieldtests")
+        {
+            var engine = (IShieldTeamEngine)serviceProvider.GetService(typeof(IShieldTeamEngine))!;
+            var success = MwohServer.Tests.ShieldTeamTests.Run(engine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Team Engine Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Team Engine Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runvaulttests")
+        {
+            var engine = (IResourceVaultEngine)serviceProvider.GetService(typeof(IResourceVaultEngine))!;
+            var success = MwohServer.Tests.ResourceVaultTests.Run(engine, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Resource Vault Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Resource Vault Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runprofiletests")
+        {
+            var manager = (IProfileManager)serviceProvider.GetService(typeof(IProfileManager))!;
+            var success = MwohServer.Tests.ProfileManagerTests.Run(manager, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Profile Manager Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Profile Manager Test Suite failed!");
                 Console.ResetColor();
             }
             return;
