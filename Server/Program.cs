@@ -1223,7 +1223,7 @@ public static class AdminConsoleEngine
 
             profile.Level = newLvl;
             
-            // Auto-scale Max Stamina dynamically
+            // Auto-scale Max Energy dynamically
             var baseEnergy = 50;
             var energyMax = baseEnergy + (newLvl * MwohServer.Models.GameplaySettings.EnergyMaxIncreasePerLevel);
             profile.EnergyMax = energyMax;

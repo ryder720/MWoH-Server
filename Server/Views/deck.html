@@ -83,7 +83,7 @@
                     <div class="hud-val-large" id="slot-counter">0 / 5</div>
                 </div>
                 <div style="text-align: right;">
-                    <span class="hud-lbl">POWER CAPACITY LIMIT</span>
+                    <span class="hud-lbl" id="power-limit-label">ATTACK POWER LIMIT</span>
                     <div class="hud-val-large" id="power-counter">0 / {{attackCapacity}}</div>
                 </div>
             </div>
@@ -152,6 +152,11 @@
             
             const cap = (mode === 'attack') ? atkCapacity : defCapacity;
             document.getElementById('power-counter').textContent = '0 / ' + cap;
+            
+            const labelEl = document.getElementById('power-limit-label');
+            if (labelEl) {
+                labelEl.textContent = mode === 'attack' ? 'ATTACK POWER LIMIT' : 'DEFENSE POWER LIMIT';
+            }
             
             renderCards();
             updateHUD();
