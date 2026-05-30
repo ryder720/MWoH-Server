@@ -492,6 +492,8 @@ namespace MwohServer.Models
         public int BruiserAdaptorLevel { get; set; } = 0;
         public int TacticsAdaptorLevel { get; set; } = 0;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsQueuedForWar { get; set; } = false;
+        public DateTime? WarQueueJoinedAt { get; set; }
 
         public System.Collections.Generic.ICollection<PlayerProfile> Members { get; set; } = new System.Collections.Generic.List<PlayerProfile>();
     }

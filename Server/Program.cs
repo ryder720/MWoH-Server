@@ -50,6 +50,7 @@ builder.Services.AddScoped<ITradeEngine, TradeEngine>();
 builder.Services.AddScoped<IAssignmentEngine, AssignmentEngine>();
 builder.Services.AddScoped<ILoginCommendationEngine, LoginCommendationEngine>();
 builder.Services.AddScoped<IEventEngine, EventEngine>();
+builder.Services.AddScoped<IWarEventEngine, WarEventEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -661,6 +662,79 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (PlayerEventProgress table): {ex.Message}");
     }
 
+    // 13. Create AllianceWarBattles table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS AllianceWarBattles (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                EventId TEXT NOT NULL,
+                AllianceAId INTEGER NOT NULL,
+                AllianceBId INTEGER NOT NULL,
+                AllianceAHealthCurrent INTEGER NOT NULL,
+                AllianceAHealthMax INTEGER NOT NULL,
+                AllianceBHealthCurrent INTEGER NOT NULL,
+                AllianceBHealthMax INTEGER NOT NULL,
+                AllianceAValorCurrent INTEGER NOT NULL DEFAULT 0,
+                AllianceBValorCurrent INTEGER NOT NULL DEFAULT 0,
+                AllianceADefensiveLeadersJson TEXT NOT NULL DEFAULT '[]',
+                AllianceBDefensiveLeadersJson TEXT NOT NULL DEFAULT '[]',
+                Status TEXT NOT NULL DEFAULT 'Active',
+                StartTime TEXT NOT NULL,
+                EndTime TEXT NOT NULL,
+                WinnerAllianceId INTEGER NULL,
+                ReadyUpAllianceA INTEGER NOT NULL DEFAULT 0,
+                ReadyUpAllianceB INTEGER NOT NULL DEFAULT 0,
+                IsAiOpponent INTEGER NOT NULL DEFAULT 0
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured AllianceWarBattles table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (AllianceWarBattles table): {ex.Message}");
+    }
+
+    // 14. Migrate Alliances - Add IsQueuedForWar and WarQueueJoinedAt columns if missing
+    try
+    {
+        var hasIsQueuedForWar = false;
+        var hasWarQueueJoinedAt = false;
+        var conn = dbContext.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+        {
+            dbContext.Database.OpenConnection();
+        }
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Alliances);";
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var colName = reader["name"].ToString();
+                    if (colName == "IsQueuedForWar") hasIsQueuedForWar = true;
+                    if (colName == "WarQueueJoinedAt") hasWarQueueJoinedAt = true;
+                }
+            }
+        }
+
+        if (!hasIsQueuedForWar)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Alliances ADD COLUMN IsQueuedForWar INTEGER NOT NULL DEFAULT 0;");
+            logger.LogInformation("Database migration: Added IsQueuedForWar column to Alliances.");
+        }
+        if (!hasWarQueueJoinedAt)
+        {
+            dbContext.Database.ExecuteSqlRaw("ALTER TABLE Alliances ADD COLUMN WarQueueJoinedAt TEXT NULL;");
+            logger.LogInformation("Database migration: Added WarQueueJoinedAt column to Alliances.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (Alliances war queue columns): {ex.Message}");
+    }
+
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
     DatabaseSeeder.SeedRivals(dbContext, logger);
@@ -757,6 +831,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  events list                                    - List all event templates and statuses");
             Console.WriteLine("  events calculate <eventId>                     - Force rank compiles and award dispatch");
             Console.WriteLine("  runeventtests                                  - Execute S.H.I.E.L.D. Event Foundation unit tests");
+            Console.WriteLine("  runwartests                                    - Execute S.H.I.E.L.D. War Event unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
@@ -815,6 +890,13 @@ public static class AdminConsoleEngine
         {
             var eventEngine = (MwohServer.Services.IEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IEventEngine))!;
             MwohServer.Tests.EventEngineTests.Run(eventEngine, db);
+            return;
+        }
+
+        if (primary == "runwartests")
+        {
+            var warEngine = (MwohServer.Services.IWarEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IWarEventEngine))!;
+            MwohServer.Tests.WarEventTests.Run(warEngine, db);
             return;
         }
 

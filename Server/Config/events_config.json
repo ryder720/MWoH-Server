@@ -8,7 +8,7 @@
     "StartDate": "2026-05-20T00:00:00Z",
     "EndDate": "2026-06-10T00:00:00Z",
     "ResultDate": "2026-06-12T00:00:00Z",
-    "IsActiveOverride": true,
+    "IsActiveOverride": false,
     "CustomConfigJson": "{\"BossName\":\"Galactus\",\"EasyBaseHp\":900,\"MediumBaseHp\":5000,\"HardBaseHp\":15000,\"EasyBaseDef\":50,\"MediumBaseDef\":250,\"HardBaseDef\":1000,\"PointsPerEasyDefeat\":150,\"PointsPerMediumDefeat\":750,\"PointsPerHardDefeat\":3500,\"Milestones\":[{\"TargetPoints\":1000,\"RewardType\":\"Item\",\"RewardValue\":1,\"RewardQuantity\":2,\"RewardName\":\"Energy ISO-8 (L) x2\"},{\"TargetPoints\":5000,\"RewardType\":\"MobaCoin\",\"RewardValue\":1000,\"RewardQuantity\":1,\"RewardName\":\"1,000 MobaCoins\"},{\"TargetPoints\":10000,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"[Leopardess] Tigra\"}],\"RankRewards\":[{\"MinRank\":1,\"MaxRank\":3,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":3,\"RewardName\":\"3x [Leopardess] Tigra (Legend)\"},{\"MinRank\":4,\"MaxRank\":10,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"1x [Leopardess] Tigra (Legend)\"},{\"MinRank\":11,\"MaxRank\":100,\"RewardType\":\"Silver\",\"RewardValue\":250000,\"RewardQuantity\":1,\"RewardName\":\"250,000 Silver\"}]}"
   },
   {
@@ -34,5 +34,17 @@
     "ResultDate": "2026-04-22T00:00:00Z",
     "IsActiveOverride": false,
     "CustomConfigJson": "{\"Milestones\":[],\"RankRewards\":[]}"
+  },
+  {
+    "Id": "event_alliance_war_shield_training",
+    "Title": "S.H.I.E.L.D. ENFORCEMENT TRAINING",
+    "Description": "Operatives, assemble your divisions! The S.H.I.E.L.D. Enforcement Training war has commenced. Clash with rival alliances in strategic team-based combats. Defeat their defensive leaders to crush their shields, then strike their core headquarters directly to claim ultimate glory and Valor!",
+    "BannerImage": "/images/events/SET1Banner.jpg",
+    "EventType": "War",
+    "StartDate": "2026-05-30T00:00:00Z",
+    "EndDate": "2026-06-15T00:00:00Z",
+    "ResultDate": "2026-06-17T00:00:00Z",
+    "IsActiveOverride": true,
+    "CustomConfigJson": "{\"Milestones\":[{\"TargetPoints\":1000,\"RewardType\":\"Item\",\"RewardValue\":1,\"RewardQuantity\":2,\"RewardName\":\"Energy ISO-8 (L) x2\"},{\"TargetPoints\":5000,\"RewardType\":\"MobaCoin\",\"RewardValue\":1000,\"RewardQuantity\":1,\"RewardName\":\"1,000 MobaCoins\"},{\"TargetPoints\":10000,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"[Leopardess] Tigra\"}],\"RankRewards\":[{\"MinRank\":1,\"MaxRank\":5,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":2,\"RewardName\":\"2x [Leopardess] Tigra\"}]}"
   }
 ]

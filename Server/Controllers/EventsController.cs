@@ -22,17 +22,20 @@ namespace MwohServer.Controllers
         private readonly MwohDbContext _dbContext;
         private readonly IEventEngine _eventEngine;
         private readonly ISessionGateway _sessionGateway;
+        private readonly IWarEventEngine _warEventEngine;
 
         public EventsController(
             ILogger<EventsController> logger,
             MwohDbContext dbContext,
             IEventEngine eventEngine,
-            ISessionGateway sessionGateway)
+            ISessionGateway sessionGateway,
+            IWarEventEngine warEventEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
             _eventEngine = eventEngine;
             _sessionGateway = sessionGateway;
+            _warEventEngine = warEventEngine;
         }
 
         private UserAccount ResolveCurrentUser()
@@ -479,6 +482,208 @@ namespace MwohServer.Controllers
             replacements.Add("combatLogsHtml", logsHtml);
 
             return Content(RenderTemplate("raid_battle_result.html", replacements), "text/html");
+        }
+
+        [HttpGet("event/war")]
+        public IActionResult ServeWarPortal()
+        {
+            _logger.LogInformation("[EventsController] ServeWarPortal called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = _dbContext.Profiles
+                .Include(p => p.EventProgresses)
+                .Include(p => p.Alliance)
+                .FirstOrDefault(p => p.Id == profileId);
+
+            if (profile == null)
+            {
+                return RedirectToAction("ServeGameTopPage", "Cygames");
+            }
+
+            if (profile.AllianceId == null || profile.Alliance == null)
+            {
+                return Content("<div class='error-container' style='background:#0f172a;color:#ef4444;font-family:monospace;padding:50px;text-align:center;'><h2>COMMISSION BLOCKED: NO ALLIANCE</h2><br><p>You must be a member of a registered S.H.I.E.L.D. Division to participate in War Events.</p><br><a href='/ultimate/menu' style='color:#00f0ff;text-decoration:none;'>&lt; RETURN TO PORTAL</a></div>", "text/html");
+            }
+
+            var activeEvent = _eventEngine.GetActiveEvent();
+            if (activeEvent == null)
+            {
+                // Standby mode
+                var standbyReplacements = new Dictionary<string, string>
+                {
+                    { "level", profile.Level.ToString() },
+                    { "agentName", profile.Nickname },
+                    { "attackPowerCur", profile.AttackPowerCurrent.ToString() },
+                    { "attackPowerMax", profile.AttackPower.ToString() },
+                    { "attackPowerPct", ((double)profile.AttackPowerCurrent / profile.AttackPower * 100).ToString("N0") },
+                    { "isStandby", "true" },
+                    { "isUpcoming", "false" },
+                    { "isActive", "false" },
+                    { "isCalculating", "false" },
+                    { "isCompleted", "false" },
+                    { "eventId", "" },
+                    { "eventTitle", "S.H.I.E.L.D. STANDBY MODE" },
+                    { "eventDesc", "The war mainframe is currently offline. Stand by for priority global alerts." },
+                    { "timerSeconds", "3600" },
+                    { "timerLabel", "SCAN RE-CALIBRATION IN" },
+                    { "points", "0" },
+                    { "rank", "N/A" },
+                    { "leaderboardHtml", "<div class='no-records-card'>Rankings locked during standby.</div>" },
+                    { "milestonesHtml", "<div class='no-records-card'>Milestones supply drops offline.</div>" },
+                    { "combatLogsHtml", "" }
+                };
+                return Content(RenderTemplate("war_portal.html", standbyReplacements), "text/html");
+            }
+
+            var progress = _eventEngine.GetPlayerProgress(profile.Id, activeEvent.Id);
+            var state = _eventEngine.GetEventState(activeEvent);
+            var rank = _eventEngine.GetPlayerRank(profile.Id, activeEvent.Id);
+
+            var timerLabel = state switch
+            {
+                "Upcoming" => "DEPLOYMENT INITIATED IN",
+                "Active" => "WAR DIRECTIVE ACTIVE",
+                "Calculating" => "RANK VERIFICATION PERIOD",
+                _ => "CAMPAIGN CONCLUDED"
+            };
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "level", profile.Level.ToString() },
+                { "agentName", profile.Nickname },
+                { "attackPowerCur", profile.AttackPowerCurrent.ToString() },
+                { "attackPowerMax", profile.AttackPower.ToString() },
+                { "attackPowerPct", ((double)profile.AttackPowerCurrent / profile.AttackPower * 100).ToString("N0") },
+                { "isStandby", "false" },
+                { "isUpcoming", (state == "Upcoming").ToString().ToLower() },
+                { "isActive", (state == "Active").ToString().ToLower() },
+                { "isCalculating", (state == "Calculating").ToString().ToLower() },
+                { "isCompleted", (state == "Completed").ToString().ToLower() },
+                { "eventId", activeEvent.Id },
+                { "eventTitle", activeEvent.Title },
+                { "eventDesc", activeEvent.Description },
+                { "timerSeconds", GetTimerSeconds(activeEvent, state).ToString() },
+                { "timerLabel", timerLabel },
+                { "points", progress.Points.ToString("N0") },
+                { "rank", rank.ToString() },
+                { "leaderboardHtml", RenderLeaderboardHtml(activeEvent.Id, profile.Id) },
+                { "milestonesHtml", RenderMilestonesHtml(activeEvent, progress) },
+                { "combatLogsHtml", "" }
+            };
+
+            return Content(RenderTemplate("war_portal.html", replacements), "text/html");
+        }
+
+        [HttpGet("event/war/status")]
+        public IActionResult GetWarMatchupStatus([FromQuery] string eventId)
+        {
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = _dbContext.Profiles
+                .Include(p => p.Alliance)
+                .FirstOrDefault(p => p.Id == profileId);
+
+            if (profile == null || profile.AllianceId == null || profile.Alliance == null)
+            {
+                return BadRequest("Alliance reference missing.");
+            }
+
+            var alliance = profile.Alliance;
+            
+            // Check if queue has timed out for AI matching
+            _warEventEngine.CheckOrMatchmakeAlliance(alliance.Id, eventId);
+
+            var activeBattle = _warEventEngine.GetActiveWarBattle(alliance.Id, eventId);
+            var isQueued = alliance.IsQueuedForWar;
+            var canQueue = string.Equals(profile.AllianceRole, "Leader", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(profile.AllianceRole, "Vice-Leader", StringComparison.OrdinalIgnoreCase);
+
+            if (activeBattle == null)
+            {
+                return Ok(new
+                {
+                    isQueued = isQueued,
+                    canQueue = canQueue,
+                    battle = (object?)null
+                });
+            }
+
+            // Fetch names and details
+            var allianceA = _dbContext.Alliances.Find(activeBattle.AllianceAId);
+            var allianceB = _dbContext.Alliances.Find(activeBattle.AllianceBId);
+
+            var leadersA = JsonSerializer.Deserialize<List<WarDefensiveLeaderState>>(activeBattle.AllianceADefensiveLeadersJson) ?? new();
+            var leadersB = JsonSerializer.Deserialize<List<WarDefensiveLeaderState>>(activeBattle.AllianceBDefensiveLeadersJson) ?? new();
+
+            return Ok(new
+            {
+                isQueued = isQueued,
+                canQueue = canQueue,
+                isAllianceA = activeBattle.AllianceAId == alliance.Id,
+                battle = new
+                {
+                    id = activeBattle.Id,
+                    allianceAName = allianceA?.Name ?? "Division Alpha",
+                    allianceBName = allianceB?.Name ?? "Division Beta",
+                    allianceAHealthCurrent = activeBattle.AllianceAHealthCurrent,
+                    allianceAHealthMax = activeBattle.AllianceAHealthMax,
+                    allianceBHealthCurrent = activeBattle.AllianceBHealthCurrent,
+                    allianceBHealthMax = activeBattle.AllianceBHealthMax,
+                    allianceAValorCurrent = activeBattle.AllianceAValorCurrent,
+                    allianceBValorCurrent = activeBattle.AllianceBValorCurrent,
+                    allianceALeaders = leadersA,
+                    allianceBLeaders = leadersB,
+                    status = activeBattle.Status,
+                    startTime = activeBattle.StartTime,
+                    endTime = activeBattle.EndTime,
+                    isAiOpponent = activeBattle.IsAiOpponent
+                }
+            });
+        }
+
+        [HttpPost("event/war/queue")]
+        public IActionResult JoinWarMatchmakingQueue([FromQuery] string eventId)
+        {
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var profile = _dbContext.Profiles.Find(profileId);
+            if (profile == null || profile.AllianceId == null)
+            {
+                return Ok(new { success = false, message = "Alliance reference not found." });
+            }
+
+            if (!string.Equals(profile.AllianceRole, "Leader", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(profile.AllianceRole, "Vice-Leader", StringComparison.OrdinalIgnoreCase))
+            {
+                return Ok(new { success = false, message = "Command Denied. Leader role required to commission queue." });
+            }
+
+            _warEventEngine.EnterMatchmakingQueue(profile.AllianceId.Value);
+            
+            // Immediate check to see if an opponent is available
+            _warEventEngine.CheckOrMatchmakeAlliance(profile.AllianceId.Value, eventId);
+
+            return Ok(new { success = true });
+        }
+
+        [HttpPost("event/war/engage")]
+        public IActionResult EngageWarOpponent([FromBody] WarEngageRequest request)
+        {
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var result = _warEventEngine.ResolveWarEngagement(profileId, request.EventId, request.TargetProfileId, request.IsCoreAttack);
+            return Ok(result);
+        }
+
+        public class WarEngageRequest
+        {
+            public string EventId { get; set; } = string.Empty;
+            public int TargetProfileId { get; set; }
+            public bool IsCoreAttack { get; set; }
         }
 
         public class ClaimRequest

@@ -20,6 +20,7 @@ namespace MwohServer.Data
         public DbSet<PlayerAssignmentProgress> PlayerAssignmentProgress => Set<PlayerAssignmentProgress>();
         public DbSet<PlayerLoginCommendationProgress> PlayerLoginCommendations => Set<PlayerLoginCommendationProgress>();
         public DbSet<PlayerEventProgress> PlayerEventProgresses => Set<PlayerEventProgress>();
+        public DbSet<AllianceWarBattle> AllianceWarBattles => Set<AllianceWarBattle>();
 
         public MwohDbContext(DbContextOptions<MwohDbContext> options) : base(options)
         {

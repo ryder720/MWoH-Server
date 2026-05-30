@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Mainframe | Alliance War Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .war-status-banner {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(30, 27, 75, 0.4) 100%);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .war-alliance-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .alliance-stats-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            backdrop-filter: blur(8px);
+            position: relative;
+        }
+
+        .alliance-stats-card.friendly {
+            border-color: rgba(0, 240, 255, 0.25);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.08);
+        }
+
+        .alliance-stats-card.hostile {
+            border-color: rgba(239, 68, 68, 0.25);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.08);
+        }
+
+        .alliance-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .alliance-title.friendly { color: var(--hud-blue); }
+        .alliance-title.hostile { color: var(--accent-red); }
+
+        .alliance-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .core-health-bar-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 6px;
+        }
+
+        .core-health-bar-inner {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.4s ease-out;
+        }
+
+        .core-health-bar-inner.friendly {
+            background: linear-gradient(90deg, #0284c7, var(--hud-blue));
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.35);
+        }
+
+        .core-health-bar-inner.hostile {
+            background: linear-gradient(90deg, #b91c1c, var(--accent-red));
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
+        }
+
+        .commander-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .commander-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.25s ease;
+            position: relative;
+        }
+
+        .commander-card.active-target {
+            border-color: rgba(239, 68, 68, 0.3);
+            cursor: pointer;
+        }
+
+        .commander-card.active-target:hover {
+            background: rgba(239, 68, 68, 0.03);
+            border-color: var(--accent-red);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .commander-card.neutralized {
+            opacity: 0.45;
+            border-color: rgba(255, 255, 255, 0.02);
+            cursor: not-allowed;
+        }
+
+        .commander-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            object-fit: cover;
+        }
+
+        .commander-card.active-target .commander-avatar {
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .commander-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .commander-role-tag {
+            font-family: 'Space Mono', monospace;
+            font-size: 7.5px;
+            font-weight: bold;
+            color: var(--accent-gold);
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            padding: 1px 5px;
+            border-radius: 3px;
+            width: fit-content;
+            text-transform: uppercase;
+        }
+
+        .commander-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #ffffff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .shield-bar-outer {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .shield-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #d97706, #f59e0b);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.25);
+        }
+
+        .commander-card.neutralized .shield-bar-inner {
+            background: #475569;
+            box-shadow: none;
+        }
+
+        .strike-action-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            border: 1px solid var(--accent-red);
+            background: rgba(239, 68, 68, 0.05);
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .commander-card.active-target:hover .strike-action-btn {
+            background: var(--accent-red);
+            color: #0f172a;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .lock-shield-indicator {
+            position: absolute;
+            top: 10px; right: 10px;
+            font-size: 11px;
+        }
+
+        .log-box {
+            background: rgba(9, 13, 22, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #cbd5e1;
+            height: 120px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .log-row {
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            line-height: 1.35;
+        }
+
+        .queue-hud-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 14px;
+            padding: 24px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.08);
+            margin-bottom: 20px;
+        }
+
+        .queue-spinner {
+            font-size: 36px;
+            margin-bottom: 14px;
+            animation: spinQue 2.5s infinite linear;
+            display: inline-block;
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        @keyframes spinQue {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cta-war-btn {
+            background: linear-gradient(135deg, var(--hud-blue), #0284c7);
+            border: 1px solid var(--hud-blue);
+            color: #0f172a;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        .cta-war-btn:hover:not(:disabled) {
+            transform: scale(1.02);
+            box-shadow: 0 0 22px rgba(0, 240, 255, 0.5);
+        }
+
+        .cta-war-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            box-shadow: none;
+            border-color: rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.02);
+            color: #475569;
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1>WAR STRATEGY MATRIX</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px;">
+        
+        <!-- Profile info panel -->
+        <div class="profile-panel" style="margin-bottom: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-family:'Space Mono',monospace; font-size:10px; font-weight:bold; color:var(--hud-blue);">📡 STRATEGIC PROFILE</span>
+                <span class="badge-lvl">LEVEL {{level}}</span>
+            </div>
+            <div class="agent-name" style="font-size:1.2rem; margin-bottom:12px;">{{agentName}}</div>
+            
+            <div class="progress-block" style="margin-bottom: 0;">
+                <div class="progress-lbl">
+                    <span>ATTACK POWER CAPACITY</span>
+                    <span>{{attackPowerCur}} / {{attackPowerMax}} AP</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" style="background: var(--hud-blue); width: {{attackPowerPct}}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="feedback-banner" class="feedback-banner"></div>
+
+        <!-- MAIN CONDITIONAL INTERFACE -->
+        <div id="war-portal-wrapper">
+            
+            <!-- CASE 1: QUEUE STATUS (Not in Battle) -->
+            <div id="panel-queue-management" style="display: none;">
+                <div class="queue-hud-card">
+                    <!-- If Queued -->
+                    <div id="queue-state-active" style="display: none;">
+                        <div class="queue-spinner" style="color: var(--hud-blue);">📡</div>
+                        <h2 style="font-family:'Outfit',sans-serif; font-size:1.2rem; font-weight:800; color:#ffffff; margin-bottom:8px; text-transform:uppercase;">SCANNING SECTORS FOR RIVALS</h2>
+                        <p style="font-family:'Outfit',sans-serif; font-size:0.78rem; color:#64748b; line-height:1.45; max-width:85%; margin: 0 auto 20px auto;">
+                            Mainframe queue registered. Matching protocols are actively polling coordinates for rival Alliances. Check back shortly or proceed with Campaign operations.
+                        </p>
+                        <div style="font-family:'Space Mono',monospace; font-size:8px; color:var(--hud-blue); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px;" class="pulsing-cyan">
+                            📡 MATCHMAKING QUEUE ACTIVE // E.T.A. FALLBACK &lt; 10 MIN
+                        </div>
+                        <button onclick="checkQueueStatus()" class="milestone-btn ready" style="padding:6px 16px; font-size:8px;">POLL SYSTEM MATCHES</button>
+                    </div>
+
+                    <!-- If Not Queued -->
+                    <div id="queue-state-inactive" style="display: none;">
+                        <div class="lock-logo" style="color: var(--accent-gold); font-size: 32px; margin-bottom: 12px;">🛡️</div>
+                        <h2 style="font-family:'Outfit',sans-serif; font-size:1.2rem; font-weight:800; color:#ffffff; margin-bottom:8px; text-transform:uppercase;">ALLIANCE READY DESIGNATION</h2>
+                        <p style="font-family:'Outfit',sans-serif; font-size:0.78rem; color:#94a3b8; line-height:1.45; max-width:85%; margin: 0 auto 20px auto;">
+                            Enter the Alliance tactical queue to match against operational rival Divisions of equivalent clearance and Valor parameters.
+                        </p>
+                        
+                        <div id="queue-trigger-area">
+                            <button id="queue-btn" onclick="joinWarQueue()" class="cta-war-btn">COMMISSION ALLIANCE READY STATUS</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CASE 2: ACTIVE WAR IN PROGRESS -->
+            <div id="panel-active-match" style="display: none;">
+                
+                <!-- Event Banner Header -->
+                <div class="war-status-banner">
+                    <div class="event-type-badge war" style="margin-bottom:6px;">ALLIANCE WAR DIRECTIVE</div>
+                    <div class="event-title-main" style="font-size:1.15rem; margin-bottom:4px;">{{eventTitle}}</div>
+                    <div id="timer-strip" class="timer-strip" style="background:rgba(255,255,255,0.02); border-color:rgba(255,255,255,0.06); margin-top:12px; margin-bottom:0; padding:6px 10px;">
+                        <span class="timer-lbl" style="color:#ffffff; font-size:8px;">TACTICAL WINDOW CLOSE IN</span>
+                        <span id="war-countdown" class="timer-clock" style="font-size:9.5px; border-color:rgba(0,240,255,0.15); color:var(--hud-blue);">02:00:00</span>
+                    </div>
+                </div>
+
+                <!-- Alliance Matchup HP Dashboard -->
+                <div class="war-alliance-box">
+                    <!-- Player Alliance A -->
+                    <div class="alliance-stats-card friendly">
+                        <div class="alliance-title friendly">YOUR DIVISION</div>
+                        <div class="alliance-name" id="label-ally-name">Alliance A</div>
+                        
+                        <div class="core-health-bar-container">
+                            <div class="core-health-bar-inner friendly" id="bar-ally-hp" style="width: 100%;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:7px; color:#cbd5e1;">
+                            <span id="label-ally-hp-val">0 / 0 HP</span>
+                            <span id="label-ally-valor-val" style="color:var(--hud-blue);">0 PTS</span>
+                        </div>
+                    </div>
+
+                    <!-- Rival Alliance B -->
+                    <div class="alliance-stats-card hostile">
+                        <div class="alliance-title hostile">RIVAL DIVISION</div>
+                        <div class="alliance-name" id="label-enemy-name">Alliance B</div>
+                        
+                        <div class="core-health-bar-container">
+                            <div class="core-health-bar-inner hostile" id="bar-enemy-hp" style="width: 100%;"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-family:'Space Mono',monospace; font-size:7px; color:#cbd5e1;">
+                            <span id="label-enemy-hp-val">0 / 0 HP</span>
+                            <span id="label-enemy-valor-val" style="color:var(--accent-red);">0 PTS</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Core Headquarters Strike Trigger (Shield locked) -->
+                <div class="profile-panel" id="card-hq-strike" style="border-color:rgba(239, 68, 68, 0.15); background:rgba(239,68,68,0.02); margin-bottom:16px; text-align:center; padding:16px; position:relative;">
+                    <div class="lock-shield-indicator" id="hq-lock-shield">🔒</div>
+                    <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:var(--accent-red); margin-bottom:4px; letter-spacing:1.5px; text-transform:uppercase;">🚨 DIRECT RIVAL HEADQUARTERS DIRECTIVE</div>
+                    <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff; margin-bottom:8px;">CORE HQ POWER SYSTEM STRIKE</div>
+                    <button id="btn-hq-strike" onclick="strikeCoreHeadquarters()" class="cta-war-btn" style="background:linear-gradient(135deg,#b91c1c,#ef4444); border-color:#ef4444; color:#ffffff; padding:10px 20px;" disabled>
+                        ⚔️ DIRECT CORE ASSAULT (LOCKED)
+                    </button>
+                </div>
+
+                <!-- Opposing Defensive Commanders Grid -->
+                <div class="section-hdr" style="margin-bottom:8px;">// TARGET RIVAL DEFENSIVE COMMANDERS</div>
+                <div class="commander-grid" id="container-defensive-leaders">
+                    <!-- Rendered Dynamically via JS -->
+                </div>
+
+                <!-- Combat Ticker Log Scroller -->
+                <div class="section-hdr" style="margin-bottom:8px;">// DIRECTIVE STRATEGIC COMBAT TICKS</div>
+                <div class="log-box" id="container-combat-logs">
+                    <!-- Loaded via placeholders or dynamic updates -->
+                    {{combatLogsHtml}}
+                </div>
+
+            </div>
+
+            <!-- Scoreboard & Milestones Panels (Event Stats) -->
+            <div class="event-list-panel">
+                <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--accent-gold); letter-spacing:1px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">🏆 GLOBAL OPERATIVE SCOREBOARD</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    {{leaderboardHtml}}
+                </div>
+            </div>
+
+            <div class="event-list-panel" style="margin-bottom: 20px;">
+                <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--hud-blue); letter-spacing:1px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">🎁 MILITARY MILESTONE SUPPLIES</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    {{milestonesHtml}}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const eventId = "event_alliance_war_shield_training";
+        let activeBattle = null;
+        let isAllianceQueued = false;
+        let checkInterval = null;
+
+        // Initialize view states
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchMatchupStatus();
+        });
+
+        function fetchMatchupStatus() {
+            fetch(`/ultimate/event/war/status?eventId=${eventId}`)
+                .then(res => res.json())
+                .then(data => {
+                    isAllianceQueued = data.isQueued;
+                    activeBattle = data.battle;
+
+                    renderLayout(data);
+                })
+                .catch(err => {
+                    console.error("Mainframe communications link failure:", err);
+                });
+        }
+
+        function renderLayout(data) {
+            const queuePanel = document.getElementById("panel-queue-management");
+            const activePanel = document.getElementById("panel-active-match");
+
+            if (activeBattle) {
+                queuePanel.style.display = "none";
+                activePanel.style.display = "block";
+                
+                renderBattleBoard(data);
+            } else {
+                activePanel.style.display = "none";
+                queuePanel.style.display = "block";
+
+                if (isAllianceQueued) {
+                    document.getElementById("queue-state-active").style.display = "block";
+                    document.getElementById("queue-state-inactive").style.display = "none";
+                    
+                    // Start polling status regularly
+                    if (!checkInterval) {
+                        checkInterval = setInterval(fetchMatchupStatus, 15000);
+                    }
+                } else {
+                    document.getElementById("queue-state-active").style.display = "none";
+                    document.getElementById("queue-state-inactive").style.display = "block";
+                    
+                    if (checkInterval) {
+                        clearInterval(checkInterval);
+                        checkInterval = null;
+                    }
+
+                    // Render Queue trigger button according to role
+                    const triggerArea = document.getElementById("queue-trigger-area");
+                    if (data.canQueue) {
+                        triggerArea.innerHTML = `<button id="queue-btn" onclick="joinWarQueue()" class="cta-war-btn">COMMISSION ALLIANCE READY STATUS</button>`;
+                    } else {
+                        triggerArea.innerHTML = `<button class="cta-war-btn" disabled>COMMISSION STATUS BLOCKED (LEADER ROLE REQUIRED)</button>`;
+                    }
+                }
+            }
+        }
+
+        function joinWarQueue() {
+            const btn = document.getElementById("queue-btn");
+            if (btn) btn.disabled = true;
+
+            fetch(`/ultimate/event/war/queue?eventId=${eventId}`, { method: "POST" })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification("📁 mainframes registers queue commission successfully.", "success");
+                        fetchMatchupStatus();
+                    } else {
+                        showNotification(`⚠️ queue error: ${data.message}`, "error");
+                        if (btn) btn.disabled = false;
+                    }
+                })
+                .catch(() => {
+                    showNotification("💥 tactical sync communications breakdown.", "error");
+                    if (btn) btn.disabled = false;
+                });
+        }
+
+        function checkQueueStatus() {
+            showNotification("📡 scanning tactical databanks for match coordinates...", "success");
+            fetchMatchupStatus();
+        }
+
+        function renderBattleBoard(data) {
+            const isA = data.isAllianceA;
+            
+            // Set Names
+            document.getElementById("label-ally-name").textContent = isA ? activeBattle.allianceAName : activeBattle.allianceBName;
+            document.getElementById("label-enemy-name").textContent = isA ? activeBattle.allianceBName : activeBattle.allianceAName;
+
+            // Set HP bar friendly/hostile widths
+            const hpAllyCur = isA ? activeBattle.allianceAHealthCurrent : activeBattle.allianceBHealthCurrent;
+            const hpAllyMax = isA ? activeBattle.allianceAHealthMax : activeBattle.allianceBHealthMax;
+            const hpAllyPct = (hpAllyCur / hpAllyMax) * 100;
+            document.getElementById("bar-ally-hp").style.width = hpAllyPct + "%";
+            document.getElementById("label-ally-hp-val").textContent = `${hpAllyCur.toLocaleString()} / ${hpAllyMax.toLocaleString()} HP`;
+            document.getElementById("label-ally-valor-val").textContent = `${(isA ? activeBattle.allianceAValorCurrent : activeBattle.allianceBValorCurrent).toLocaleString()} VALOR`;
+
+            const hpEnemyCur = isA ? activeBattle.allianceBHealthCurrent : activeBattle.allianceAHealthCurrent;
+            const hpEnemyMax = isA ? activeBattle.allianceBHealthMax : activeBattle.allianceAHealthMax;
+            const hpEnemyPct = (hpEnemyCur / hpEnemyMax) * 100;
+            document.getElementById("bar-enemy-hp").style.width = hpEnemyPct + "%";
+            document.getElementById("label-enemy-hp-val").textContent = `${hpEnemyCur.toLocaleString()} / ${hpEnemyMax.toLocaleString()} HP`;
+            document.getElementById("label-enemy-valor-val").textContent = `${(isA ? activeBattle.allianceBValorCurrent : activeBattle.allianceAValorCurrent).toLocaleString()} VALOR`;
+
+            // Deserialize enemy defensive leaders
+            const opposingLeaders = isA ? activeBattle.allianceBLeaders : activeBattle.allianceALeaders;
+            
+            // Verify if all opposing leaders are neutralized (0 HP)
+            const allDefeated = opposingLeaders.every(l => l.defPowerCurrent <= 0);
+            
+            // Render Headquarters Core card
+            const hqCard = document.getElementById("card-hq-strike");
+            const hqLock = document.getElementById("hq-lock-shield");
+            const hqBtn = document.getElementById("btn-hq-strike");
+
+            if (allDefeated) {
+                hqCard.style.borderColor = "var(--accent-red)";
+                hqCard.style.background = "rgba(239, 68, 68, 0.05)";
+                hqLock.textContent = "🔓";
+                hqBtn.disabled = false;
+                hqBtn.textContent = "⚔️ LAUNCH CORE ATTACK OPS";
+            } else {
+                hqCard.style.borderColor = "rgba(239, 68, 68, 0.15)";
+                hqCard.style.background = "rgba(239,68,68,0.02)";
+                hqLock.textContent = "🔒";
+                hqBtn.disabled = true;
+                hqBtn.textContent = "⚔️ DIRECT CORE ASSAULT (SHIELDS ACTIVE)";
+            }
+
+            // Render opposing defensive commanders
+            const leadersGrid = document.getElementById("container-defensive-leaders");
+            leadersGrid.innerHTML = "";
+
+            opposingLeaders.forEach(leader => {
+                const card = document.createElement("div");
+                const isNeut = leader.defPowerCurrent <= 0;
+                
+                card.className = `commander-card ${isNeut ? 'neutralized' : 'active-target'}`;
+                if (!isNeut) {
+                    card.onclick = () => strikeOpponentLeader(leader.profileId);
+                }
+
+                const hpPct = (leader.defPowerCurrent / leader.defPowerMax) * 100;
+
+                card.innerHTML = `
+                    <img src="${leader.leaderCardImage ? '/images/cards/' + leader.leaderCardImage : '/images/cards/placeholder.jpg'}" class="commander-avatar">
+                    <div class="commander-info">
+                        <div class="commander-role-tag">${leader.role}</div>
+                        <div class="commander-name">${leader.nickname}</div>
+                        <div style="font-family:'Space Mono',monospace; font-size:7px; color:#cbd5e1; margin-top:2px;">
+                            SHIELD STATUS: ${leader.defPowerCurrent} / ${leader.defPowerMax} DEF
+                        </div>
+                        <div class="shield-bar-outer">
+                            <div class="shield-bar-inner" style="width: ${hpPct}%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="strike-action-btn" ${isNeut ? 'disabled' : ''}>${isNeut ? 'NEUTRALIZED' : 'STRIKE'}</button>
+                    </div>
+                `;
+
+                leadersGrid.appendChild(card);
+            });
+
+            // Start battle timer clock
+            let timerSeconds = Math.max(0, Math.floor((new Date(activeBattle.endTime) - new Date()) / 1000));
+            startTimerClock(timerSeconds);
+        }
+
+        let clockTimer = null;
+        function startTimerClock(sec) {
+            if (clockTimer) clearInterval(clockTimer);
+
+            const timer = document.getElementById("war-countdown");
+            if (!timer) return;
+
+            function updateTime() {
+                if (sec <= 0) {
+                    timer.textContent = "CONCLUDED";
+                    clearInterval(clockTimer);
+                    setTimeout(fetchMatchupStatus, 3000);
+                    return;
+                }
+
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = sec % 60;
+
+                timer.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                sec--;
+            }
+
+            updateTime();
+            clockTimer = setInterval(updateTime, 1000);
+        }
+
+        function strikeOpponentLeader(profileId) {
+            executeStrike(profileId, false);
+        }
+
+        function strikeCoreHeadquarters() {
+            executeStrike(0, true);
+        }
+
+        function executeStrike(targetId, isCore) {
+            const banner = document.getElementById("feedback-banner");
+            banner.style.display = "none";
+
+            fetch("/ultimate/event/war/engage", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    eventId: eventId,
+                    targetProfileId: targetId,
+                    isCoreAttack: isCore
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Prepend combat logs
+                    const logContainer = document.getElementById("container-combat-logs");
+                    
+                    let newLogs = "";
+                    data.combatLogs.forEach(log => {
+                        let style = "";
+                        if (log.startsWith("[TACTICAL SUPREMACY]") || log.startsWith("[DEFENSIVE VICTORY]")) style = "color:#fbbf24;";
+                        else if (log.startsWith("[DIRECT CORE ASSAULT]")) style = "color:#ef4444;";
+                        else if (log.startsWith("[DECK CLASH ENGAGED]")) style = "color:#60a5fa;";
+                        newLogs += `<div class="log-row" style="${style}">${log}</div>`;
+                    });
+
+                    logContainer.innerHTML = newLogs + logContainer.innerHTML;
+                    
+                    showNotification(`💥 Strike Clearance: Dealt ${data.damageDealt.toLocaleString()} damage! Secured +${data.pointsEarned} Valor points.`, "success");
+                    
+                    // Refresh stats and boards
+                    fetchMatchupStatus();
+                } else {
+                    showNotification(`⚠️ strike mismatch: ${data.message}`, "error");
+                }
+            })
+            .catch(() => {
+                showNotification("💥 tactical sync communications breakdown.", "error");
+            });
+        }
+
+        function showNotification(msg, type) {
+            const banner = document.getElementById("feedback-banner");
+            banner.style.display = "block";
+            banner.textContent = msg;
+            
+            if (type === "success") {
+                banner.style.background = "rgba(16, 185, 129, 0.15)";
+                banner.style.borderColor = "rgba(16, 185, 129, 0.4)";
+                banner.style.color = "#10b981";
+            } else {
+                banner.style.background = "rgba(239, 68, 68, 0.15)";
+                banner.style.borderColor = "rgba(239, 68, 68, 0.4)";
+                banner.style.color = "#ef4444";
+            }
+        }
+    </script>
+</body>
+</html>

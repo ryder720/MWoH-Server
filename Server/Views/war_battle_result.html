@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Mainframe | Battle Dossier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .result-dossier {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .outcome-header {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .outcome-header.victory {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+        }
+
+        .outcome-header.defeat {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+
+        .outcome-subtitle {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #64748b;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+            display: block;
+        }
+
+        .stat-dossier-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-dossier-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .dossier-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .dossier-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #cbd5e1;
+        }
+
+        .stat-dossier-card.highlight .dossier-val {
+            color: var(--hud-blue);
+            text-shadow: 0 0 10px rgba(0,240,255,0.25);
+        }
+
+        .ticker-scroller {
+            background: rgba(9, 13, 22, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #cbd5e1;
+            height: 180px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/event/war" class="back-btn">&lt; PORTAL</a>
+        <h1>STRATEGIC DEPLOYMENT DOSSIER</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px;">
+        
+        <div class="result-dossier">
+            <h2 class="outcome-header {{headerClass}}">{{outcomeTitle}}</h2>
+            <span class="outcome-subtitle">// BATTLE ENGAGEMENT ARCHIVE COMPLETED</span>
+
+            <div class="stat-dossier-grid">
+                <div class="stat-dossier-card">
+                    <span class="dossier-lbl">VALOR POINTS SECURED</span>
+                    <span class="dossier-val" style="color:var(--accent-gold);">+{{pointsEarned}} PTS</span>
+                </div>
+                <div class="stat-dossier-card highlight">
+                    <span class="dossier-lbl">DAMAGE RECORDED</span>
+                    <span class="dossier-val">{{damageDealt}} DMG</span>
+                </div>
+            </div>
+
+            <div class="section-hdr" style="margin-bottom: 8px;">// BATTLE RECORD LOG HISTORY</div>
+            <div class="ticker-scroller">
+                {{combatLogsHtml}}
+            </div>
+
+            <a href="/ultimate/event/war" class="cta-btn-glow" style="display:block; text-align:center; font-size:9px; text-decoration:none; padding:12px; border-radius:6px; border:1px solid var(--hud-blue); background:rgba(0, 240, 255, 0.05); color:#ffffff; font-family:'Space Mono',monospace; font-weight:bold;">
+                RETURN TO WAR HUB
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>
