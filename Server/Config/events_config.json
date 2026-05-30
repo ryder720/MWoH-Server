@@ -44,7 +44,7 @@
     "StartDate": "2026-05-30T00:00:00Z",
     "EndDate": "2026-06-15T00:00:00Z",
     "ResultDate": "2026-06-17T00:00:00Z",
-    "IsActiveOverride": true,
+    "IsActiveOverride": false,
     "CustomConfigJson": "{\"Milestones\":[{\"TargetPoints\":1000,\"RewardType\":\"Item\",\"RewardValue\":1,\"RewardQuantity\":2,\"RewardName\":\"Energy ISO-8 (L) x2\"},{\"TargetPoints\":5000,\"RewardType\":\"MobaCoin\",\"RewardValue\":1000,\"RewardQuantity\":1,\"RewardName\":\"1,000 MobaCoins\"},{\"TargetPoints\":10000,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"[Leopardess] Tigra\"}],\"RankRewards\":[{\"MinRank\":1,\"MaxRank\":5,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":2,\"RewardName\":\"2x [Leopardess] Tigra\"}]}"
   }
 ]
