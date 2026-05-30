@@ -639,7 +639,7 @@ namespace MwohServer.Data
             var rivalsData = new List<(string Username, string Nickname, int Level, int AP, int DP, long Silver, string MainCardTitle)>
             {
                 ("coulson", "Agent Coulson", 45, 120, 120, 45000, "Spider-Man"),
-                ("may", "Agent May", 55, 140, 140, 60000, "Black Widow"),
+                ("may", "Agent May", 55, 140, 140, 60000, "Secret Agent Black Widow"),
                 ("fury", "Director Fury", 99, 250, 250, 200000, "Thor"),
                 ("hill", "Agent Hill", 60, 150, 150, 75000, "Iron Man"),
                 ("widow", "Agent Romanoff", 75, 180, 180, 110000, "Captain America")
