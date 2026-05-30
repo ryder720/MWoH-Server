@@ -172,15 +172,33 @@
             const artworkFrame = document.getElementById('details-artwork-frame');
             const imageFile = "{{imageFile}}";
             
-            if (imageFile) {
-                artworkFrame.style.backgroundImage = `url('/images/cards/${imageFile}')`;
-                artworkFrame.style.backgroundSize = 'cover';
-                artworkFrame.style.backgroundPosition = 'center';
-                artworkFrame.textContent = '';
-            }
-
             const glowColor = alignment === 'Speed' ? 'rgba(0, 240, 255, 0.4)' : (alignment === 'Bruiser' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(245, 158, 11, 0.4)');
             const neonColor = alignment === 'Speed' ? '#00f0ff' : (alignment === 'Bruiser' ? '#ef4444' : '#f59e0b');
+            const icon = alignment === 'Speed' ? '⚡' : (alignment === 'Bruiser' ? '⚔️' : '🛡️');
+
+            if (imageFile) {
+                const img = new Image();
+                img.onload = () => {
+                    artworkFrame.style.backgroundImage = `url('/images/cards/${imageFile}')`;
+                    artworkFrame.style.backgroundSize = 'cover';
+                    artworkFrame.style.backgroundPosition = 'center';
+                    artworkFrame.textContent = '';
+                };
+                img.onerror = () => {
+                    artworkFrame.style.backgroundImage = 'none';
+                    artworkFrame.style.background = 'radial-gradient(circle, rgba(16, 24, 48, 0.8) 0%, rgba(3, 7, 18, 0.95) 100%)';
+                    artworkFrame.style.display = 'flex';
+                    artworkFrame.style.alignItems = 'center';
+                    artworkFrame.style.justifyContent = 'center';
+                    artworkFrame.style.fontSize = '80px';
+                    artworkFrame.style.color = neonColor;
+                    artworkFrame.style.textShadow = `0 0 20px ${glowColor}`;
+                    artworkFrame.textContent = icon;
+                };
+                img.src = `/images/cards/${imageFile}`;
+            } else {
+                artworkFrame.textContent = icon;
+            }
             
             const container = document.getElementById('details-container');
             

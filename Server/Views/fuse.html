@@ -7,14 +7,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/ultimate.css">
     <style>
-        .fuse-thumbnail {
+        .enhance-thumbnail {
             width: 34px;
             height: 34px;
             border-radius: 4px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             background-size: cover;
             background-position: center;
-            background-color: rgba(255, 255, 255, 0.03);
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -30,7 +30,7 @@
         }
 
         .catalog-card {
-            background-color: rgba(3, 7, 18, 0.4);
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 6px;
             aspect-ratio: 2/3;
@@ -42,8 +42,20 @@
             background-repeat: no-repeat;
             background-position: center;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 0;
+        }
+
+        .catalog-card::before {
+            content: "🛡️";
+            font-size: 28px;
+            opacity: 0.15;
+            position: absolute;
+            z-index: 1;
+            pointer-events: none;
+            filter: drop-shadow(0 0 10px var(--hud-blue-glow));
         }
 
         .catalog-card.is-leader-card {
@@ -597,7 +609,7 @@
 
                 itemEl.innerHTML = `
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div class="enhance-thumbnail" style="background-image: url('/images/cards/${p.imageFile}');">${p.imageFile ? '' : '🛡️'}</div>
+                        <div class="enhance-thumbnail" style="background-image: url('/images/cards/${p.imageFile}');"><span style="opacity: 0.15; pointer-events: none;">🛡️</span></div>
                         <div>
                             <div class="material-lbl">${p.title}</div>
                             <div class="material-sub">ATK ${p.atk.toLocaleString()} // DEF ${p.def.toLocaleString()}${statusBadge}${masteryBadge}</div>

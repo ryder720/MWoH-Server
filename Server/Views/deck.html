@@ -51,7 +51,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             background-size: cover;
             background-position: center;
-            background-color: rgba(255, 255, 255, 0.03);
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -174,7 +174,7 @@
                 cardEl.innerHTML = `
                     <div class="card-meta" style="display: flex; align-items: center; gap: 10px;">
                         <div class="alignment-indicator" style="background-color: ${alignColor}; box-shadow: 0 0 8px ${alignColor};"></div>
-                        <div class="card-thumbnail" style="background-image: url('/images/cards/${c.imageFile}');">${c.imageFile ? '' : '🛡️'}</div>
+                        <div class="card-thumbnail" style="background-image: url('/images/cards/${c.imageFile}');"><span style="opacity: 0.15; pointer-events: none;">🛡️</span></div>
                         <div class="card-details">
                             <span class="card-name-line">${c.title}</span>
                             <span class="card-subtext">${c.rarity.toUpperCase()} // LVL ${c.level} // ATK ${c.atk} // DEF ${c.def}</span>

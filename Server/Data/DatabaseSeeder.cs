@@ -83,6 +83,38 @@ namespace MwohServer.Data
                             int masteryAtk = GetIntStat(stats, "mastery_bonus_atk");
                             int masteryDef = GetIntStat(stats, "mastery_bonus_def");
 
+                            // Dynamic healing of missing stats
+                            if (baseAtk == 0 && maxAtk == 0)
+                            {
+                                int rarityMultiplier = rarity switch
+                                {
+                                    "Ultimate Legendary" => 280,
+                                    "Legendary" => 250,
+                                    "Super Rare" => 180,
+                                    "Rare" => 140,
+                                    "High Normal" => 100,
+                                    _ => 80 // Normal
+                                };
+                                baseAtk = power * rarityMultiplier;
+                                baseDef = (int)(baseAtk * 0.9);
+                                maxAtk = baseAtk * 3;
+                                maxDef = baseDef * 3;
+                            }
+                            else if (baseAtk == 0 && maxAtk > 0)
+                            {
+                                baseAtk = (int)(maxAtk * 0.35);
+                                baseDef = (int)(maxDef * 0.35);
+                            }
+                            else if (maxAtk == 0 && baseAtk > 0)
+                            {
+                                maxAtk = baseAtk * 3;
+                                maxDef = baseDef * 3;
+                            }
+
+                            // Propagate mastery bonus stats if they are zero
+                            if (masteryAtk == 0) masteryAtk = (int)(maxAtk * 0.12);
+                            if (masteryDef == 0) masteryDef = (int)(maxDef * 0.12);
+
                             int maxMastery = 100;
                             if (varEl.TryGetProperty("max_mastery", out var maxMProp))
                             {

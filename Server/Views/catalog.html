@@ -15,7 +15,7 @@
         }
 
         .catalog-card {
-            background-color: rgba(3, 7, 18, 0.4);
+            background: radial-gradient(circle, rgba(16, 24, 48, 0.6) 0%, rgba(3, 7, 18, 0.95) 100%);
             border: 1px solid var(--border-color);
             border-radius: 6px;
             aspect-ratio: 2/3;
@@ -27,8 +27,20 @@
             background-repeat: no-repeat;
             background-position: center;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 0;
+        }
+
+        .catalog-card::before {
+            content: "🛡️";
+            font-size: 32px;
+            opacity: 0.15;
+            position: absolute;
+            z-index: 1;
+            pointer-events: none;
+            filter: drop-shadow(0 0 10px var(--hud-blue-glow));
         }
 
         .catalog-card.is-leader-card {
