@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Supply Depot & Market</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .shop-container {
+            padding: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Glassmorphic Balance HUD */
+        .balance-hud {
+            background: rgba(13, 20, 35, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.05);
+            backdrop-filter: blur(8px);
+        }
+        .balance-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .balance-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            color: #94a3b8;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+        .balance-val {
+            font-size: 18px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            filter: drop-shadow(0 0 4px currentColor);
+        }
+        .silver-text { color: #10b981; }
+        .mobacoin-text { color: #f59e0b; }
+
+        /* Shop Grid */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        @media(min-width: 550px) {
+            .shop-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Glassmorphic Depot Card */
+        .depot-card {
+            background: rgba(13, 20, 35, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .depot-card:hover {
+            transform: translateY(-3px);
+            background: rgba(13, 20, 35, 0.8);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Glow effects based on package type */
+        .card-mobacoin {
+            border-color: rgba(245, 158, 11, 0.25);
+        }
+        .card-mobacoin:hover {
+            border-color: rgba(245, 158, 11, 0.5);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.15);
+        }
+        .card-item-power {
+            border-color: rgba(239, 68, 68, 0.25);
+        }
+        .card-item-power:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
+        }
+        .card-item-energy {
+            border-color: rgba(0, 240, 255, 0.25);
+        }
+        .card-item-energy:hover {
+            border-color: rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+        }
+
+        /* Asset visual framework */
+        .asset-showcase {
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            margin-bottom: 12px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .asset-emblem {
+            font-size: 38px;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+        .asset-qty-badge {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(8, 12, 20, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .asset-details {
+            flex-grow: 1;
+            margin-bottom: 15px;
+        }
+        .asset-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0 0 6px 0;
+            letter-spacing: 0.5px;
+        }
+        .asset-desc {
+            font-size: 11px;
+            color: #94a3b8;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Cost Action layout */
+        .cost-action-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            padding-top: 12px;
+            margin-top: auto;
+        }
+        .price-tag {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .price-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #64748b;
+            letter-spacing: 1px;
+        }
+        .price-value {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .purchase-btn {
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid #00f0ff;
+            color: #00f0ff;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .purchase-btn:hover {
+            background: #00f0ff;
+            color: #080c14;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.35);
+        }
+        .purchase-btn:active {
+            transform: scale(0.96);
+        }
+
+        .purchase-btn-free {
+            border-color: #10b981;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+        }
+        .purchase-btn-free:hover {
+            background: #10b981;
+            color: #080c14;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Premium Alert Drawer */
+        .hud-toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 999999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .hud-toast {
+            background: rgba(13, 20, 35, 0.95);
+            border-radius: 8px;
+            padding: 12px 18px;
+            font-size: 12px;
+            color: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 420px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #00f0ff;
+        }
+        .hud-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast-success {
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.2), 0 8px 25px rgba(0,0,0,0.4);
+        }
+        .toast-error {
+            border-color: #ef4444;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2), 0 8px 25px rgba(0,0,0,0.4);
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <h1>S.H.I.E.L.D. SUPPLY DEPOT</h1>
+        <div class="agent-badge">{{agentName}} [LVL {{level}}]</div>
+    </div>
+
+    <div class="shop-container">
+        <!-- Floating HUD Balances -->
+        <div class="balance-hud">
+            <div class="balance-item">
+                <span class="balance-lbl">Silver Reserves</span>
+                <span class="balance-val silver-text" id="hud-silver">
+                    🪙 <span id="silver-count">{{silverFormatted}}</span>
+                </span>
+            </div>
+            <div class="balance-item">
+                <span class="balance-lbl">MobaCoin Holdings</span>
+                <span class="balance-val mobacoin-text" id="hud-mobacoin">
+                    ⚡ <span id="mobacoin-count">{{mobacoinFormatted}}</span>
+                </span>
+            </div>
+        </div>
+
+        <div style="background: rgba(0, 240, 255, 0.03); border: 1px dashed rgba(0, 240, 255, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 20px; text-align: center;">
+            <span style="font-family: 'Space Mono', monospace; font-size: 10px; color: #00f0ff; letter-spacing: 1px;">📡 // Helicarrier supply channels operational. Exchange Silver or claim command allocations.</span>
+        </div>
+
+        <!-- Dynamic packages grid -->
+        <div class="shop-grid" id="packages-grid"></div>
+
+        <div style="text-align: center; margin-top: 25px;">
+            <a href="/ultimate/menu" class="action-btn" style="display: inline-block; padding: 8px 24px; font-size: 10px;">&lt; DISMISS & RETURN</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        // MAIN SUPPLY LINK SYSTEM SYNC: OK
+    </div>
+
+    <!-- Toast container -->
+    <div class="hud-toast-container" id="toast-container"></div>
+
+    <script>
+        // Load dynamically parsed packages
+        const packages = {{packagesJson}};
+
+        const grid = document.getElementById('packages-grid');
+        
+        packages.forEach(pkg => {
+            const card = document.createElement('div');
+            card.className = 'depot-card';
+            
+            // Apply customized color framework
+            let icon = '🎁';
+            let styleClass = '';
+            let color = '';
+            
+            if (pkg.Type.toLowerCase() === 'mobacoin') {
+                icon = '⚡';
+                styleClass = 'card-mobacoin';
+                color = '#f59e0b';
+            } else if (pkg.ItemTemplateName.toLowerCase().includes('power pack')) {
+                icon = '🩸';
+                styleClass = 'card-item-power';
+                color = '#ef4444';
+            } else if (pkg.ItemTemplateName.toLowerCase().includes('energy')) {
+                icon = '🔋';
+                styleClass = 'card-item-energy';
+                color = '#00f0ff';
+            }
+
+            card.classList.add(styleClass);
+
+            const isFree = pkg.IsFree;
+            const priceText = isFree ? 'FREE' : pkg.SilverCost.toLocaleString();
+            const priceColor = isFree ? '#10b981' : '#e2e8f0';
+
+            card.innerHTML = `
+                <div>
+                    <div class="asset-showcase" style="color: ${color};">
+                        <span class="asset-emblem">${icon}</span>
+                        <span class="asset-qty-badge">${pkg.Quantity > 1 ? 'x' + pkg.Quantity : 'SINGLE'}</span>
+                    </div>
+                    <div class="asset-details">
+                        <h3 class="asset-title">${pkg.Name}</h3>
+                        <p class="asset-desc">${pkg.Description}</p>
+                    </div>
+                </div>
+                <div class="cost-action-row">
+                    <div class="price-tag">
+                        <span class="price-label">ESTIMATED VAL</span>
+                        <span class="price-value" style="color: ${priceColor};">
+                            ${isFree ? '🌟' : '🪙'} ${priceText}
+                        </span>
+                    </div>
+                    <button class="purchase-btn ${isFree ? 'purchase-btn-free' : ''}" onclick="issuePurchase('${pkg.Id}', this)">
+                        ${isFree ? 'CLAIM' : 'PURCHASE'}
+                    </button>
+                </div>
+            `;
+            
+            grid.appendChild(card);
+        });
+
+        // Background AJAX purchasing process
+        function issuePurchase(packageId, btn) {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'SYNCHING...';
+
+            const formData = new FormData();
+            formData.append('packageId', packageId);
+
+            fetch('/ultimate/shop/purchase', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    // Dynamic header transitions
+                    animateCount('silver-count', data.silver);
+                    animateCount('mobacoin-count', data.mobacoin);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                showToast('📡 S.H.I.E.L.D. UPLINK DELAY: Connection timed out.', 'error');
+            });
+        }
+
+        // Beautiful monospaced integer counts animation
+        function animateCount(elemId, targetVal) {
+            const elem = document.getElementById(elemId);
+            if (!elem) return;
+            
+            const currentStr = elem.innerText.replace(/,/g, '');
+            const currentVal = parseInt(currentStr) || 0;
+            if (currentVal === targetVal) return;
+
+            const duration = 800; // ms
+            const start = performance.now();
+
+            function update(time) {
+                let elapsed = time - start;
+                let progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out cubic
+                let ease = 1 - Math.pow(1 - progress, 3);
+                let current = Math.floor(currentVal + (targetVal - currentVal) * ease);
+                
+                elem.innerText = current.toLocaleString();
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                } else {
+                    elem.innerText = targetVal.toLocaleString();
+                }
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Glow Toast alerts
+        function showToast(msg, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `hud-toast ${type === 'success' ? 'toast-success' : 'toast-error'}`;
+            
+            const icon = type === 'success' ? '📡' : '⚠️';
+            
+            toast.innerHTML = `
+                <span style="font-size: 16px;">${icon}</span>
+                <span style="font-family: 'Outfit', sans-serif;">${msg}</span>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Force reflow for transform animation
+            toast.offsetHeight;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>

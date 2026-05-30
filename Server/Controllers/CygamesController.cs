@@ -37,6 +37,7 @@ namespace MwohServer.Controllers
         private readonly ILoginCommendationEngine _loginCommendationEngine;
         private readonly IShieldTeamEngine _shieldTeamEngine;
         private readonly IResourceVaultEngine _resourceVaultEngine;
+        private readonly IShopEngine _shopEngine;
 
         public CygamesController(
             ILogger<CygamesController> logger, 
@@ -55,7 +56,8 @@ namespace MwohServer.Controllers
             IAssignmentEngine assignmentEngine,
             ILoginCommendationEngine loginCommendationEngine,
             IShieldTeamEngine shieldTeamEngine,
-            IResourceVaultEngine resourceVaultEngine)
+            IResourceVaultEngine resourceVaultEngine,
+            IShopEngine shopEngine)
         {
             _logger = logger;
             _authService = authService;
@@ -74,6 +76,7 @@ namespace MwohServer.Controllers
             _loginCommendationEngine = loginCommendationEngine;
             _shieldTeamEngine = shieldTeamEngine;
             _resourceVaultEngine = resourceVaultEngine;
+            _shopEngine = shopEngine;
         }
 
         // 1. Temporary Credential Request (Cygames OAuth step 1)
@@ -1107,7 +1110,6 @@ namespace MwohServer.Controllers
             return RedirectToAction("ServeEnhancementForgePage");
         }
 
-        [HttpGet("shop")]
         [HttpGet("wish")]
         [HttpGet("archive")]
         [HttpGet("advise/index/top")]
@@ -1143,6 +1145,48 @@ namespace MwohServer.Controllers
             };
 
             return Content(RenderTemplate("stub_portal.html", replacements), "text/html");
+        }
+
+        [HttpGet("shop")]
+        public IActionResult ServeShopPage()
+        {
+            _logger.LogInformation("[Cygames] ServeShopPage called.");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+            var profile = GetPlayerProfile(profileId);
+            if (profile == null) return RedirectToAction("ServeGameTopPage");
+
+            var packages = _shopEngine.GetShopPackages();
+
+            var replacements = new Dictionary<string, string>
+            {
+                { "agentName", profile.Nickname },
+                { "level", profile.Level.ToString() },
+                { "silver", profile.SilverBalance.ToString() },
+                { "silverFormatted", profile.SilverBalance.ToString("N0") },
+                { "mobacoin", profile.MobaCoinBalance.ToString() },
+                { "mobacoinFormatted", profile.MobaCoinBalance.ToString("N0") },
+                { "packagesJson", JsonSerializer.Serialize(packages) }
+            };
+
+            return Content(RenderTemplate("shop.html", replacements), "text/html");
+        }
+
+        [HttpPost("shop/purchase")]
+        public IActionResult PurchaseShopAsset([FromForm] string packageId)
+        {
+            _logger.LogInformation($"[Cygames] PurchaseShopAsset called for packageId: {packageId}");
+            var user = ResolveCurrentUser();
+            var profileId = user.Profile?.Id ?? 1;
+
+            var result = _shopEngine.PurchasePackage(profileId, packageId);
+            return Ok(new
+            {
+                success = result.Success,
+                message = result.Message,
+                silver = result.NewSilverBalance,
+                mobacoin = result.NewMobaCoinBalance
+            });
         }
 
         [HttpGet("friend")]

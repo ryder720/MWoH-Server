@@ -51,6 +51,7 @@ builder.Services.AddScoped<IAssignmentEngine, AssignmentEngine>();
 builder.Services.AddScoped<ILoginCommendationEngine, LoginCommendationEngine>();
 builder.Services.AddScoped<IEventEngine, EventEngine>();
 builder.Services.AddScoped<IWarEventEngine, WarEventEngine>();
+builder.Services.AddScoped<IShopEngine, ShopEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -832,6 +833,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  events calculate <eventId>                     - Force rank compiles and award dispatch");
             Console.WriteLine("  runeventtests                                  - Execute S.H.I.E.L.D. Event Foundation unit tests");
             Console.WriteLine("  runwartests                                    - Execute S.H.I.E.L.D. War Event unit tests");
+            Console.WriteLine("  runshoptests                                   - Execute S.H.I.E.L.D. Helicarrier Shop unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
@@ -897,6 +899,13 @@ public static class AdminConsoleEngine
         {
             var warEngine = (MwohServer.Services.IWarEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IWarEventEngine))!;
             MwohServer.Tests.WarEventTests.Run(warEngine, db);
+            return;
+        }
+
+        if (primary == "runshoptests")
+        {
+            var shopEngine = (MwohServer.Services.IShopEngine)serviceProvider.GetService(typeof(MwohServer.Services.IShopEngine))!;
+            MwohServer.Tests.ShopTests.Run(shopEngine, db);
             return;
         }
 

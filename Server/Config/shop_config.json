@@ -1,0 +1,50 @@
+[
+  {
+    "Id": "mobacoin_1k",
+    "Name": "1,000 MobaCoins Pack",
+    "Description": "Secure high-priority virtual currency credits. Used for card recruitments, forge enhancements, and special events.",
+    "Type": "MobaCoin",
+    "Quantity": 1000,
+    "SilverCost": 50000,
+    "IsFree": false
+  },
+  {
+    "Id": "mobacoin_5k",
+    "Name": "5,000 MobaCoins Bulk Pack",
+    "Description": "Bulk allocation of virtual currency credits for major tactical squad advancements.",
+    "Type": "MobaCoin",
+    "Quantity": 5000,
+    "SilverCost": 200000,
+    "IsFree": false
+  },
+  {
+    "Id": "power_pack_1",
+    "Name": "Power Pack",
+    "Description": "A tactical supply cell that fully restores both Attack Power (AP) and Defense Power (DP).",
+    "Type": "Item",
+    "ItemTemplateName": "Power Pack",
+    "Quantity": 1,
+    "SilverCost": 10000,
+    "IsFree": false
+  },
+  {
+    "Id": "energy_pack_1",
+    "Name": "Energy Pack",
+    "Description": "An energy reserve pack that fully restores your active Energy (EN).",
+    "Type": "Item",
+    "ItemTemplateName": "Energy Pack",
+    "Quantity": 1,
+    "SilverCost": 5000,
+    "IsFree": false
+  },
+  {
+    "Id": "free_energy_allocation",
+    "Name": "Weekly Energy Reserve (Free)",
+    "Description": "S.H.I.E.L.D. command backup energy cell. Free weekly emergency reserve.",
+    "Type": "Item",
+    "ItemTemplateName": "Energy Pack",
+    "Quantity": 1,
+    "SilverCost": 0,
+    "IsFree": true
+  }
+]
