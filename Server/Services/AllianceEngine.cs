@@ -527,7 +527,7 @@ namespace MwohServer.Services
             var request = _dbContext.AllianceJoinRequests
                 .Include(r => r.PlayerProfile)
                 .Include(r => r.Alliance)
-                    .ThenInclude(a => a.Members)
+                    .ThenInclude(a => a!.Members)
                 .FirstOrDefault(r => r.Id == requestId);
 
             if (leader == null || request == null || request.Status != "Pending" || request.Alliance == null || request.PlayerProfile == null)
@@ -670,7 +670,7 @@ namespace MwohServer.Services
         {
             var profile = _dbContext.Profiles
                 .Include(p => p.Alliance)
-                    .ThenInclude(a => a.Members)
+                    .ThenInclude(a => a!.Members)
                 .FirstOrDefault(p => p.Id == leaderProfileId);
 
             if (profile == null || profile.AllianceId == null || profile.Alliance == null)

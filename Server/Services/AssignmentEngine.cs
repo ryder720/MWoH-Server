@@ -38,7 +38,6 @@ namespace MwohServer.Services
             {
                 _templates.Clear();
                 
-                var loadedFromConfig = false;
                 var baseConfigPath = Path.Combine(Directory.GetCurrentDirectory(), "Config", "assignments_config.json");
                 
                 try
@@ -54,7 +53,6 @@ namespace MwohServer.Services
                         if (baseTemplates != null)
                         {
                             _templates.AddRange(baseTemplates);
-                            loadedFromConfig = true;
                             _logger.LogInformation($"[AssignmentEngine] Loaded {_templates.Count} base assignments from {baseConfigPath}.");
                         }
                     }

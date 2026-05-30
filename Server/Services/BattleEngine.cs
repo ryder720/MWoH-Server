@@ -382,7 +382,7 @@ namespace MwohServer.Services
                             }
                             break;
                         case ComboScope.SpecificCharacters:
-                            var charName = SpecialComboEngine.GetCharacterName(stat.Card.CardTemplate?.Title);
+                            var charName = SpecialComboEngine.GetCharacterName(stat.Card.CardTemplate?.Title ?? "");
                             inScope = combo.ScopeDetail.Any(d => string.Equals(charName, d, StringComparison.OrdinalIgnoreCase));
                             break;
                     }

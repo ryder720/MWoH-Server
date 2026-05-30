@@ -196,8 +196,8 @@ namespace MwohServer.Tests
 
                 // Build a battle engine instance with special combo processing
                 var evaluator = new CardAbilityEvaluator();
-                var allianceEngine = new AllianceEngine(null, context);
-                var battleEngine = new BattleEngine(null, context, evaluator, allianceEngine, comboEngine);
+                var allianceEngine = new AllianceEngine(null!, context);
+                var battleEngine = new BattleEngine(null!, context, evaluator, allianceEngine, comboEngine);
 
                 // Run a spar battle!
                 var result = battleEngine.ResolveBattle(attackerProfile.Id, defenderProfile.Id, isSparring: true);

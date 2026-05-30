@@ -2870,7 +2870,7 @@ namespace MwohServer.Controllers
                     .Where(pi => pi.ItemTemplate != null && pi.ItemTemplate.Type == "Resource")
                     .Select(pi => new {
                         id = pi.ItemTemplateId,
-                        groupKey = pi.ItemTemplate.Name.Contains("Storm's") && pi.ItemTemplate.Name.Contains("Cape") ? "StormsCape" :
+                        groupKey = pi.ItemTemplate!.Name.Contains("Storm's") && pi.ItemTemplate.Name.Contains("Cape") ? "StormsCape" :
                                    pi.ItemTemplate.Name.Contains("Suitcase") ? "Suitcase" :
                                    pi.ItemTemplate.Name.Contains("Sword") ? "SwordOfProficiency" :
                                    pi.ItemTemplate.Name.Contains("Assassin's") && pi.ItemTemplate.Name.Contains("Choker") ? "AssassinsChoker" :
