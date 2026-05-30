@@ -826,6 +826,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  runtradetests                                  - Execute S.H.I.E.L.D. Material Requisition unit tests");
             Console.WriteLine("  runassignmenttests                             - Execute S.H.I.E.L.D. Assignments unit tests");
             Console.WriteLine("  runcommendationtests                           - Execute S.H.I.E.L.D. Daily Commendations unit tests");
+            Console.WriteLine("  rungachatests                                  - Execute S.H.I.E.L.D. Gacha Ticket unit tests");
             Console.WriteLine("  runshieldtests                                 - Execute S.H.I.E.L.D. Team Engine unit tests");
             Console.WriteLine("  runvaulttests                                  - Execute S.H.I.E.L.D. Resource Vault unit tests");
             Console.WriteLine("  runprofiletests                                - Execute S.H.I.E.L.D. Profile Manager unit tests");
@@ -1045,6 +1046,23 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: Combat Simulator Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "rungachatests")
+        {
+            var gachaSummoner = (MwohServer.Services.IGachaSummoner)serviceProvider.GetService(typeof(MwohServer.Services.IGachaSummoner))!;
+            var success = MwohServer.Tests.GachaSummonerTests.Run(gachaSummoner, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] Gacha Ticket Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: Gacha Ticket Test Suite failed!");
                 Console.ResetColor();
             }
             return;

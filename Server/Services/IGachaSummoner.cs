@@ -6,6 +6,7 @@ namespace MwohServer.Services
     public interface IGachaSummoner
     {
         GachaResult Pull(int profileId, int packId, string currencyType, int pullCount);
+        GachaResult PullViaTicket(int profileId, string ticketName);
     }
 
     public class GachaResult

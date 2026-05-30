@@ -373,5 +373,120 @@ namespace MwohServer.Services
                 PulledCards = rolledCards
             };
         }
+
+        public GachaResult PullViaTicket(int profileId, string ticketName)
+        {
+            _logger.LogInformation($"[GachaSummoner] PullViaTicket called for Profile: {profileId}, Ticket: {ticketName}");
+
+            // 1. Direct integration with configured ticket packs
+            if (ticketName.Equals("Ultimate Card Pack Ticket", StringComparison.OrdinalIgnoreCase))
+            {
+                return Pull(profileId, 1, "Ticket", 1);
+            }
+            if (ticketName.Equals("Special Ultimate Card Pack Ticket", StringComparison.OrdinalIgnoreCase))
+            {
+                return Pull(profileId, 2, "Ticket", 1);
+            }
+
+            var profile = _dbContext.Profiles.FirstOrDefault(p => p.Id == profileId);
+            if (profile == null)
+            {
+                return new GachaResult { Success = false, Message = "Profile not found." };
+            }
+
+            // Verify squad capacity limit
+            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profileId);
+            if (currentCardCount + 1 > profile.MaxCardCapacity)
+            {
+                return new GachaResult { Success = false, Message = $"Inventory capacity reached ({currentCardCount}/{profile.MaxCardCapacity}). Clear squad space first." };
+            }
+
+            // 2. Custom programmatic rolls for specialized tickets
+            var rand = new Random();
+            var roll = rand.NextDouble() * 100.0;
+            string chosenRarity = "Normal";
+
+            // Determine rates based on ticket type
+            if (ticketName.Equals("Half-Anniversary Ticket", StringComparison.OrdinalIgnoreCase))
+            {
+                // Enhanced elite rates
+                if (roll <= 3.0) chosenRarity = "Legendary";
+                else if (roll <= 15.0) chosenRarity = "Super Rare";
+                else if (roll <= 60.0) chosenRarity = "Rare";
+                else chosenRarity = "Normal";
+            }
+            else
+            {
+                // Standard rates
+                if (roll <= 1.0) chosenRarity = "Legendary";
+                else if (roll <= 5.0) chosenRarity = "Super Rare";
+                else if (roll <= 30.0) chosenRarity = "Rare";
+                else chosenRarity = "Normal";
+            }
+
+            var rarityOptions = new List<string> { chosenRarity };
+            if (chosenRarity == "Normal") { rarityOptions.Add("Common"); rarityOptions.Add("Uncommon"); }
+            else if (chosenRarity == "Rare") { rarityOptions.Add("Special Rare"); }
+            else if (chosenRarity == "Super Rare") { rarityOptions.Add("SR"); rarityOptions.Add("Super Special Rare"); rarityOptions.Add("Ultimate Rare"); }
+            else if (chosenRarity == "Legendary") { rarityOptions.Add("Legend"); rarityOptions.Add("Ultimate Legendary"); }
+
+            // Fetch base card templates
+            var query = _dbContext.CardTemplates.AsEnumerable()
+                .Where(t => !t.VariantName.Contains("+") && !t.Title.Contains("+"));
+
+            // Apply filters based on ticket name
+            if (ticketName.Contains("Super Hero", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(t => t.Faction.Equals("Super Hero", StringComparison.OrdinalIgnoreCase));
+            }
+            else if (ticketName.Contains("Bruiser", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(t => t.Alignment.Equals("Bruiser", StringComparison.OrdinalIgnoreCase));
+            }
+            else if (ticketName.Contains("Tactics", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(t => t.Alignment.Equals("Tactics", StringComparison.OrdinalIgnoreCase));
+            }
+            else if (ticketName.Contains("Speed", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(t => t.Alignment.Equals("Speed", StringComparison.OrdinalIgnoreCase));
+            }
+
+            var filteredTemplates = query.Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase)).ToList();
+
+            // Fallback to any matching template if no cards match rarity
+            if (!filteredTemplates.Any())
+            {
+                filteredTemplates = query.ToList();
+            }
+
+            if (!filteredTemplates.Any())
+            {
+                // Direct database fallback to avoid crashes
+                filteredTemplates = _dbContext.CardTemplates.Where(t => !t.VariantName.Contains("+")).ToList();
+            }
+
+            var chosenTemplate = filteredTemplates[rand.Next(filteredTemplates.Count)];
+            var pulledCard = new PlayerCard { PlayerProfileId = profileId };
+            pulledCard.InitializeStats(chosenTemplate, GameplaySettings.DefaultMasteryPercentage);
+
+            _dbContext.PlayerCards.Add(pulledCard);
+            _dbContext.SaveChanges();
+
+            // Eagerly fetch/load template properties for navigation
+            pulledCard.CardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Id == pulledCard.CardTemplateId);
+
+            _logger.LogInformation($"[GachaSummoner] Ticket recruitment successful. Profile: {profileId} recruited {pulledCard.CardTemplate?.VisualTitle}");
+
+            return new GachaResult
+            {
+                Success = true,
+                Message = $"Successfully recruited {pulledCard.CardTemplate?.VisualTitle} into active squad!",
+                NewMobaCoins = profile.MobaCoinBalance,
+                NewSilver = profile.SilverBalance,
+                NewRallyPoints = profile.RallyPoints,
+                PulledCards = new List<PlayerCard> { pulledCard }
+            };
+        }
     }
 }
