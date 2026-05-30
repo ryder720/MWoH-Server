@@ -93,6 +93,29 @@ namespace MwohServer.Services
 
         public (OperationBlueprint? Operation, MissionBlueprint? Mission) GetMissionBlueprint(string missionCode)
         {
+            if (missionCode.EndsWith("-boss"))
+            {
+                var parts = missionCode.Split('-');
+                if (parts.Length > 0 && int.TryParse(parts[0], out int opId))
+                {
+                    var op = _operations.FirstOrDefault(x => x.OperationId == opId);
+                    if (op != null)
+                    {
+                        var virtualBossMission = new MissionBlueprint
+                        {
+                            MissionCode = missionCode,
+                            Name = $"BOSS CRITICAL: {op.BossName}",
+                            EnergyCost = 0,
+                            XpReward = op.XpReward * 5,
+                            SilverMin = op.BossSilverReward,
+                            SilverMax = op.BossSilverReward,
+                            PossibleDrops = new List<string>() // NO cards dropped by boss
+                        };
+                        return (op, virtualBossMission);
+                    }
+                }
+            }
+
             foreach (var op in _operations)
             {
                 var m = op.Missions.FirstOrDefault(x => x.MissionCode == missionCode);
@@ -189,6 +212,40 @@ namespace MwohServer.Services
             _assignmentEngine.RecordEvent(profileId, GoalType.StartMission, 1);
             var progressState = GetPlayerMissionProgress(profile);
             progressState.ActiveMissionProgress = Math.Min(100, progressState.ActiveMissionProgress + 20);
+
+            bool sectorCleared = false;
+            if (progressState.ActiveMissionProgress >= 100)
+            {
+                sectorCleared = true;
+
+                if (!progressState.CompletedMissions.ContainsKey(missionCode))
+                {
+                    progressState.CompletedMissions.Add(missionCode, 1);
+                }
+                else
+                {
+                    progressState.CompletedMissions[missionCode]++;
+                }
+
+                progressState.ActiveMissionProgress = 0;
+
+                var parts = missionCode.Split('-');
+                if (parts.Length > 1 && int.TryParse(parts[1], out int mSubIndex))
+                {
+                    if (activeOp.OperationId == progressState.UnlockedOperationId && mSubIndex == progressState.UnlockedMissionId)
+                    {
+                        if (mSubIndex < 5)
+                        {
+                            progressState.UnlockedMissionId++;
+                        }
+                        else
+                        {
+                            // 5th sector cleared: now boss battle is unlocked!
+                            progressState.UnlockedMissionId = 6;
+                        }
+                    }
+                }
+            }
 
             var rand = new Random();
             var silverGained = rand.Next(activeMission.SilverMin, activeMission.SilverMax + 1);
@@ -318,6 +375,7 @@ namespace MwohServer.Services
                 ProgressPct = progressState.ActiveMissionProgress,
                 CardDropped = cardDropped,
                 DroppedCardName = droppedCardName,
+                SectorCleared = sectorCleared,
                 LogLines = logLines
             };
         }
@@ -376,34 +434,36 @@ namespace MwohServer.Services
             combatLogLines.Add($"🔥 UNLEASHING ALL DESTRUCTION PROTOCOLS!");
             combatLogLines.Add("🎯 MISSION TARGET SECURED // Clearance levels updated.");
 
-            var bossRewardTemplateName = activeMission.PossibleDrops.Count > 0 
-                ? activeMission.PossibleDrops[0] 
-                : "Spider-Man";
-
-            var rewardTemplate = _dbContext.CardTemplates.FirstOrDefault(t => t.Title == bossRewardTemplateName)
-                ?? _dbContext.CardTemplates.FirstOrDefault();
-
-            var droppedCardName = "";
-            int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profile.Id);
-            bool isInventoryFull = currentCardCount >= profile.MaxCardCapacity;
-
-            if (rewardTemplate != null)
+            // Award fixed premium item rewards
+            var itemNames = new[] { "Level Up ISO-8 Serum", "Personal Energy Pack", "Personal Power Pack" };
+            foreach (var itemName in itemNames)
             {
-                if (isInventoryFull)
+                var itemTemplate = _dbContext.ItemTemplates.FirstOrDefault(t => t.Name == itemName);
+                if (itemTemplate != null)
                 {
-                    _logger.LogWarning($"[MissionEngine] Boss card drop skipped for Profile {profile.Id} - Inventory full ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}).");
-                }
-                else
-                {
-                    droppedCardName = rewardTemplate.Title;
-                    var bossRewardCard = new PlayerCard
+                    var playerItem = _dbContext.PlayerInventoryItems
+                        .FirstOrDefault(pi => pi.PlayerProfileId == profile.Id && pi.ItemTemplateId == itemTemplate.Id);
+
+                    if (playerItem == null)
                     {
-                        PlayerProfileId = profile.Id
-                    };
-                    bossRewardCard.InitializeStats(rewardTemplate, GameplaySettings.DefaultMasteryPercentage);
-                    _dbContext.PlayerCards.Add(bossRewardCard);
+                        playerItem = new PlayerInventoryItem
+                        {
+                            PlayerProfileId = profile.Id,
+                            ItemTemplateId = itemTemplate.Id,
+                            Quantity = 1
+                        };
+                        _dbContext.PlayerInventoryItems.Add(playerItem);
+                    }
+                    else
+                    {
+                        playerItem.Quantity++;
+                    }
                 }
             }
+
+            combatLogLines.Add("🎁 RECOVERED LEVEL UP ISO-8 SERUM!");
+            combatLogLines.Add("🎁 RECOVERED PERSONAL ENERGY PACK!");
+            combatLogLines.Add("🎁 RECOVERED PERSONAL POWER PACK!");
 
             profile.SilverBalance += activeOp.BossSilverReward;
 
@@ -424,24 +484,11 @@ namespace MwohServer.Services
                 progressState.CompletedMissions[missionCode]++;
             }
 
-            var mSubIndex = 1;
-            var parts = missionCode.Split('-');
-            if (parts.Length > 1 && int.TryParse(parts[1], out int parsedIndex))
+            // Unlock next operation if we are beating the active boss fight
+            if (activeOp.OperationId == progressState.UnlockedOperationId && progressState.UnlockedMissionId == 6)
             {
-                mSubIndex = parsedIndex;
-            }
-
-            if (activeOp.OperationId == progressState.UnlockedOperationId && mSubIndex == progressState.UnlockedMissionId)
-            {
-                if (mSubIndex < 5)
-                {
-                    progressState.UnlockedMissionId++;
-                }
-                else
-                {
-                    progressState.UnlockedOperationId = Math.Min(29, progressState.UnlockedOperationId + 1);
-                    progressState.UnlockedMissionId = 1;
-                }
+                progressState.UnlockedOperationId = Math.Min(29, progressState.UnlockedOperationId + 1);
+                progressState.UnlockedMissionId = 1;
             }
 
             progressState.ActiveMissionProgress = 0;
@@ -550,9 +597,7 @@ namespace MwohServer.Services
             SavePlayerMissionProgress(profile, progressState);
             _dbContext.SaveChanges();
 
-            var clearMessage = isInventoryFull
-                ? $"⚠️ TARGET BOSS NEUTRALIZED // INVENTORY FULL ({profile.MaxCardCapacity}/{profile.MaxCardCapacity}) - NO BOSS RECOVERED! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!"
-                : $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
+            var clearMessage = $"Target boss neutralized! Clearance level sync complete! Unlocked sector: {progressState.UnlockedOperationId}-{progressState.UnlockedMissionId}!";
 
             if (resourceDropped)
             {
@@ -562,7 +607,7 @@ namespace MwohServer.Services
             return new BossBattleResult
             {
                 Success = true,
-                DroppedCardName = droppedCardName,
+                DroppedCardName = "",
                 Message = clearMessage,
                 UnlockedOperationId = progressState.UnlockedOperationId,
                 UnlockedMissionId = progressState.UnlockedMissionId,

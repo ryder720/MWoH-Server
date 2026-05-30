@@ -259,7 +259,7 @@
         <!-- Actions Panel -->
         <div class="terminal-panel" id="actionPanel" style="gap: 12px;">
             <!-- Normal Attack -->
-            <button class="action-button" id="btnInvestigate" onclick="performInvestigate();">
+            <button class="action-button" id="btnInvestigate" style="display: {{investigateDisplay}};" onclick="performInvestigate();">
                 INVESTIGATE NODE (Cost: {{energyCost}} Energy)
             </button>
 
@@ -313,6 +313,22 @@
             </div>
             
             <button class="reward-close-btn" onclick="closeRewardModal();">DISMISS DOSSIER</button>
+        </div>
+    </div>
+
+    <!-- Sector Cleared Modal popup (hidden by default) -->
+    <div class="reward-overlay" id="sectorClearedOverlay" style="display: none;">
+        <div class="reward-modal" style="border-color: var(--hud-green); box-shadow: 0 0 30px rgba(16, 185, 129, 0.45);">
+            <div class="reward-title" style="color: var(--hud-green);">SECTOR SECURED</div>
+            <div style="font-size: 40px;">🟢</div>
+            <p style="font-size: 14px; line-height: 1.5; color: var(--text-color);">
+                All hostiles neutralized. S.H.I.E.L.D. mission directives completed successfully. Sector cleared and synced.
+            </p>
+            <div style="font-size: 11px; font-family: 'Space Mono', monospace; color: var(--hud-green); border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 10px; margin-top: 5px;">
+                // SECURED DIRECTIVE CODE: {{missionCode}}
+            </div>
+            
+            <a href="/ultimate/mypage/missions" class="reward-close-btn" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05); color: var(--hud-green); text-decoration: none; text-align: center; line-height: 1.5; display: block;">RETURN TO QUEST HUB</a>
         </div>
     </div>
 
@@ -373,13 +389,12 @@
                     document.getElementById("rewardOverlay").style.display = "flex";
                 }
 
-                // If progress reaches 100%, show the Boss Fight option
-                if (data.progressPct >= 100) {
+                // If sector is cleared, show sector cleared overlay
+                if (data.sectorCleared) {
                     document.getElementById("btnInvestigate").style.display = "none";
-                    document.getElementById("bossPanel").style.display = "flex";
-                    document.getElementById("targetName").innerText = "{{bossName}}";
-                    document.getElementById("targetHp").innerText = "HP: 100% (BOSS)";
-                    addLog("🚨 RED ALERT // CONVERGING BOSS ELEMENT: {{bossName}}!", "danger");
+                    setTimeout(() => {
+                        document.getElementById("sectorClearedOverlay").style.display = "flex";
+                    }, 800);
                 }
             })
             .catch(err => {

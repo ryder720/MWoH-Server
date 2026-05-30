@@ -22,6 +22,7 @@ namespace MwohServer.Services
         public int ProgressPct { get; set; }
         public bool CardDropped { get; set; }
         public string DroppedCardName { get; set; } = string.Empty;
+        public bool SectorCleared { get; set; }
         public List<string> LogLines { get; set; } = new();
     }
 

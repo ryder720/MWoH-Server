@@ -1738,13 +1738,14 @@ namespace MwohServer.Controllers
             if (profile == null) return RedirectToAction("ServeGameTopPage");
 
             var progressState = GetPlayerMissionProgress(profile);
-            var operations = _missionEngine.GetOperations();
+            var operations = _missionEngine.GetOperations()
+                .Where(op => op.OperationId <= progressState.UnlockedOperationId)
+                .OrderByDescending(op => op.OperationId)
+                .ToList();
 
             var opsHtmlList = new List<string>();
             foreach (var op in operations)
             {
-                bool isUnlocked = op.OperationId <= progressState.UnlockedOperationId;
-                
                 var neonColor = (op.OperationId % 3) switch
                 {
                     0 => "#00f0ff", // Speed
@@ -1760,9 +1761,7 @@ namespace MwohServer.Controllers
                     _ => "⚡ SPEED"
                 };
 
-                if (isUnlocked)
-                {
-                    var missionListHtml = new List<string>();
+                var missionListHtml = new List<string>();
                     foreach (var mission in op.Missions)
                     {
                         bool missionUnlocked = false;
@@ -1849,6 +1848,95 @@ namespace MwohServer.Controllers
                         }
                     }
 
+                    // Append Boss Battle row
+                    bool bossUnlocked = false;
+                    bool bossDefeated = false;
+                    if (op.OperationId < progressState.UnlockedOperationId)
+                    {
+                        bossDefeated = true;
+                    }
+                    else if (op.OperationId == progressState.UnlockedOperationId && progressState.UnlockedMissionId == 6)
+                    {
+                        bossUnlocked = true;
+                    }
+
+                    if (bossDefeated)
+                    {
+                        missionListHtml.Add($"""
+                        <div class="mission-item boss-node defeated">
+                            <div class="mission-row" onclick="toggleMissionDropdown(this)">
+                                <span class="mission-code" style="color: #ef4444;">💀 BOSS</span>
+                                <span class="mission-name" style="font-weight: 700; color: #ef4444;">{op.BossName.ToUpper()}</span>
+                                <div class="mission-meta-right">
+                                    <span class="mission-play-btn completed" style="color: #6b7280; border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02)">DEFEATED</span>
+                                    <span class="dropdown-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="mission-dropdown-panel" style="display: none; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.02);">
+                                <div class="mission-details-grid">
+                                    <div class="detail-stat">🔋 ENERGY: <span>0</span></div>
+                                    <div class="detail-stat">⭐ REWARDS: <span>+{op.XpReward * 5} XP</span></div>
+                                    <div class="detail-stat">🪙 SILVER: <span>+{op.BossSilverReward:N0}</span></div>
+                                </div>
+                                <div class="drop-info-container" style="border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.01); margin-bottom: 12px;">
+                                    <div class="drop-title" style="color: #ef4444;">// BOSS CRITICAL RECOVERY REWARDS</div>
+                                    <div class="drop-badges-list">
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">LEVEL UP ISO-8 SERUM</span>
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">PERSONAL ENERGY PACK</span>
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.3); color: #ef4444;">PERSONAL POWER PACK</span>
+                                    </div>
+                                </div>
+                                <a href="/ultimate/mypage/missions/play/{op.OperationId}-boss" class="mission-start-btn" style="background: linear-gradient(135deg, #ef4444, #991b1b); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);">RE-INITIALIZE BOSS BATTLE</a>
+                            </div>
+                        </div>
+                        """);
+                    }
+                    else if (bossUnlocked)
+                    {
+                        missionListHtml.Add($"""
+                        <div class="mission-item boss-node active" style="border-color: #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);">
+                            <div class="mission-row" onclick="toggleMissionDropdown(this)">
+                                <span class="mission-code" style="color: #ef4444; text-shadow: 0 0 5px rgba(239, 68, 68, 0.4);">💀 BOSS</span>
+                                <span class="mission-name" style="font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">{op.BossName.ToUpper()} DETECTED!</span>
+                                <div class="mission-meta-right">
+                                    <span class="mission-play-btn" style="color: #ffffff; background: #ef4444; border-color: #ef4444;">ENGAGE</span>
+                                    <span class="dropdown-chevron">▼</span>
+                                </div>
+                            </div>
+                            <div class="mission-dropdown-panel" style="display: none; border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);">
+                                <div class="mission-details-grid">
+                                    <div class="detail-stat">🔋 ENERGY: <span>0</span></div>
+                                    <div class="detail-stat">⭐ REWARDS: <span>+{op.XpReward * 5} XP</span></div>
+                                    <div class="detail-stat">🪙 SILVER: <span>+{op.BossSilverReward:N0}</span></div>
+                                </div>
+                                <div class="drop-info-container" style="border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.02); margin-bottom: 12px;">
+                                    <div class="drop-title" style="color: #ef4444;">// BOSS CRITICAL RECOVERY REWARDS</div>
+                                    <div class="drop-badges-list">
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.4); color: #ffffff; background: rgba(239, 68, 68, 0.2);">LEVEL UP ISO-8 SERUM</span>
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.4); color: #ffffff; background: rgba(239, 68, 68, 0.2);">PERSONAL ENERGY PACK</span>
+                                        <span class="drop-badge" style="border-color: rgba(239, 68, 68, 0.4); color: #ffffff; background: rgba(239, 68, 68, 0.2);">PERSONAL POWER PACK</span>
+                                    </div>
+                                </div>
+                                <a href="/ultimate/mypage/missions/play/{op.OperationId}-boss" class="mission-start-btn" style="background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">COMMENCE BOSS CHALLENGE</a>
+                            </div>
+                        </div>
+                        """);
+                    }
+                    else
+                    {
+                        missionListHtml.Add($"""
+                        <div class="mission-item boss-node locked">
+                            <div class="mission-row" style="opacity: 0.4; cursor: not-allowed;">
+                                <span class="mission-code" style="color: #6b7280;">💀 BOSS</span>
+                                <span class="mission-name" style="color: #6b7280;">CLASSIFIED VILLAIN ENGAGEMENT</span>
+                                <div class="mission-meta-right">
+                                    <span class="mission-play-btn completed" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">LOCKED</span>
+                                </div>
+                            </div>
+                        </div>
+                        """);
+                    }
+
                     var missionsBox = $"""
                     <div class="mission-selector">
                         {string.Join("\n", missionListHtml)}
@@ -1870,28 +1958,6 @@ namespace MwohServer.Controllers
                         {missionsBox}
                     </div>
                     """);
-                }
-                else
-                {
-                    opsHtmlList.Add($"""
-                    <div class="op-card locked">
-                        <div class="locked-overlay">
-                            <span class="lock-icon">🔒</span>
-                            <span class="lock-lbl">CLASSIFIED // LEVEL INSUFFICIENT</span>
-                        </div>
-                        <div class="op-banner" style="background-image: url('/images/operations/operation_{op.OperationId}.jpg');"></div>
-                        <div class="op-header">
-                            <span class="op-title">{op.CleanName}</span>
-                            <span class="op-id">CLASSIFIED // CH-{op.OperationId}</span>
-                        </div>
-                        <div class="op-stats">
-                            <div class="op-stat">ENERGY COST: <span>{op.EnergyCost}</span></div>
-                            <div class="op-stat">SECTORS: <span>{op.Missions.Count}</span></div>
-                            <div class="op-stat">TARGET VILLAIN: <span>CLASSIFIED</span></div>
-                        </div>
-                    </div>
-                    """);
-                }
             }
 
             var replacements = new Dictionary<string, string>
@@ -1926,7 +1992,7 @@ namespace MwohServer.Controllers
                 return RedirectToAction("ServeMissionsHub");
             }
 
-            if (progressState.ActiveMissionId != id)
+            if (!id.EndsWith("-boss") && progressState.ActiveMissionId != id)
             {
                 progressState.ActiveMissionId = id;
                 progressState.ActiveMissionProgress = 0;
@@ -1961,6 +2027,11 @@ namespace MwohServer.Controllers
                 }
             }
 
+            var isBoss = id.EndsWith("-boss");
+            var progressPct = isBoss ? "100" : progressState.ActiveMissionProgress.ToString();
+            var bossDisplay = (isBoss || progressState.ActiveMissionProgress >= 100) ? "flex" : "none";
+            var investigateDisplay = isBoss ? "none" : "block";
+
             var replacements = new Dictionary<string, string>
             {
                 { "missionId", id },
@@ -1970,11 +2041,12 @@ namespace MwohServer.Controllers
                 { "energyMax", profile.EnergyMax.ToString() },
                 { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
                 { "energyCost", activeMission.EnergyCost.ToString() },
-                { "progressPct", progressState.ActiveMissionProgress.ToString() },
+                { "progressPct", progressPct },
                 { "leaderName", leaderName },
                 { "leaderAtk", leaderAtk.ToString() },
                 { "bossName", activeOp.BossName },
-                { "bossDisplay", progressState.ActiveMissionProgress >= 100 ? "flex" : "none" },
+                { "bossDisplay", bossDisplay },
+                { "investigateDisplay", investigateDisplay },
                 { "activeTeamJson", System.Text.Json.JsonSerializer.Serialize(teamProfiles) }
             };
 
@@ -2007,6 +2079,7 @@ namespace MwohServer.Controllers
                 progressPct = result.ProgressPct,
                 cardDropped = result.CardDropped,
                 droppedCardName = result.DroppedCardName,
+                sectorCleared = result.SectorCleared,
                 logLines = result.LogLines
             });
         }

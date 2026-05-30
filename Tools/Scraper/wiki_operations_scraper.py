@@ -99,25 +99,31 @@ def scrape_operation(op_id, title):
             # 3. Extract Missions & Card Drops
             missions = []
             
-            # Look for <tr> elements containing mission identifiers like "X-1" or "1-1"
-            tr_pattern = re.compile(r'<tr>\s*<td>\s*(\d+-\d+)\s*</td>\s*<td>(.*?)</td>', re.DOTALL)
-            tr_matches = tr_pattern.findall(html_text)
-            
-            if tr_matches:
-                for match in tr_matches:
-                    m_id = match[0]
-                    cards_raw = clean_html(match[1])
-                    drops = [c.strip() for c in re.split(r'[,•\n]|\s{2,}', cards_raw) if c.strip() and "Cape" not in c and "Resource" not in c]
-                    
-                    missions.append({
-                        "mission_code": m_id,
-                        "name": f"Infiltration Node {m_id}",
-                        "energy_cost": energy_used,
-                        "xp_reward": xp_award,
-                        "silver_min": silver_min,
-                        "silver_max": silver_max,
-                        "possible_drops": drops[:3] if drops else get_fallback_drops(op_id)
-                    })
+            tr_blocks = re.findall(r'<tr[^>]*>(.*?)</tr>', html_text, re.DOTALL | re.IGNORECASE)
+            for tr_block in tr_blocks:
+                tds = re.findall(r'<td[^>]*>(.*?)</td>', tr_block, re.DOTALL | re.IGNORECASE)
+                if tds:
+                    m_id = clean_html(tds[0]).strip()
+                    if re.match(r'^\d+-\d+$', m_id):
+                        drops = []
+                        for td in tds[1:]:
+                            td_clean = clean_html(td).strip()
+                            if not td_clean:
+                                continue
+                            is_resource = any(keyword in td_clean.lower() for keyword in ["cape", "suitcase", "choker", "belt", "geirr", "array", "resource", "sword"])
+                            if not is_resource:
+                                parts = [p.strip() for p in re.split(r'[,•]|\s{2,}', td_clean) if p.strip()]
+                                drops.extend(parts)
+                        
+                        missions.append({
+                            "mission_code": m_id,
+                            "name": f"Infiltration Node {m_id}",
+                            "energy_cost": energy_used,
+                            "xp_reward": xp_award,
+                            "silver_min": silver_min,
+                            "silver_max": silver_max,
+                            "possible_drops": drops[:3] if drops else get_fallback_drops(op_id)
+                        })
             
             # Fallback if no table matches found
             if not missions:
