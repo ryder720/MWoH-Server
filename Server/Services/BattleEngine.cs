@@ -131,6 +131,49 @@ namespace MwohServer.Services
                 return result;
             }
 
+            // S.H.I.E.L.D. Barrier raid protection logic
+            if (!isSparring)
+            {
+                var barrierItem = _dbContext.PlayerInventoryItems
+                    .Include(pi => pi.ItemTemplate)
+                    .FirstOrDefault(pi => pi.PlayerProfileId == defenderProfileId && pi.ItemTemplate != null && pi.ItemTemplate.Name.Contains("Shield Barrier") && pi.Quantity > 0);
+
+                if (barrierItem != null)
+                {
+                    barrierItem.Quantity--;
+                    _dbContext.SaveChanges();
+
+                    result.Success = true;
+                    result.AttackerWon = false;
+                    result.SilverExchanged = 0;
+                    result.MasteryEarned = 0;
+                    result.Message = "Blocked by S.H.I.E.L.D. Barrier!";
+
+                    log.Add("[SHIELD ACTIVE] Tactical intrusion detected!");
+                    log.Add($"[SHIELD ACTIVE] Defender Agent {defender.Nickname} is protected by an active S.H.I.E.L.D. Barrier!");
+                    log.Add("[SHIELD ACTIVE] Incident blocked. No database records or Silver resources were compromised.");
+
+                    var shieldRecord = new BattleRecord
+                    {
+                        AttackerProfileId = attackerProfileId,
+                        DefenderProfileId = defenderProfileId,
+                        WinnerProfileId = defenderProfileId,
+                        AttackerFinalPower = 0,
+                        DefenderFinalPower = 0,
+                        SilverExchanged = 0,
+                        MasteryEarned = 0,
+                        BattleTime = DateTime.UtcNow,
+                        IsSparring = isSparring,
+                        DetailsJson = System.Text.Json.JsonSerializer.Serialize(log)
+                    };
+
+                    _dbContext.BattleRecords.Add(shieldRecord);
+                    _dbContext.SaveChanges();
+
+                    return result;
+                }
+            }
+
             // Lazy Restore Battle Power for both players
             RestoreBattlePower(attacker);
             RestoreBattlePower(defender);

@@ -497,13 +497,14 @@ namespace MwohServer.Controllers
                     var temp = pi.ItemTemplate;
                     if (temp == null) continue;
 
-                    var icon = temp.Type switch
+                     var icon = temp.Type switch
                     {
                         "EnergyRestorative" => "⚡",
                         "AttackPowerRestorative" => "🔥",
                         "DefensePowerRestorative" => "🛡️",
                         "LevelUpSerum" => "🧪",
                         "MasteryIso8" => "🧪",
+                        "GachaTicket" => "🎟️",
                         _ => "📦"
                     };
 
@@ -514,10 +515,11 @@ namespace MwohServer.Controllers
                         "DefensePowerRestorative" => "#10b981",
                         "LevelUpSerum" => "#a855f7",
                         "MasteryIso8" => "#a5b4fc",
+                        "GachaTicket" => "#f43f5e",
                         _ => "#f59e0b"
                     };
 
-                    var useButton = (temp.Type.EndsWith("Restorative") || temp.Type == "LevelUpSerum" || temp.Type == "MasteryIso8" || temp.Type == "InventoryExpansion") 
+                    var useButton = (temp.Type.EndsWith("Restorative") || temp.Type == "LevelUpSerum" || temp.Type == "MasteryIso8" || temp.Type == "InventoryExpansion" || temp.Type == "GachaTicket") 
                         ? $"<button class='use-btn' data-type='{temp.Type}' onclick='useItem({temp.Id}, this)'>USE</button>"
                         : "<span class='passive-badge'>STOCK</span>";
 

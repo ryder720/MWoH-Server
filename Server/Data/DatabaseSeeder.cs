@@ -377,7 +377,7 @@ namespace MwohServer.Data
 
                     foreach (var itemElement in doc.RootElement.EnumerateArray())
                     {
-                        string name = itemElement.GetProperty("name").GetString() ?? "";
+                        string name = (itemElement.GetProperty("name").GetString() ?? "").Replace("[]", "").Trim();
                         string description = itemElement.GetProperty("description").GetString() ?? "";
                         string type = itemElement.GetProperty("type").GetString() ?? "General";
                         int effectValue = itemElement.GetProperty("effect_value").GetInt32();
@@ -386,7 +386,7 @@ namespace MwohServer.Data
                         if (name.Contains("Level Up ISO-8 Serum", StringComparison.OrdinalIgnoreCase))
                         {
                             type = "LevelUpSerum";
-                            effectValue = 3;
+                            effectValue = name.Contains("Super", StringComparison.OrdinalIgnoreCase) ? 10 : 3;
                         }
                         else if (name.Equals("Mastery Iso-8", StringComparison.OrdinalIgnoreCase))
                         {
@@ -402,6 +402,11 @@ namespace MwohServer.Data
                         {
                             type = "InventoryExpansion";
                             effectValue = 5;
+                        }
+                        else if (name.Contains("Ticket", StringComparison.OrdinalIgnoreCase))
+                        {
+                            type = "GachaTicket";
+                            effectValue = 0;
                         }
 
                         string imageUrl = itemElement.GetProperty("image_url").GetString() ?? "";
@@ -433,8 +438,36 @@ namespace MwohServer.Data
                         addedCount++;
                     }
 
+                    // Programmatically seed missing specialized tickets from the polish todo checklist
+                    var targetTickets = new List<(string Name, string Description)>
+                    {
+                        ("Gacha Ticket", "Can be exchanged for a standard Gacha pull from S.H.I.E.L.D. archives."),
+                        ("Half-Anniversary Ticket", "A rare commendation ticket celebrating the S.H.I.E.L.D. Half-Anniversary. Guarantees Rare+ recruitments."),
+                        ("Super Hero Pack Ticket", "A high-priority ticket that recruits a random Super Hero faction combatant."),
+                        ("Bruiser Ticket", "Recruits a random combat asset with Bruiser alignment."),
+                        ("Tactics Ticket", "Recruits a random combat asset with Tactics alignment."),
+                        ("Speed Ticket", "Recruits a random combat asset with Speed alignment.")
+                    };
+
+                    foreach (var ticket in targetTickets)
+                    {
+                        if (!context.ItemTemplates.Any(t => t.Name == ticket.Name))
+                        {
+                            var imgFile = $"{ticket.Name.Replace(" ", "")}.jpg";
+                            context.ItemTemplates.Add(new ItemTemplate
+                            {
+                                Name = ticket.Name,
+                                Description = ticket.Description,
+                                Type = "GachaTicket",
+                                EffectValue = 0,
+                                ImageFileName = imgFile
+                            });
+                            addedCount++;
+                        }
+                    }
+
                     context.SaveChanges();
-                    logger.LogInformation($"[Seeder] Successfully imported {addedCount} Item templates into SQLite database from '{jsonPath}'.");
+                    logger.LogInformation($"[Seeder] Successfully imported {addedCount} Item templates into SQLite database (scraped and programmatically resolved).");
 
                     // Give default profile (Id = 1) some quantities of all items
                     if (profile != null && !context.PlayerInventoryItems.Any(pi => pi.PlayerProfileId == profile.Id))

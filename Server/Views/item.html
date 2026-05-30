@@ -241,6 +241,52 @@
         {{itemsHtml}}
     </div>
 
+    <!-- Premium Card Recruitment Modal Overlay -->
+    <div class="modal-overlay" id="recruitmentModal" style="display: none; align-items: center; justify-content: center; z-index: 600;">
+        <div class="modal-container" style="max-width: 380px; box-shadow: 0 0 35px rgba(244, 63, 94, 0.35); border-color: #f43f5e; background: rgba(13, 10, 18, 0.98);">
+            <div class="modal-header" style="border-bottom-color: rgba(244, 63, 94, 0.25);">
+                <div class="modal-title" style="color: #f43f5e; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 1px;">// S.H.I.E.L.D. TACTICAL RECRUITMENT</div>
+                <button class="modal-close-btn" onclick="closeRecruitmentModal()" style="border-color: rgba(244, 63, 94, 0.4); color: #f43f5e; background: rgba(244, 63, 94, 0.05); font-family: 'Space Mono', monospace; font-size: 10px; padding: 4px 10px; border-radius: 4px; cursor: pointer;">DISMISS</button>
+            </div>
+            <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                
+                <!-- Glowing Hologram Card Artwork -->
+                <div id="recruitCardArt" style="width: 200px; height: 260px; background: radial-gradient(circle, rgba(244, 63, 94, 0.15) 0%, rgba(3, 7, 18, 0.95) 100%); border: 2px solid #f43f5e; border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; box-shadow: 0 0 25px rgba(244, 63, 94, 0.25); position: relative; transition: all 0.3s ease;">
+                    <img id="recruitCardImg" src="" style="width: 100%; height: 100%; object-fit: cover;">
+                    <div id="recruitCardAlignment" style="position: absolute; bottom: 10px; right: 10px; font-family: 'Space Mono', monospace; font-size: 8px; font-weight: 700; color: #ffffff; background: #f43f5e; padding: 2px 8px; border-radius: 4px; text-transform: uppercase;">SPEED</div>
+                </div>
+
+                <!-- Hero Title and Rarity -->
+                <div style="text-align: center;">
+                    <h2 id="recruitCardTitle" style="font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: #ffffff; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; filter: drop-shadow(0 0 8px rgba(255,255,255,0.1));">SPIDER-MAN</h2>
+                    <div id="recruitCardRarity" style="font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 800; color: var(--accent-gold); text-transform: uppercase; margin-top: 4px;">RARE</div>
+                </div>
+
+                <!-- Combat Stat HUD -->
+                <div style="width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-muted);">
+                        <span>CLEARANCE RATING (ATK)</span>
+                        <span id="recruitCardAtk" style="color: var(--accent-red); font-weight: 700;">5,000</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-muted);">
+                        <span>DEFENSIVE THRESHOLD (DEF)</span>
+                        <span id="recruitCardDef" style="color: var(--hud-green); font-weight: 700;">4,500</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-muted);">
+                        <span>POWER SYNC COST</span>
+                        <span id="recruitCardPower" style="color: #ffffff; font-weight: 700;">12</span>
+                    </div>
+                </div>
+
+                <!-- Hero Monospace Quote -->
+                <p id="recruitCardQuote" style="font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text-muted); text-align: center; font-style: italic; margin: 0 10px; line-height: 1.4; border-top: 1px dashed rgba(255, 255, 255, 0.08); padding-top: 10px; width: 100%;">
+                    "With great power comes great responsibility!"
+                </p>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Targeted Card Selection Modal -->
     <div class="modal-overlay" id="cardSelectModal">
         <div class="modal-container">
@@ -286,11 +332,12 @@
         function useItem(itemId, btn) {
             const type = btn.getAttribute('data-type') || 'EnergyRestorative';
             
+            activeItemId = itemId;
+            activeItemType = type;
+            activeUseBtn = btn;
+
             // If it is a targeted booster serum, prompt for card target selection first
             if (type === 'LevelUpSerum' || type === 'MasteryIso8') {
-                activeItemId = itemId;
-                activeItemType = type;
-                activeUseBtn = btn;
                 openCardSelector(type);
                 return;
             }
@@ -300,6 +347,46 @@
             btn.textContent = "...";
 
             executeItemConsumption(itemId, 0, btn);
+        }
+
+        function showRecruitmentCard(card) {
+            document.getElementById('recruitCardTitle').textContent = card.visualTitle || card.title;
+            document.getElementById('recruitCardRarity').textContent = card.rarity.toUpperCase();
+            
+            let rarityColor = 'var(--text-muted)';
+            if (card.rarity === 'Rare') rarityColor = 'var(--hud-blue)';
+            if (card.rarity === 'Super Rare' || card.rarity === 'High Rare' || card.rarity === 'SR') rarityColor = '#c084fc';
+            if (card.rarity === 'Legendary' || card.rarity === 'Legend') rarityColor = 'var(--accent-gold)';
+            document.getElementById('recruitCardRarity').style.color = rarityColor;
+
+            const alignmentEl = document.getElementById('recruitCardAlignment');
+            alignmentEl.textContent = card.alignment.toUpperCase();
+            let alignColor = '#f43f5e';
+            if (card.alignment.toLowerCase() === 'bruiser') alignColor = 'var(--accent-red)';
+            if (card.alignment.toLowerCase() === 'tactics') alignColor = 'var(--accent-gold)';
+            alignmentEl.style.background = alignColor;
+
+            document.getElementById('recruitCardAtk').textContent = card.baseAtk.toLocaleString();
+            document.getElementById('recruitCardDef').textContent = card.baseDef.toLocaleString();
+            document.getElementById('recruitCardPower').textContent = card.powerRequirement;
+            document.getElementById('recruitCardQuote').textContent = card.quote ? `"${card.quote}"` : '"Strategic blueprints uploaded successfully."';
+
+            const imgEl = document.getElementById('recruitCardImg');
+            if (card.imageFile) {
+                imgEl.src = `/images/cards/${card.imageFile}`;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+
+            document.getElementById('recruitCardArt').style.borderColor = alignColor;
+            document.getElementById('recruitCardArt').style.boxShadow = `0 0 25px ${alignColor}50`;
+
+            document.getElementById('recruitmentModal').style.display = 'flex';
+        }
+
+        function closeRecruitmentModal() {
+            document.getElementById('recruitmentModal').style.display = 'none';
         }
 
         function openCardSelector(type) {
@@ -405,6 +492,11 @@
                         if (activeUseBtn) activeUseBtn.style.display = 'none';
                         qtyEl.style.color = '#475569';
                         closeModal();
+                    } else {
+                        if (triggerBtn) {
+                            triggerBtn.disabled = false;
+                            triggerBtn.textContent = targetCardId > 0 ? 'APPLY' : 'USE';
+                        }
                     }
 
                     // Dynamically update energy bar if applicable
@@ -450,15 +542,23 @@
                             localCard.atk = data.updatedCard.atk;
                             localCard.def = data.updatedCard.def;
                             localCard.masteryCur = data.updatedCard.masteryCur;
+                        } else {
+                            // It's a new recruited card! Add to roster copy
+                            userCards.push(data.updatedCard);
                         }
                         
                         // Re-render card modal roster list to show new metrics
                         if (modal.style.display === 'flex' || modal.style.display === 'block') {
                             renderCardList();
                         }
+
+                        // Trigger premium card recruitment animation overlay if it's a new card pull
+                        if (data.updatedCard.templateId) {
+                            showRecruitmentCard(data.updatedCard);
+                        }
                     }
 
-                    showToast(data.message || 'ISO-8 secured and applied successfully!');
+                    showToast(data.message || 'Action executed successfully!');
                 } else {
                     if (triggerBtn) {
                         triggerBtn.disabled = false;

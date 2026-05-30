@@ -12,11 +12,13 @@ namespace MwohServer.Services
     {
         private readonly ILogger<ItemLedger> _logger;
         private readonly MwohDbContext _dbContext;
+        private readonly IGachaSummoner _gachaSummoner;
 
-        public ItemLedger(ILogger<ItemLedger> logger, MwohDbContext dbContext)
+        public ItemLedger(ILogger<ItemLedger> logger, MwohDbContext dbContext, IGachaSummoner gachaSummoner)
         {
             _logger = logger;
             _dbContext = dbContext;
+            _gachaSummoner = gachaSummoner;
         }
 
         public List<PlayerInventoryItem> GetInventory(int profileId)
@@ -47,6 +49,7 @@ namespace MwohServer.Services
             // Apply item effect based on template classification
             string message = "";
             object? updatedCard = null;
+            bool alreadyDecremented = false;
 
             if (invItem.ItemTemplate!.Type == "EnergyRestorative")
             {
@@ -165,10 +168,145 @@ namespace MwohServer.Services
                 profile.MaxCardCapacity += gain;
                 message = $"📁 UPLINK SECURED // Squad slot capacity expanded from {oldCap} to {profile.MaxCardCapacity} files!";
             }
+            else if (invItem.ItemTemplate.Type == "GachaTicket")
+            {
+                // Verify squad capacity limit first
+                int currentCardCount = _dbContext.PlayerCards.Count(pc => pc.PlayerProfileId == profileId);
+                if (currentCardCount + 1 > profile.MaxCardCapacity)
+                {
+                    return new ItemUseResult { Success = false, Message = $"Inventory capacity reached ({currentCardCount}/{profile.MaxCardCapacity}). Clear squad space first." };
+                }
+
+                PlayerCard? pulledCard = null;
+                string ticketName = invItem.ItemTemplate.Name;
+
+                // 1. Direct integration with GachaSummoner for configured ticket packs
+                if (ticketName.Equals("Ultimate Card Pack Ticket", StringComparison.OrdinalIgnoreCase))
+                {
+                    var gachaResult = _gachaSummoner.Pull(profileId, 1, "Ticket", 1);
+                    if (!gachaResult.Success)
+                    {
+                        return new ItemUseResult { Success = false, Message = gachaResult.Message };
+                    }
+                    pulledCard = gachaResult.PulledCards.FirstOrDefault();
+                    alreadyDecremented = true;
+                }
+                else if (ticketName.Equals("Special Ultimate Card Pack Ticket", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Map special ticket to elite recruitment node (Pack ID 2)
+                    var gachaResult = _gachaSummoner.Pull(profileId, 2, "Ticket", 1);
+                    if (!gachaResult.Success)
+                    {
+                        return new ItemUseResult { Success = false, Message = gachaResult.Message };
+                    }
+                    pulledCard = gachaResult.PulledCards.FirstOrDefault();
+                    alreadyDecremented = true;
+                }
+                else
+                {
+                    // 2. Custom programmatic rolls for specialized tickets
+                    var rand = new Random();
+                    var roll = rand.NextDouble() * 100.0;
+                    string chosenRarity = "Normal";
+
+                    // Determine rates based on ticket type
+                    if (ticketName.Equals("Half-Anniversary Ticket", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Enhanced elite rates
+                        if (roll <= 3.0) chosenRarity = "Legendary";
+                        else if (roll <= 15.0) chosenRarity = "Super Rare";
+                        else if (roll <= 60.0) chosenRarity = "Rare";
+                        else chosenRarity = "Normal";
+                    }
+                    else
+                    {
+                        // Standard rates
+                        if (roll <= 1.0) chosenRarity = "Legendary";
+                        else if (roll <= 5.0) chosenRarity = "Super Rare";
+                        else if (roll <= 30.0) chosenRarity = "Rare";
+                        else chosenRarity = "Normal";
+                    }
+
+                    var rarityOptions = new List<string> { chosenRarity };
+                    if (chosenRarity == "Normal") { rarityOptions.Add("Common"); rarityOptions.Add("Uncommon"); }
+                    else if (chosenRarity == "Rare") { rarityOptions.Add("Special Rare"); }
+                    else if (chosenRarity == "Super Rare") { rarityOptions.Add("SR"); rarityOptions.Add("Super Special Rare"); rarityOptions.Add("Ultimate Rare"); }
+                    else if (chosenRarity == "Legendary") { rarityOptions.Add("Legend"); rarityOptions.Add("Ultimate Legendary"); }
+
+                    // Fetch base card templates
+                    var query = _dbContext.CardTemplates.AsEnumerable()
+                        .Where(t => !t.VariantName.Contains("+") && !t.Title.Contains("+"));
+
+                    // Apply filters based on ticket name
+                    if (ticketName.Contains("Super Hero", StringComparison.OrdinalIgnoreCase))
+                    {
+                        query = query.Where(t => t.Faction.Equals("Super Hero", StringComparison.OrdinalIgnoreCase));
+                    }
+                    else if (ticketName.Contains("Bruiser", StringComparison.OrdinalIgnoreCase))
+                    {
+                        query = query.Where(t => t.Alignment.Equals("Bruiser", StringComparison.OrdinalIgnoreCase));
+                    }
+                    else if (ticketName.Contains("Tactics", StringComparison.OrdinalIgnoreCase))
+                    {
+                        query = query.Where(t => t.Alignment.Equals("Tactics", StringComparison.OrdinalIgnoreCase));
+                    }
+                    else if (ticketName.Contains("Speed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        query = query.Where(t => t.Alignment.Equals("Speed", StringComparison.OrdinalIgnoreCase));
+                    }
+
+                    var filteredTemplates = query.Where(t => rarityOptions.Contains(t.Rarity, StringComparer.OrdinalIgnoreCase)).ToList();
+
+                    // Fallback to any matching template if no cards match rarity
+                    if (!filteredTemplates.Any())
+                    {
+                        filteredTemplates = query.ToList();
+                    }
+
+                    if (!filteredTemplates.Any())
+                    {
+                        // Direct database fallback to avoid crashes
+                        filteredTemplates = _dbContext.CardTemplates.Where(t => !t.VariantName.Contains("+")).ToList();
+                    }
+
+                    var chosenTemplate = filteredTemplates[rand.Next(filteredTemplates.Count)];
+                    pulledCard = new PlayerCard { PlayerProfileId = profileId };
+                    pulledCard.InitializeStats(chosenTemplate, GameplaySettings.DefaultMasteryPercentage);
+
+                    _dbContext.PlayerCards.Add(pulledCard);
+                }
+
+                if (pulledCard != null)
+                {
+                    // Map pulled card details
+                    var cardTemp = _dbContext.CardTemplates.FirstOrDefault(t => t.Id == pulledCard.CardTemplateId);
+                    message = $"🃏 RECRUITMENT DEPLOYED // Successfully recruited {cardTemp?.VisualTitle} into active squad!";
+                    updatedCard = new
+                    {
+                        id = pulledCard.Id,
+                        templateId = pulledCard.CardTemplateId,
+                        title = cardTemp?.Title ?? "Unknown Hero",
+                        visualTitle = cardTemp?.VisualTitle ?? "Hero",
+                        variant = cardTemp?.VariantName ?? "Base",
+                        alignment = cardTemp?.Alignment ?? "Speed",
+                        rarity = cardTemp?.Rarity ?? "Normal",
+                        imageFile = cardTemp?.ImageFileName ?? "",
+                        baseAtk = cardTemp?.BaseAtk ?? 1000,
+                        baseDef = cardTemp?.BaseDef ?? 1000,
+                        maxAtk = cardTemp?.MaxAtk ?? 4000,
+                        maxDef = cardTemp?.MaxDef ?? 4000,
+                        powerRequirement = cardTemp?.PowerRequirement ?? 5,
+                        quote = cardTemp?.Quote ?? ""
+                    };
+                }
+            }
 
             // Decrement ledger stock count
-            invItem.Quantity--;
-            _dbContext.SaveChanges();
+            if (!alreadyDecremented)
+            {
+                invItem.Quantity--;
+                _dbContext.SaveChanges();
+            }
 
             _logger.LogInformation($"[ItemLedger] Profile {profileId} successfully consumed item {itemId} ({invItem.ItemTemplate.Name}). Remaining: {invItem.Quantity}");
 
