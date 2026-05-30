@@ -21,27 +21,27 @@ namespace MwohServer.Controllers
         private readonly ILogger<EventsController> _logger;
         private readonly MwohDbContext _dbContext;
         private readonly IEventEngine _eventEngine;
-        private readonly ISessionGateway _sessionGateway;
+        private readonly IAuthService _authService;
         private readonly IWarEventEngine _warEventEngine;
 
         public EventsController(
             ILogger<EventsController> logger,
             MwohDbContext dbContext,
             IEventEngine eventEngine,
-            ISessionGateway sessionGateway,
+            IAuthService authService,
             IWarEventEngine warEventEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
             _eventEngine = eventEngine;
-            _sessionGateway = sessionGateway;
+            _authService = authService;
             _warEventEngine = warEventEngine;
         }
 
         private UserAccount ResolveCurrentUser()
         {
             var gauthToken = HttpContext.Items.TryGetValue("GAuthToken", out var tokenObj) ? tokenObj as string : null;
-            return _sessionGateway.ResolveContext(null, Request.Cookies["sid"], gauthToken);
+            return _authService.ResolveContext(null, Request.Cookies["sid"], gauthToken);
         }
 
         [HttpGet("event")]

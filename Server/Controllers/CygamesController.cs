@@ -27,7 +27,6 @@ namespace MwohServer.Controllers
         private readonly ICardGrowthEngine _cardGrowthEngine;
         private readonly IMissionEngine _missionEngine;
         private readonly IItemLedger _itemLedger;
-        private readonly ISessionGateway _sessionGateway;
         private readonly IDeckManager _deckManager;
         private readonly IProfileManager _profileManager;
         private readonly IBattleEngine _battleEngine;
@@ -47,7 +46,6 @@ namespace MwohServer.Controllers
             ICardGrowthEngine cardGrowthEngine,
             IMissionEngine missionEngine,
             IItemLedger itemLedger,
-            ISessionGateway sessionGateway,
             IDeckManager deckManager,
             IProfileManager profileManager,
             IBattleEngine battleEngine,
@@ -66,7 +64,6 @@ namespace MwohServer.Controllers
             _cardGrowthEngine = cardGrowthEngine;
             _missionEngine = missionEngine;
             _itemLedger = itemLedger;
-            _sessionGateway = sessionGateway;
             _deckManager = deckManager;
             _profileManager = profileManager;
             _battleEngine = battleEngine;
@@ -117,12 +114,12 @@ namespace MwohServer.Controllers
             _logger.LogInformation($"[Cygames] RequestTokenCredential Token: {oauthToken}, Verifier: {verifier}");
 
             // 1. First attempt to find the user via dynamic temporary token mapping
-            var user = _sessionGateway.ExchangeTemporaryToken(oauthToken);
+            var user = _authService.GetAndConsumeUserByTemporaryToken(oauthToken);
             
             // 2. Fallback to direct active token database search (compatibility fallback)
             if (user == null)
             {
-                user = _sessionGateway.ResolveContext(null, null, oauthToken);
+                user = _authService.ResolveContext(null, null, oauthToken);
             }
             
             string sessionId = "sess_dev_default_session_id";
@@ -345,7 +342,7 @@ namespace MwohServer.Controllers
         private UserAccount ResolveCurrentUser()
         {
             var gauthToken = HttpContext.Items.TryGetValue("GAuthToken", out var tokenObj) ? tokenObj as string : null;
-            return _sessionGateway.ResolveContext(null, Request.Cookies["sid"], gauthToken);
+            return _authService.ResolveContext(null, Request.Cookies["sid"], gauthToken);
         }
 
         [HttpPost("item/get_item_list")]

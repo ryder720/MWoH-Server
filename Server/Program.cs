@@ -37,7 +37,6 @@ builder.Services.AddScoped<IGachaSummoner, GachaSummoner>();
 builder.Services.AddScoped<ICardGrowthEngine, CardGrowthEngine>();
 builder.Services.AddScoped<IMissionEngine, MissionEngine>();
 builder.Services.AddScoped<IItemLedger, ItemLedger>();
-builder.Services.AddScoped<ISessionGateway, SessionGateway>();
 builder.Services.AddScoped<IDeckManager, DeckManager>();
 builder.Services.AddScoped<IProfileManager, ProfileManager>();
 builder.Services.AddScoped<IShieldTeamEngine, ShieldTeamEngine>();

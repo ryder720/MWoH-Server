@@ -15,13 +15,11 @@ namespace MwohServer.Controllers
     {
         private readonly ILogger<MobageController> _logger;
         private readonly IAuthService _authService;
-        private readonly ISessionGateway _sessionGateway;
 
-        public MobageController(ILogger<MobageController> logger, IAuthService authService, ISessionGateway sessionGateway)
+        public MobageController(ILogger<MobageController> logger, IAuthService authService)
         {
             _logger = logger;
             _authService = authService;
-            _sessionGateway = sessionGateway;
         }
 
         // 1. Stub Mobage SDK Social API: People `@me`
@@ -668,7 +666,7 @@ namespace MwohServer.Controllers
         private UserAccount ResolveMobageUser()
         {
             var authHeader = Request.Headers.TryGetValue("Authorization", out var val) ? val.ToString() : null;
-            return _sessionGateway.ResolveContext(authHeader, Request.Cookies["sid"], null);
+            return _authService.ResolveContext(authHeader, Request.Cookies["sid"], null);
         }
 
         // 10. OpenSocial endpoint for AppData stubs (arbitrary client-side storage)
@@ -776,7 +774,7 @@ namespace MwohServer.Controllers
                 }
             }
 
-            var result = _sessionGateway.Reestablish(gamertag, password, authToken);
+            var result = _authService.Reestablish(gamertag, password, authToken);
             if (result.Success)
             {
                 // Set "sid" cookie in case native SDK syncs cookies with WebView
