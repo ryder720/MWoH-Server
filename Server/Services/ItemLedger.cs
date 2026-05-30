@@ -58,7 +58,19 @@ namespace MwohServer.Services
             {
                 int refill = (profile.AttackPower * invItem.ItemTemplate.EffectValue) / 100;
                 profile.AttackPowerCurrent = Math.Min(profile.AttackPower, profile.AttackPowerCurrent + refill);
-                message = $"Attack Power restored by {refill} points!";
+                
+                bool isPowerPack = invItem.ItemTemplate.Name.Contains("Power Pack", StringComparison.OrdinalIgnoreCase) 
+                                   || invItem.ItemTemplate.Name.Contains("Power Kit", StringComparison.OrdinalIgnoreCase);
+                if (isPowerPack)
+                {
+                    int defRefill = (profile.DefensePower * invItem.ItemTemplate.EffectValue) / 100;
+                    profile.DefensePowerCurrent = Math.Min(profile.DefensePower, profile.DefensePowerCurrent + defRefill);
+                    message = $"Power Pack restored both Attack Power (by {refill} points) and Defense Power (by {defRefill} points)!";
+                }
+                else
+                {
+                    message = $"Attack Power restored by {refill} points!";
+                }
             }
             else if (invItem.ItemTemplate.Type == "DefensePowerRestorative")
             {
