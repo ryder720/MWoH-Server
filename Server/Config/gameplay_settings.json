@@ -5,8 +5,8 @@
       "AmountPerInterval": 1
     },
     "LevelUp": {
-      "BaseXpRequirement": 1000,
-      "XpIncrementPerLevel": 500,
+      "BaseXpRequirement": 20,
+      "XpIncrementPerLevel": 15,
       "EnergyMaxIncreasePerLevel": 2
     },
     "DefaultDeckCapacity": {
