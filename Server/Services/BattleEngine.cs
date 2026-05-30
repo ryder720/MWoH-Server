@@ -12,25 +12,22 @@ namespace MwohServer.Services
     {
         private readonly ILogger<BattleEngine> _logger;
         private readonly MwohDbContext _dbContext;
-        private readonly ICardAbilityEvaluator _abilityEvaluator;
         private readonly IAllianceEngine _allianceEngine;
-        private readonly ISpecialComboEngine _specialComboEngine;
+        private readonly ICombatSimulator _combatSimulator;
 
         private readonly IAssignmentEngine? _assignmentEngine;
 
         public BattleEngine(
             ILogger<BattleEngine> logger,
             MwohDbContext dbContext,
-            ICardAbilityEvaluator abilityEvaluator,
             IAllianceEngine allianceEngine,
-            ISpecialComboEngine specialComboEngine,
+            ICombatSimulator combatSimulator,
             IAssignmentEngine? assignmentEngine = null)
         {
             _logger = logger;
             _dbContext = dbContext;
-            _abilityEvaluator = abilityEvaluator;
             _allianceEngine = allianceEngine;
-            _specialComboEngine = specialComboEngine;
+            _combatSimulator = combatSimulator;
             _assignmentEngine = assignmentEngine;
         }
 
@@ -241,246 +238,52 @@ namespace MwohServer.Services
             result.DefenderDefensePowerBefore = defender.DefensePowerCurrent;
             result.DefenderDefensePowerMax = defender.DefensePower;
 
-            log.Add($"[SYSTEM LOG] Battle initiated. Mode: {(isSparring ? "Sparring Match (No Resource Transfers)" : "Ranked S.H.I.E.L.D. Combat")}");
-            log.Add($"[AGENT DOSSIER] Attacker: {attacker.Nickname} (Lvl {attacker.Level}) vs Defender: {defender.Nickname} (Lvl {defender.Level})");
-            log.Add($"[DEPLOYMENT] Attacker squad deployed. Clearance Cost: {attackerCost} / {attacker.AttackPower}");
-            log.Add($"[DEPLOYMENT] Defender squad deployed. Clearance Cost: {defenderCost} / {defender.DefensePower}");
-
-            // Apply scaling to defender stats if they have low defense power
+            // Calculate defender scale if low defense power
             double defenderScale = 1.0;
             if (defender.DefensePowerCurrent < defenderCost && defenderCost > 0)
             {
                 defenderScale = (double)defender.DefensePowerCurrent / defenderCost;
-                log.Add($"[WARNING] Defender defense points are depleted ({defender.DefensePowerCurrent}/{defenderCost}). Card effectiveness scaled to {Math.Round(defenderScale * 100)}%!");
             }
 
-            // 5. Abilities trigger check: 35% roll, max 3 triggers per deck
-            var random = new Random();
-            var triggeredAttackerCardIds = new HashSet<int>();
-            var attackerAbilityLogs = new List<string>();
-            var attackerTriggerCount = 0;
+            log.Add($"[SYSTEM LOG] Battle initiated. Mode: {(isSparring ? "Sparring Match (No Resource Transfers)" : "Ranked S.H.I.E.L.D. Combat")}");
 
-            foreach (var card in attackerCards)
-            {
-                if (card.CardTemplate != null && !string.IsNullOrEmpty(card.CardTemplate.AbilityName))
-                {
-                    if (attackerTriggerCount < 3 && random.NextDouble() < 0.35)
-                    {
-                        triggeredAttackerCardIds.Add(card.Id);
-                        attackerTriggerCount++;
-                        attackerAbilityLogs.Add($"[ABILITY TRIGGER] {card.CardTemplate.VisualTitle} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
-                    }
-                }
-            }
-
-            var triggeredDefenderCardIds = new HashSet<int>();
-            var defenderAbilityLogs = new List<string>();
-            var defenderTriggerCount = 0;
-
-            foreach (var card in defenderCards)
-            {
-                if (card.CardTemplate != null && !string.IsNullOrEmpty(card.CardTemplate.AbilityName))
-                {
-                    if (defenderTriggerCount < 3 && random.NextDouble() < 0.35)
-                    {
-                        triggeredDefenderCardIds.Add(card.Id);
-                        defenderTriggerCount++;
-                        defenderAbilityLogs.Add($"[ABILITY TRIGGER] {card.CardTemplate.VisualTitle} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
-                    }
-                }
-            }
-
-            // Apply S.H.I.E.L.D. Alliance boosts (adaptors, role bonuses, walls)
-            var attackerBoosts = new List<string>();
-            var defenderBoosts = new List<string>();
-
-            // Create evaluation models with ability name cleared for non-triggered ones and apply Alliance boosts
-            var attackerEvalCards = attackerCards.Select(c => {
+            // Fetch aligned alliance boosts
+            var attackerAllianceBoosts = attackerCards.Select(c => {
                 var alignment = c.CardTemplate?.Alignment ?? "Speed";
-                var boost = _allianceEngine.GetAllianceCombatBoosts(attackerProfileId, alignment);
-
-                int boostedAtk = (int)Math.Round(c.CurrentAtk * boost.AtkModifier);
-                int boostedDef = (int)Math.Round(c.CurrentDef * boost.DefModifier);
-
-                if (!string.IsNullOrEmpty(boost.Logs))
-                {
-                    foreach (var line in boost.Logs.Split('\n'))
-                    {
-                        if (!attackerBoosts.Contains(line)) attackerBoosts.Add(line);
-                    }
-                }
-
-                return new PlayerCard
-                {
-                    Id = c.Id,
-                    CurrentAtk = boostedAtk,
-                    CurrentDef = boostedDef,
-                    AbilityLevel = c.AbilityLevel,
-                    CardTemplate = new CardTemplate
-                    {
-                        Id = c.CardTemplate!.Id,
-                        Title = c.CardTemplate.Title,
-                        VisualTitle = c.CardTemplate.VisualTitle,
-                        Alignment = c.CardTemplate.Alignment,
-                        Rarity = c.CardTemplate.Rarity,
-                        Faction = c.CardTemplate.Faction,
-                        Gender = c.CardTemplate.Gender,
-                        PowerRequirement = c.CardTemplate.PowerRequirement,
-                        BaseAtk = (int)Math.Round(c.CardTemplate.BaseAtk * boost.AtkModifier),
-                        BaseDef = (int)Math.Round(c.CardTemplate.BaseDef * boost.DefModifier),
-                        MaxAtk = (int)Math.Round(c.CardTemplate.MaxAtk * boost.AtkModifier),
-                        MaxDef = (int)Math.Round(c.CardTemplate.MaxDef * boost.DefModifier),
-                        MasteryBonusAtk = (int)Math.Round(c.CardTemplate.MasteryBonusAtk * boost.AtkModifier),
-                        MasteryBonusDef = (int)Math.Round(c.CardTemplate.MasteryBonusDef * boost.DefModifier),
-                        MaxMastery = c.CardTemplate.MaxMastery,
-                        AbilityName = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
-                        AbilityEffect = triggeredAttackerCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
-                        Quote = c.CardTemplate.Quote,
-                        ImageFileName = c.CardTemplate.ImageFileName,
-                        VariantName = c.CardTemplate.VariantName
-                    }
-                };
+                return _allianceEngine.GetAllianceCombatBoosts(attackerProfileId, alignment);
             }).ToList();
 
-            var defenderEvalCards = defenderCards.Select(c => {
+            var defenderAllianceBoosts = defenderCards.Select(c => {
                 var alignment = c.CardTemplate?.Alignment ?? "Speed";
-                var boost = _allianceEngine.GetAllianceCombatBoosts(defenderProfileId, alignment);
-
-                int boostedAtk = (int)Math.Round(c.CurrentAtk * defenderScale * boost.AtkModifier);
-                int boostedDef = (int)Math.Round(c.CurrentDef * defenderScale * boost.DefModifier);
-
-                if (!string.IsNullOrEmpty(boost.Logs))
-                {
-                    foreach (var line in boost.Logs.Split('\n'))
-                    {
-                        if (!defenderBoosts.Contains(line)) defenderBoosts.Add(line);
-                    }
-                }
-
-                return new PlayerCard
-                {
-                    Id = c.Id,
-                    CurrentAtk = boostedAtk,
-                    CurrentDef = boostedDef,
-                    AbilityLevel = c.AbilityLevel,
-                    CardTemplate = new CardTemplate
-                    {
-                        Id = c.CardTemplate!.Id,
-                        Title = c.CardTemplate.Title,
-                        VisualTitle = c.CardTemplate.VisualTitle,
-                        Alignment = c.CardTemplate.Alignment,
-                        Rarity = c.CardTemplate.Rarity,
-                        Faction = c.CardTemplate.Faction,
-                        Gender = c.CardTemplate.Gender,
-                        PowerRequirement = c.CardTemplate.PowerRequirement,
-                        BaseAtk = (int)Math.Round(c.CardTemplate.BaseAtk * defenderScale * boost.AtkModifier),
-                        BaseDef = (int)Math.Round(c.CardTemplate.BaseDef * defenderScale * boost.DefModifier),
-                        MaxAtk = (int)Math.Round(c.CardTemplate.MaxAtk * defenderScale * boost.AtkModifier),
-                        MaxDef = (int)Math.Round(c.CardTemplate.MaxDef * defenderScale * boost.DefModifier),
-                        MasteryBonusAtk = (int)Math.Round(c.CardTemplate.MasteryBonusAtk * defenderScale * boost.AtkModifier),
-                        MasteryBonusDef = (int)Math.Round(c.CardTemplate.MasteryBonusDef * defenderScale * boost.DefModifier),
-                        MaxMastery = c.CardTemplate.MaxMastery,
-                        AbilityName = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityName : "",
-                        AbilityEffect = triggeredDefenderCardIds.Contains(c.Id) ? c.CardTemplate.AbilityEffect : "",
-                        Quote = c.CardTemplate.Quote,
-                        ImageFileName = c.CardTemplate.ImageFileName,
-                        VariantName = c.CardTemplate.VariantName
-                    }
-                };
+                return _allianceEngine.GetAllianceCombatBoosts(defenderProfileId, alignment);
             }).ToList();
 
-            // 6. Evaluate final combat stats
-            var attackerCombatStats = _abilityEvaluator.EvaluateDeck(attackerEvalCards, defenderEvalCards, isAttackingDeck: true);
-            var defenderCombatStats = _abilityEvaluator.EvaluateDeck(defenderEvalCards, attackerEvalCards, isAttackingDeck: false);
+            // Invoke pure Combat Simulator
+            var simResult = _combatSimulator.Simulate(
+                attackerCards,
+                defenderCards,
+                attacker.Nickname,
+                attacker.Level,
+                attacker.AttackPower,
+                attackerCost,
+                defender.Nickname,
+                defender.Level,
+                defender.DefensePower,
+                defenderCost,
+                defenderScale,
+                attackerAllianceBoosts,
+                defenderAllianceBoosts,
+                isSparring);
 
-            // Process S.H.I.E.L.D. Special Combos
-            var attackerCombos = _specialComboEngine.ProcessDeckCombos(attackerCards, isAttacking: true);
-            var defenderCombos = _specialComboEngine.ProcessDeckCombos(defenderCards, isAttacking: false);
-
-            // Helper to apply Special Combo buffs/debuffs to deck combat stats
-            void ApplyComboEffect(SpecialComboResult combo, List<PlayerCardCombatStats> friendlyStats, List<PlayerCardCombatStats> opposingStats)
-            {
-                var targets = combo.Target == ComboTarget.Friendly ? friendlyStats : opposingStats;
-                
-                foreach (var stat in targets)
-                {
-                    bool inScope = false;
-                    switch (combo.Scope)
-                    {
-                        case ComboScope.All:
-                            inScope = true;
-                            break;
-                        case ComboScope.Alignment:
-                            inScope = combo.ScopeDetail.Any(d => string.Equals(stat.Card.CardTemplate?.Alignment, d, StringComparison.OrdinalIgnoreCase));
-                            break;
-                        case ComboScope.Faction:
-                            inScope = combo.ScopeDetail.Any(d => string.Equals(stat.Card.CardTemplate?.Faction, d, StringComparison.OrdinalIgnoreCase));
-                            if (!inScope && combo.EffectText.ToLower().Contains("hero"))
-                            {
-                                inScope = string.Equals(stat.Card.CardTemplate?.Faction, "Super Hero", StringComparison.OrdinalIgnoreCase);
-                            }
-                            if (!inScope && combo.EffectText.ToLower().Contains("villain"))
-                            {
-                                inScope = string.Equals(stat.Card.CardTemplate?.Faction, "Villain", StringComparison.OrdinalIgnoreCase);
-                            }
-                            break;
-                        case ComboScope.SpecificCharacters:
-                            var charName = SpecialComboEngine.GetCharacterName(stat.Card.CardTemplate?.Title ?? "");
-                            inScope = combo.ScopeDetail.Any(d => string.Equals(charName, d, StringComparison.OrdinalIgnoreCase));
-                            break;
-                    }
-
-                    if (inScope)
-                    {
-                        if (combo.AffectedStat == ComboStat.Atk || combo.AffectedStat == ComboStat.AtkDef)
-                        {
-                            if (combo.Target == ComboTarget.Friendly) stat.ActiveBuffPercentageAtk += combo.PowerValue;
-                            else stat.ActiveDebuffPercentageAtk += combo.PowerValue;
-                        }
-                        if (combo.AffectedStat == ComboStat.Def || combo.AffectedStat == ComboStat.AtkDef)
-                        {
-                            if (combo.Target == ComboTarget.Friendly) stat.ActiveBuffPercentageDef += combo.PowerValue;
-                            else stat.ActiveDebuffPercentageDef += combo.PowerValue;
-                        }
-                    }
-                }
-            }
-
-            foreach (var combo in attackerCombos)
-            {
-                if (combo.Triggered)
-                {
-                    ApplyComboEffect(combo, attackerCombatStats, defenderCombatStats);
-                }
-                log.Add(combo.LogLine);
-            }
-
-            foreach (var combo in defenderCombos)
-            {
-                if (combo.Triggered)
-                {
-                    ApplyComboEffect(combo, defenderCombatStats, attackerCombatStats);
-                }
-                log.Add(combo.LogLine);
-            }
-
-            var finalAttackerPower = attackerCombatStats.Sum(s => s.FinalAtk);
-            var finalDefenderPower = defenderCombatStats.Sum(s => s.FinalDef);
-
-            result.AttackerFinalPower = finalAttackerPower;
-            result.DefenderFinalPower = finalDefenderPower;
-
-            log.Add("[COMBAT INITIATED] Tactical calculations in progress...");
-            foreach (var l in attackerBoosts) log.Add(l);
-            foreach (var l in defenderBoosts) log.Add(l);
-            foreach (var l in attackerAbilityLogs) log.Add(l);
-            foreach (var l in defenderAbilityLogs) log.Add(l);
-
-            log.Add($"[STAT RESOLUTION] Attacker Final ATK Power: {finalAttackerPower}");
-            log.Add($"[STAT RESOLUTION] Defender Final DEF Power: {finalDefenderPower}");
-
-            bool attackerWon = finalAttackerPower > finalDefenderPower;
+            result.AttackerFinalPower = simResult.AttackerFinalPower;
+            result.DefenderFinalPower = simResult.DefenderFinalPower;
+            
+            bool attackerWon = simResult.AttackerWon;
             result.AttackerWon = attackerWon;
+
+            var attackerTriggerCount = simResult.AttackerTriggerCount;
+
+            log.AddRange(simResult.LogLines);
 
             // 7. Process Silver Transfer
             long silverTransferred = 0;
@@ -509,6 +312,7 @@ namespace MwohServer.Services
             }
 
             // 8. Process Card Mastery gains
+            var random = new Random();
             int masteryGained = 0;
             if (attackerWon)
             {
@@ -562,8 +366,8 @@ namespace MwohServer.Services
                 AttackerProfileId = attackerProfileId,
                 DefenderProfileId = defenderProfileId,
                 WinnerProfileId = attackerWon ? attackerProfileId : defenderProfileId,
-                AttackerFinalPower = finalAttackerPower,
-                DefenderFinalPower = finalDefenderPower,
+                AttackerFinalPower = simResult.AttackerFinalPower,
+                DefenderFinalPower = simResult.DefenderFinalPower,
                 SilverExchanged = silverTransferred,
                 MasteryEarned = masteryGained,
                 BattleTime = DateTime.UtcNow,

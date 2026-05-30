@@ -43,6 +43,7 @@ builder.Services.AddScoped<IShieldTeamEngine, ShieldTeamEngine>();
 builder.Services.AddScoped<IResourceVaultEngine, ResourceVaultEngine>();
 builder.Services.AddSingleton<ICardAbilityEvaluator, CardAbilityEvaluator>();
 builder.Services.AddSingleton<ISpecialComboEngine, SpecialComboEngine>();
+builder.Services.AddScoped<ICombatSimulator, CombatSimulator>();
 builder.Services.AddScoped<IBattleEngine, BattleEngine>();
 builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
 builder.Services.AddScoped<ITradeEngine, TradeEngine>();
@@ -818,6 +819,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  commendations reload                           - Reload daily commendation blueprints");
             Console.WriteLine("  commendations list                             - List currently active login calendars");
             Console.WriteLine("  runtests                                       - Execute card ability evaluation unit tests");
+            Console.WriteLine("  runsimtests                                    - Execute database-free Combat Simulator unit tests");
             Console.WriteLine("  runbattletests                                 - Execute S.H.I.E.L.D. Battle Engine unit tests");
             Console.WriteLine("  runalliancetests                               - Execute S.H.I.E.L.D. Alliance System unit tests");
             Console.WriteLine("  runcombotests                                  - Execute S.H.I.E.L.D. Special Combos unit tests");
@@ -1029,6 +1031,25 @@ public static class AdminConsoleEngine
             return;
         }
 
+        if (primary == "runsimtests")
+        {
+            var evaluator = new CardAbilityEvaluator();
+            var comboEngine = new SpecialComboEngine();
+            var simulator = new CombatSimulator(evaluator, comboEngine);
+            var success = MwohServer.Tests.CombatSimulatorTests.Run(simulator);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] Combat Simulator Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: Combat Simulator Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
         if (primary == "runbattletests")
         {
             var evaluator = new CardAbilityEvaluator();
@@ -1036,7 +1057,8 @@ public static class AdminConsoleEngine
             var logger = loggerFactory.CreateLogger<BattleEngine>();
             var allianceLogger = loggerFactory.CreateLogger<AllianceEngine>();
             var allianceEngine = new AllianceEngine(allianceLogger, db);
-            var battleEngine = new BattleEngine(logger, db, evaluator, allianceEngine, new SpecialComboEngine());
+            var combatSimulator = new CombatSimulator(evaluator, new SpecialComboEngine());
+            var battleEngine = new BattleEngine(logger, db, allianceEngine, combatSimulator);
             var success = MwohServer.Tests.BattleEngineTests.Run(battleEngine, db);
             if (success)
             {
