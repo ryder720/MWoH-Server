@@ -17,6 +17,10 @@ namespace MwohServer.Services
         public int Level { get; set; }
         public int EnergyMax { get; set; }
         public int EnergyCurrent { get; set; }
+        public int AttackPowerCurrent { get; set; }
+        public int AttackPowerMax { get; set; }
+        public int DefensePowerCurrent { get; set; }
+        public int DefensePowerMax { get; set; }
         public long Silver { get; set; }
         public long MobaCoin { get; set; }
         public object? UpdatedCard { get; set; }

@@ -202,7 +202,7 @@
     </div>
 
     <!-- HUD Status -->
-    <div class="status-hud">
+    <div class="status-hud" style="display: flex; flex-direction: column; gap: 8px;">
         <div class="status-row">
             <span class="hud-lbl">ENERGY SYNC</span>
             <span class="hud-val" id="energy-val">{{energyCur}} / {{energyMax}}</span>
@@ -211,7 +211,23 @@
             <div class="bar-fill" id="energy-bar" style="width: {{energyPct}}%;"></div>
         </div>
 
-        <div class="status-row" style="margin-top: 12px;">
+        <div class="status-row">
+            <span class="hud-lbl">ATTACK POWER RESERVES</span>
+            <span class="hud-val" id="attack-val">{{attackPowerCur}} / {{attackPowerMax}}</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="attack-bar" style="width: {{attackPowerPct}}%; background: var(--accent-red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);"></div>
+        </div>
+
+        <div class="status-row">
+            <span class="hud-lbl">DEFENSE PROTOCOL RESERVES</span>
+            <span class="hud-val" id="defense-val">{{defensePowerCur}} / {{defensePowerMax}}</span>
+        </div>
+        <div class="bar-container">
+            <div class="bar-fill" id="defense-bar" style="width: {{defensePowerPct}}%; background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);"></div>
+        </div>
+
+        <div class="status-row">
             <span class="hud-lbl">SQUAD FILES CAPACITY</span>
             <span class="hud-val" id="capacity-val">{{cardsCount}} / {{cardsMax}}</span>
         </div>
@@ -399,6 +415,22 @@
                         
                         const pct = (status.energy_current * 100) / status.energy_max;
                         document.getElementById('energy-bar').style.width = pct + '%';
+
+                        // Dynamically update attack power bar if returned
+                        if (status.attack_power_current !== undefined) {
+                            const attackStr = status.attack_power_current + ' / ' + status.attack_power_max;
+                            document.getElementById('attack-val').textContent = attackStr;
+                            const atkPct = (status.attack_power_current * 100) / status.attack_power_max;
+                            document.getElementById('attack-bar').style.width = atkPct + '%';
+                        }
+
+                        // Dynamically update defense power bar if returned
+                        if (status.defense_power_current !== undefined) {
+                            const defenseStr = status.defense_power_current + ' / ' + status.defense_power_max;
+                            document.getElementById('defense-val').textContent = defenseStr;
+                            const defPct = (status.defense_power_current * 100) / status.defense_power_max;
+                            document.getElementById('defense-bar').style.width = defPct + '%';
+                        }
 
                         // Dynamically update squad files capacity bar if returned
                         if (status.max_card_capacity !== undefined) {

@@ -250,6 +250,28 @@
                 </div>
             </div>
 
+            <!-- Attack Clearance Bar -->
+            <div class="progress-block">
+                <div class="progress-lbl">
+                    <span>ATTACK CLEARANCE RESERVES</span>
+                    <span id="attack-val">{{attackPowerCur}} / {{attackPowerMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" id="attack-bar" style="background: var(--accent-red); box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); width: {{attackPowerPct}}%;"></div>
+                </div>
+            </div>
+
+            <!-- Defense Protocol Bar -->
+            <div class="progress-block">
+                <div class="progress-lbl">
+                    <span>DEFENSE PROTOCOL RESERVES</span>
+                    <span id="defense-val">{{defensePowerCur}} / {{defensePowerMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" id="defense-bar" style="background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); width: {{defensePowerPct}}%;"></div>
+                </div>
+            </div>
+
             <!-- Currency grids -->
             <div class="hud-balances">
                 <div class="balance-item">
@@ -401,38 +423,87 @@
 
     <script>
         (function() {
+            // Campaign Energy
             let currentEnergy = parseInt("{{energyCur}}") || 0;
             const maxEnergy = parseInt("{{energyMax}}") || 100;
             const intervalSeconds = parseInt("{{energyRecoveryInterval}}") || 300;
             const lastRecoveryTime = new Date("{{lastRecoveryTime}}");
 
+            // Attack Power (Clearance)
+            let currentAttack = parseInt("{{attackPowerCur}}") || 0;
+            const maxAttack = parseInt("{{attackPowerMax}}") || 100;
+            const attackInterval = parseInt("{{attackRecoveryInterval}}") || 180;
+            const lastBattleRecoveryTime = new Date("{{lastBattleRecoveryTime}}");
+
+            // Defense Power (Protocol)
+            let currentDefense = parseInt("{{defensePowerCur}}") || 0;
+            const maxDefense = parseInt("{{defensePowerMax}}") || 100;
+            const defenseInterval = parseInt("{{defenseRecoveryInterval}}") || 180;
+
             function tickEnergy() {
+                // 1. Campaign Energy Ticks
                 if (currentEnergy >= maxEnergy) {
                     document.getElementById("energy-val").textContent = `${maxEnergy} / ${maxEnergy}`;
                     document.getElementById("energy-bar").style.width = "100%";
-                    return;
+                } else {
+                    const now = new Date();
+                    const secondsElapsed = Math.floor((now.getTime() - lastRecoveryTime.getTime()) / 1000);
+                    if (secondsElapsed >= intervalSeconds && intervalSeconds > 0) {
+                        const ticks = Math.floor(secondsElapsed / intervalSeconds);
+                        const restored = ticks * 1;
+                        const newEnergy = Math.min(maxEnergy, currentEnergy + restored);
+                        if (newEnergy !== currentEnergy) {
+                            currentEnergy = newEnergy;
+                            document.getElementById("energy-val").textContent = `${currentEnergy} / ${maxEnergy}`;
+                            const pct = Math.min(100, (currentEnergy * 100) / maxEnergy);
+                            document.getElementById("energy-bar").style.width = `${pct}%`;
+                        }
+                    }
                 }
 
-                const now = new Date();
-                const secondsElapsed = Math.floor((now.getTime() - lastRecoveryTime.getTime()) / 1000);
-                if (secondsElapsed >= intervalSeconds && intervalSeconds > 0) {
-                    const ticks = Math.floor(secondsElapsed / intervalSeconds);
-                    const restored = ticks * 1; // recovery amount
-                    const newEnergy = Math.min(maxEnergy, currentEnergy + restored);
-                    
-                    if (newEnergy !== currentEnergy) {
-                        currentEnergy = newEnergy;
-                        document.getElementById("energy-val").textContent = `${currentEnergy} / ${maxEnergy}`;
-                        const pct = Math.min(100, (currentEnergy * 100) / maxEnergy);
-                        document.getElementById("energy-bar").style.width = `${pct}%`;
+                // 2. Attack Power Ticks
+                if (currentAttack >= maxAttack) {
+                    document.getElementById("attack-val").textContent = `${maxAttack} / ${maxAttack}`;
+                    document.getElementById("attack-bar").style.width = "100%";
+                } else {
+                    const now = new Date();
+                    const secondsElapsed = Math.floor((now.getTime() - lastBattleRecoveryTime.getTime()) / 1000);
+                    if (secondsElapsed >= attackInterval && attackInterval > 0) {
+                        const ticks = Math.floor(secondsElapsed / attackInterval);
+                        const restored = ticks * 1;
+                        const newAttack = Math.min(maxAttack, currentAttack + restored);
+                        if (newAttack !== currentAttack) {
+                            currentAttack = newAttack;
+                            document.getElementById("attack-val").textContent = `${currentAttack} / ${maxAttack}`;
+                            const pct = Math.min(100, (currentAttack * 100) / maxAttack);
+                            document.getElementById("attack-bar").style.width = `${pct}%`;
+                        }
+                    }
+                }
+
+                // 3. Defense Power Ticks
+                if (currentDefense >= maxDefense) {
+                    document.getElementById("defense-val").textContent = `${maxDefense} / ${maxDefense}`;
+                    document.getElementById("defense-bar").style.width = "100%";
+                } else {
+                    const now = new Date();
+                    const secondsElapsed = Math.floor((now.getTime() - lastBattleRecoveryTime.getTime()) / 1000);
+                    if (secondsElapsed >= defenseInterval && defenseInterval > 0) {
+                        const ticks = Math.floor(secondsElapsed / defenseInterval);
+                        const restored = ticks * 1;
+                        const newDefense = Math.min(maxDefense, currentDefense + restored);
+                        if (newDefense !== currentDefense) {
+                            currentDefense = newDefense;
+                            document.getElementById("defense-val").textContent = `${currentDefense} / ${maxDefense}`;
+                            const pct = Math.min(100, (currentDefense * 100) / maxDefense);
+                            document.getElementById("defense-bar").style.width = `${pct}%`;
+                        }
                     }
                 }
             }
 
-            if (intervalSeconds > 0 && currentEnergy < maxEnergy) {
-                setInterval(tickEnergy, 1000);
-                tickEnergy();
-            }
+            setInterval(tickEnergy, 1000);
+            tickEnergy();
         })();
     </script>
 

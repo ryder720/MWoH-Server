@@ -216,6 +216,25 @@
             </div>
         </div>
 
+        <!-- Battle Reserves HUD -->
+        <div style="background: rgba(13, 20, 35, 0.45); border: 1px solid rgba(0, 240, 255, 0.1); border-radius: 8px; padding: 10px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Space Mono', monospace; font-size: 8px; color: #94a3b8; letter-spacing: 0.5px;">
+                <span>⚡ ATTACK CLEARANCE RESERVES</span>
+                <span style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 800; color: var(--accent-red);">{{currentPlayerAttackPower}} / {{currentPlayerAttackPowerMax}}</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); height: 4px; border-radius: 2px; overflow: hidden;">
+                <div style="background: var(--accent-red); width: {{currentPlayerAttackPowerPct}}%; height: 100%; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Space Mono', monospace; font-size: 8px; color: #94a3b8; letter-spacing: 0.5px;">
+                <span>🛡️ DEFENSE PROTOCOL RESERVES</span>
+                <span style="font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 800; color: #10b981;">{{currentPlayerDefensePower}} / {{currentPlayerDefensePowerMax}}</span>
+            </div>
+            <div style="background: rgba(255, 255, 255, 0.05); height: 4px; border-radius: 2px; overflow: hidden;">
+                <div style="background: #10b981; width: {{currentPlayerDefensePowerPct}}%; height: 100%; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);"></div>
+            </div>
+        </div>
+
         <div id="setup-panel">
             <div class="division-header active-core" style="margin-bottom: 12px; font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; padding: 6px 12px; border-radius: 6px; background: rgba(0, 240, 255, 0.06); border-left: 3px solid var(--hud-blue); color: var(--hud-blue);">
                 📡 CONFIGURE ENGAGEMENT MODE

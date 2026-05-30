@@ -437,6 +437,10 @@ namespace MwohServer.Controllers
                     level = result.Level,
                     energy_max = result.EnergyMax,
                     energy_current = result.EnergyCurrent,
+                    attack_power_current = result.AttackPowerCurrent,
+                    attack_power_max = result.AttackPowerMax,
+                    defense_power_current = result.DefensePowerCurrent,
+                    defense_power_max = result.DefensePowerMax,
                     silver = result.Silver,
                     mobacoin = result.MobaCoin,
                     max_card_capacity = updatedMaxCapacity,
@@ -560,11 +564,25 @@ namespace MwohServer.Controllers
             var cardsMax = profile?.MaxCardCapacity ?? 250;
             var capacityPct = cardsMax > 0 ? (cardsCount * 100) / cardsMax : 0;
 
+            var attackPowerCur = profile?.AttackPowerCurrent ?? 0;
+            var attackPowerMax = profile?.AttackPower ?? 100;
+            var attackPowerPct = attackPowerMax > 0 ? (attackPowerCur * 100) / attackPowerMax : 0;
+
+            var defensePowerCur = profile?.DefensePowerCurrent ?? 0;
+            var defensePowerMax = profile?.DefensePower ?? 100;
+            var defensePowerPct = defensePowerMax > 0 ? (defensePowerCur * 100) / defensePowerMax : 0;
+
             var replacements = new Dictionary<string, string>
             {
                 { "energyCur", energyCur.ToString() },
                 { "energyMax", energyMax.ToString() },
                 { "energyPct", energyPct.ToString() },
+                { "attackPowerCur", attackPowerCur.ToString() },
+                { "attackPowerMax", attackPowerMax.ToString() },
+                { "attackPowerPct", attackPowerPct.ToString() },
+                { "defensePowerCur", defensePowerCur.ToString() },
+                { "defensePowerMax", defensePowerMax.ToString() },
+                { "defensePowerPct", defensePowerPct.ToString() },
                 { "itemsHtml", itemsHtml },
                 { "cardsJson", cardsJson },
                 { "cardsCount", cardsCount.ToString() },
@@ -1036,6 +1054,14 @@ namespace MwohServer.Controllers
             var energyMax = profile.EnergyMax;
             var energyPct = Math.Min(100, (energyCur * 100) / energyMax);
 
+            var attackPowerCur = profile.AttackPowerCurrent;
+            var attackPowerMax = profile.AttackPower;
+            var attackPowerPct = attackPowerMax > 0 ? Math.Min(100, (attackPowerCur * 100) / attackPowerMax) : 0;
+
+            var defensePowerCur = profile.DefensePowerCurrent;
+            var defensePowerMax = profile.DefensePower;
+            var defensePowerPct = defensePowerMax > 0 ? Math.Min(100, (defensePowerCur * 100) / defensePowerMax) : 0;
+
             var replacements = new Dictionary<string, string>
             {
                 { "clearanceCode", profile.Id.ToString("D4") },
@@ -1049,6 +1075,15 @@ namespace MwohServer.Controllers
                 { "energyPct", energyPct.ToString() },
                 { "energyRecoveryInterval", GameplaySettings.EnergyRecoveryIntervalSeconds.ToString() },
                 { "lastRecoveryTime", DateTime.SpecifyKind(profile.LastEnergyRecoveryTime, DateTimeKind.Utc).ToString("o") },
+                { "attackPowerCur", attackPowerCur.ToString() },
+                { "attackPowerMax", attackPowerMax.ToString() },
+                { "attackPowerPct", attackPowerPct.ToString() },
+                { "defensePowerCur", defensePowerCur.ToString() },
+                { "defensePowerMax", defensePowerMax.ToString() },
+                { "defensePowerPct", defensePowerPct.ToString() },
+                { "attackRecoveryInterval", GameplaySettings.AttackRecoveryIntervalSeconds.ToString() },
+                { "defenseRecoveryInterval", GameplaySettings.DefenseRecoveryIntervalSeconds.ToString() },
+                { "lastBattleRecoveryTime", DateTime.SpecifyKind(profile.LastBattlePowerRecoveryTime, DateTimeKind.Utc).ToString("o") },
                 { "mobacoin", profile.MobaCoinBalance.ToString() },
                 { "silver", profile.SilverBalance.ToString() },
                 { "leaderHtml", leaderHtml },
@@ -2474,13 +2509,22 @@ namespace MwohServer.Controllers
                 alignment = r.Cards.FirstOrDefault(c => c.IsLeader)?.CardTemplate?.Alignment ?? "Bruiser"
             }));
 
+            var attackPct = Math.Min(100, (currentPlayer.AttackPowerCurrent * 100) / currentPlayer.AttackPower);
+            var defensePct = Math.Min(100, (currentPlayer.DefensePowerCurrent * 100) / currentPlayer.DefensePower);
+
             var replacements = new Dictionary<string, string>
             {
                 { "currentPlayerName", currentPlayer.Nickname },
                 { "currentPlayerLevel", currentPlayer.Level.ToString() },
                 { "currentPlayerSilver", currentPlayer.SilverBalance.ToString("N0") },
                 { "currentPlayerAttackPower", $"{currentPlayer.AttackPowerCurrent}/{currentPlayer.AttackPower}" },
+                { "currentPlayerAttackPowerCur", currentPlayer.AttackPowerCurrent.ToString() },
+                { "currentPlayerAttackPowerMax", currentPlayer.AttackPower.ToString() },
+                { "currentPlayerAttackPowerPct", attackPct.ToString() },
                 { "currentPlayerDefensePower", $"{currentPlayer.DefensePowerCurrent}/{currentPlayer.DefensePower}" },
+                { "currentPlayerDefensePowerCur", currentPlayer.DefensePowerCurrent.ToString() },
+                { "currentPlayerDefensePowerMax", currentPlayer.DefensePower.ToString() },
+                { "currentPlayerDefensePowerPct", defensePct.ToString() },
                 { "rivalsJson", rivalsJson }
             };
 
@@ -2553,6 +2597,9 @@ namespace MwohServer.Controllers
             var attackerLeader = currentPlayer.Cards.FirstOrDefault(c => c.IsLeader) ?? currentPlayer.Cards.FirstOrDefault();
             var defenderLeader = defender.Cards.FirstOrDefault(c => c.IsLeader) ?? defender.Cards.FirstOrDefault();
 
+            var attackPct = Math.Min(100, (currentPlayer.AttackPowerCurrent * 100) / currentPlayer.AttackPower);
+            var defensePct = Math.Min(100, (currentPlayer.DefensePowerCurrent * 100) / currentPlayer.DefensePower);
+
             var replacements = new Dictionary<string, string>
             {
                 { "currentPlayerId", currentPlayer.Id.ToString() },
@@ -2560,6 +2607,10 @@ namespace MwohServer.Controllers
                 { "currentPlayerLevel", currentPlayer.Level.ToString() },
                 { "currentPlayerAttackPower", currentPlayer.AttackPowerCurrent.ToString() },
                 { "currentPlayerAttackPowerMax", currentPlayer.AttackPower.ToString() },
+                { "currentPlayerAttackPowerPct", attackPct.ToString() },
+                { "currentPlayerDefensePower", currentPlayer.DefensePowerCurrent.ToString() },
+                { "currentPlayerDefensePowerMax", currentPlayer.DefensePower.ToString() },
+                { "currentPlayerDefensePowerPct", defensePct.ToString() },
                 { "defenderId", defender.Id.ToString() },
                 { "defenderName", defender.Nickname },
                 { "defenderLevel", defender.Level.ToString() },

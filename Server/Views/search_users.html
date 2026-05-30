@@ -156,13 +156,23 @@
     <div class="container" style="padding-top: 15px; padding-bottom: 60px; box-sizing: border-box; width: 100%; max-width: 480px; margin: 0 auto;">
         
         <div class="stats-hud">
-            <div class="stat-hud-card">
-                <div class="stat-hud-label">⚡ CLEARANCE (ATK)</div>
-                <div class="stat-hud-value">{{currentPlayerAttackPower}}</div>
+            <div class="stat-hud-card" style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: flex-start;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="stat-hud-label">⚡ CLEARANCE (ATK)</div>
+                    <div class="stat-hud-value">{{currentPlayerAttackPower}}</div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.05); height: 4px; border-radius: 2px; overflow: hidden; width: 100%;">
+                    <div style="background: var(--accent-red); width: {{currentPlayerAttackPowerPct}}%; height: 100%; box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);"></div>
+                </div>
             </div>
-            <div class="stat-hud-card">
-                <div class="stat-hud-label">🛡️ DEFENSE POWER</div>
-                <div class="stat-hud-value def">{{currentPlayerDefensePower}}</div>
+            <div class="stat-hud-card" style="display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: flex-start;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="stat-hud-label">🛡️ DEFENSE POWER</div>
+                    <div class="stat-hud-value def">{{currentPlayerDefensePower}}</div>
+                </div>
+                <div style="background: rgba(255, 255, 255, 0.05); height: 4px; border-radius: 2px; overflow: hidden; width: 100%;">
+                    <div style="background: #10b981; width: {{currentPlayerDefensePowerPct}}%; height: 100%; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);"></div>
+                </div>
             </div>
         </div>
 
