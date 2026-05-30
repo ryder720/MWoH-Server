@@ -81,6 +81,7 @@ namespace MwohServer.Models
         public System.Collections.Generic.ICollection<PlayerInventoryItem> InventoryItems { get; set; } = new System.Collections.Generic.List<PlayerInventoryItem>();
         public System.Collections.Generic.ICollection<PlayerAssignmentProgress> AssignmentProgresses { get; set; } = new System.Collections.Generic.List<PlayerAssignmentProgress>();
         public System.Collections.Generic.ICollection<PlayerLoginCommendationProgress> LoginCommendations { get; set; } = new System.Collections.Generic.List<PlayerLoginCommendationProgress>();
+        public System.Collections.Generic.ICollection<PlayerEventProgress> EventProgresses { get; set; } = new System.Collections.Generic.List<PlayerEventProgress>();
     }
 
     public class ShieldTeamMember

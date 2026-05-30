@@ -47,6 +47,7 @@ builder.Services.AddScoped<IAllianceEngine, AllianceEngine>();
 builder.Services.AddScoped<ITradeEngine, TradeEngine>();
 builder.Services.AddScoped<IAssignmentEngine, AssignmentEngine>();
 builder.Services.AddScoped<ILoginCommendationEngine, LoginCommendationEngine>();
+builder.Services.AddScoped<IEventEngine, EventEngine>();
 builder.Services.AddScoped<GAuthValidationFilter>();
 
 
@@ -635,6 +636,29 @@ using (var scope = app.Services.CreateScope())
         logger.LogError($"Database migration failed (PlayerLoginCommendations table): {ex.Message}");
     }
 
+    // 12. Create PlayerEventProgress table if not exists
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS PlayerEventProgresses (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                PlayerProfileId INTEGER NOT NULL,
+                EventId TEXT NOT NULL,
+                Points INTEGER NOT NULL DEFAULT 0,
+                TierClaimed INTEGER NOT NULL DEFAULT 0,
+                RankRewardsClaimed INTEGER NOT NULL DEFAULT 0,
+                CustomProgressJson TEXT NOT NULL DEFAULT '{{}}',
+                LastUpdated TEXT NOT NULL,
+                FOREIGN KEY (PlayerProfileId) REFERENCES Profiles(Id) ON DELETE CASCADE
+            );
+        ");
+        logger.LogInformation("Database migration: Ensured PlayerEventProgresses table exists.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError($"Database migration failed (PlayerEventProgress table): {ex.Message}");
+    }
+
     DatabaseSeeder.SeedCards(dbContext, logger);
     DatabaseSeeder.SeedItems(dbContext, logger);
     DatabaseSeeder.SeedRivals(dbContext, logger);
@@ -722,12 +746,68 @@ public static class AdminConsoleEngine
             Console.WriteLine("  runtradetests                                  - Execute S.H.I.E.L.D. Material Requisition unit tests");
             Console.WriteLine("  runassignmenttests                             - Execute S.H.I.E.L.D. Assignments unit tests");
             Console.WriteLine("  runcommendationtests                           - Execute S.H.I.E.L.D. Daily Commendations unit tests");
+            Console.WriteLine("  events reload                                  - Reload all active event templates");
+            Console.WriteLine("  events list                                    - List all event templates and statuses");
+            Console.WriteLine("  events calculate <eventId>                     - Force rank compiles and award dispatch");
+            Console.WriteLine("  runeventtests                                  - Execute S.H.I.E.L.D. Event Foundation unit tests");
             Console.WriteLine("  <username> addcurrency <silver|mobacoin> <n>    - Grant/deduct balances with safety guards");
             Console.WriteLine("  <username> addcard <templateId> [lvl] [mst]    - Spawn card directly into inventory");
             Console.WriteLine("  <username> setlevel <level>                    - Set agent level with capacity auto-scaling");
             Console.WriteLine("  <username> resetattributes                     - Revert agent parameters and refund Attribute Points");
             Console.WriteLine("  <username> resetassignments                    - Wipe all assignment progress for agent");
             Console.WriteLine("  <username> resetcommendations                  - Wipe all daily login progress for agent\n");
+            return;
+        }
+
+        if (primary == "events")
+        {
+            if (args.Length < 2)
+            {
+                Console.WriteLine("[Admin Console] Error: Specify action. Syntax is 'events <reload|list|calculate>'");
+                return;
+            }
+
+            var actionArg = args[1].ToLower();
+            var eventEngine = (MwohServer.Services.IEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IEventEngine))!;
+
+            if (actionArg == "reload")
+            {
+                eventEngine.ReloadTemplates();
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Event templates successfully reloaded.");
+            }
+            else if (actionArg == "list")
+            {
+                var templates = eventEngine.GetTemplates();
+                Console.WriteLine($"\n--- S.H.I.E.L.D. EVENT TEMPLATES ({templates.Count}) ---");
+                foreach (var t in templates)
+                {
+                    var state = eventEngine.GetEventState(t);
+                    Console.WriteLine($"  [{t.Id}] Type: {t.EventType} | Title: {t.Title} | State: {state} | Window: {t.StartDate:yyyy-MM-dd HH:mm} to {t.EndDate:yyyy-MM-dd HH:mm} (Results: {t.ResultDate:yyyy-MM-dd HH:mm})");
+                }
+                Console.WriteLine();
+            }
+            else if (actionArg == "calculate")
+            {
+                if (args.Length < 3)
+                {
+                    Console.WriteLine("[Admin Console] Error: Specify event ID. Syntax is 'events calculate <eventId>'");
+                    return;
+                }
+                var eventId = args[2];
+                var res = eventEngine.CalculateAndDispatchRewards(eventId);
+                Console.WriteLine($"[Admin Console] {res.Message} (Operatives Processed: {res.AgentsProcessed})");
+            }
+            else
+            {
+                Console.WriteLine($"[Admin Console] Error: Unknown events action '{actionArg}'. Use 'reload', 'list', or 'calculate'.");
+            }
+            return;
+        }
+
+        if (primary == "runeventtests")
+        {
+            var eventEngine = (MwohServer.Services.IEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IEventEngine))!;
+            MwohServer.Tests.EventEngineTests.Run(eventEngine, db);
             return;
         }
 
@@ -980,6 +1060,27 @@ public static class AdminConsoleEngine
             db.PlayerLoginCommendations.RemoveRange(records);
             db.SaveChanges();
             Console.WriteLine($"[Admin Console] Wiped {records.Count} daily login progress entries for S.H.I.E.L.D. Agent '{username}'. Daily login progress reset.");
+            return;
+        }
+
+        if (action == "addeventpoints")
+        {
+            if (args.Length < 4)
+            {
+                Console.WriteLine("[Admin Console] Error: Syntax is '<username> addeventpoints <eventId> <points>'");
+                return;
+            }
+
+            var eventId = args[2];
+            if (!int.TryParse(args[3], out int points))
+            {
+                Console.WriteLine("[Admin Console] Error: Points must be a valid integer.");
+                return;
+            }
+
+            var eventEngine = (MwohServer.Services.IEventEngine)serviceProvider.GetService(typeof(MwohServer.Services.IEventEngine))!;
+            eventEngine.RecordEventPoints(profile.Id, eventId, points);
+            Console.WriteLine($"[Admin Console] Successfully granted {points} Event Points for event '{eventId}' to S.H.I.E.L.D. Agent '{username}'.");
             return;
         }
 

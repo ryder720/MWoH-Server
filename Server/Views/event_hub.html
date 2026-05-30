@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Tactical Mainframe | Event Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        /* Modern Cybernetic Styles Scoped to Event Hub */
+        .event-banner-container {
+            width: 100%;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            position: relative;
+            margin-bottom: 16px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        }
+        
+        .event-banner-overlay {
+            position: absolute;
+            bottom: 0; left: 0; width: 100%;
+            background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.4) 70%, rgba(15, 23, 42, 0) 100%);
+            padding: 16px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+
+        .event-type-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: bold;
+            color: #0f172a;
+            background: var(--hud-blue);
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: fit-content;
+            margin-bottom: 6px;
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+        }
+
+        .event-type-badge.survival { background: var(--accent-gold); box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+        .event-type-badge.companyraid { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+        .event-type-badge.war { background: var(--accent-red); box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+        .event-type-badge.training { background: #a855f7; box-shadow: 0 0 8px rgba(168, 85, 247, 0.5); }
+
+        .event-title-main {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        /* Stats Grid */
+        .event-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .event-stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .event-stat-card.rank { border-color: rgba(245, 158, 11, 0.25); }
+        .event-stat-card.points { border-color: rgba(0, 240, 255, 0.25); }
+
+        .event-stat-card:hover {
+            background: rgba(15, 23, 42, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .stat-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .stat-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #cbd5e1;
+        }
+
+        .event-stat-card.rank .stat-val { color: var(--accent-gold); text-shadow: 0 0 10px rgba(245, 158, 11, 0.2); }
+        .event-stat-card.points .stat-val { color: var(--hud-blue); text-shadow: 0 0 10px rgba(0, 240, 255, 0.2); }
+
+        /* Countdown clock */
+        .timer-strip {
+            background: rgba(239, 68, 68, 0.05);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .timer-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            color: var(--accent-red);
+            letter-spacing: 1px;
+        }
+
+        .timer-clock {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Action Buttons Grid */
+        .event-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .event-action-btn {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            border-radius: 10px;
+            padding: 14px 10px;
+            color: #ffffff;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .event-action-btn:hover:not(.disabled) {
+            border-color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.05);
+            transform: translateY(-1px);
+        }
+
+        .event-action-btn:active:not(.disabled) {
+            transform: scale(0.97);
+        }
+
+        .event-action-btn.disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .act-icon { font-size: 18px; }
+        .act-title { font-family: 'Outfit', sans-serif; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .act-desc { font-family: 'Outfit', sans-serif; font-size: 7px; color: #64748b; text-align: center; }
+
+        /* Leaderboard & Milestones Panels */
+        .event-list-panel {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .leaderboard-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            margin-bottom: 6px;
+        }
+
+        .leaderboard-row:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .rank-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            color: var(--accent-gold);
+        }
+
+        .dossier-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .dossier-name { font-family: 'Outfit', sans-serif; font-size: 9px; font-weight: 600; color: #cbd5e1; }
+        .dossier-level { font-family: 'Space Mono', monospace; font-size: 7px; color: #64748b; }
+        .dossier-points { font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 700; color: var(--hud-blue); }
+
+        /* Milestone Card */
+        .milestone-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .milestone-card.completed { border-color: rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.01); }
+        .milestone-card.claimed { border-color: rgba(255,255,255,0.05); opacity: 0.65; }
+
+        .milestone-badge {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: bold;
+            color: #64748b;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+
+        .milestone-card.completed .milestone-badge { color: #10b981; background: rgba(16, 185, 129, 0.06); }
+
+        .milestone-reward-name {
+            font-family: 'Outfit', sans-serif;
+            font-size: 9px;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        .milestone-status {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            color: #64748b;
+        }
+
+        .milestone-card.completed .milestone-status { color: #10b981; }
+        .milestone-card.claimed .milestone-status { color: var(--accent-gold); }
+
+        .milestone-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid;
+        }
+
+        .milestone-btn.ready {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: #10b981;
+            color: #0f172a;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+        }
+
+        .milestone-btn.ready:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+        }
+
+        .milestone-btn.locked {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: rgba(255, 255, 255, 0.05);
+            color: #475569;
+            cursor: not-allowed;
+        }
+
+        .milestone-btn.claimed {
+            background: rgba(245, 158, 11, 0.05);
+            border-color: rgba(245, 158, 11, 0.15);
+            color: var(--accent-gold);
+            cursor: not-allowed;
+        }
+
+        /* Standby & Calculation Overlays */
+        .lock-container {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.15);
+        }
+
+        .lock-logo {
+            font-size: 40px;
+            margin-bottom: 16px;
+            animation: pulseShield 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseShield {
+            0%, 100% { transform: scale(1); opacity: 0.95; text-shadow: 0 0 10px rgba(239,68,68,0.2); }
+            50% { transform: scale(1.05); opacity: 0.65; text-shadow: 0 0 20px rgba(239,68,68,0.5); }
+        }
+
+        .feedback-banner {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Raid Boss Cards */
+        .raid-boss-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+
+        .raid-boss-card:hover {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .raid-boss-card.active {
+            border-color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.03);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+        }
+
+        .difficulty-indicator {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            font-weight: bold;
+            color: #0f172a;
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .difficulty-indicator.easy { background: var(--hud-green); }
+        .difficulty-indicator.medium { background: var(--accent-gold); }
+        .difficulty-indicator.hard { background: var(--accent-red); }
+
+        .progress-bar-lbl {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: #cbd5e1;
+            margin-top: 6px;
+        }
+
+        /* Cooperative Modal */
+        .helper-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .helper-modal-content {
+            background: #0f172a;
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            border-radius: 14px;
+            width: 90%;
+            max-width: 380px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .helper-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .helper-row:hover {
+            background: rgba(0, 240, 255, 0.05);
+            border-color: rgba(0, 240, 255, 0.2);
+        }
+
+        .strike-selector-btn {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 10px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .strike-selector-btn:hover {
+            border-color: var(--hud-blue);
+        }
+
+        .strike-selector-btn.active {
+            background: rgba(0, 240, 255, 0.03);
+            border-color: var(--hud-blue);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
+        }
+
+        .strike-selector-btn.overdrive.active {
+            background: rgba(245, 158, 11, 0.03);
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+            animation: pulseGoldBorder 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGoldBorder {
+            0%, 100% { border-color: rgba(245, 158, 11, 0.5); }
+            50% { border-color: rgba(245, 158, 11, 1); }
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/menu" class="back-btn">&lt; HUB</a>
+        <h1>TACTICAL PORTAL</h1>
+        <div style="width: 50px;"></div> <!-- Symmetrical balance spacer -->
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 60px;">
+        
+        <!-- Energy Reserve bar and Agent name -->
+        <div class="profile-panel" style="margin-bottom: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span style="font-family:'Space Mono',monospace; font-size:10px; font-weight:bold; color:var(--hud-blue);">📡 OPERATIVE DOSSIER</span>
+                <span class="badge-lvl">LEVEL {{level}}</span>
+            </div>
+            <div class="agent-name" style="font-size:1.2rem; margin-bottom:12px;">{{agentName}}</div>
+            
+            <div class="progress-block" style="margin-bottom: 0;">
+                <div class="progress-lbl">
+                    <span>ENERGY RESTORATIVES</span>
+                    <span>{{energyCur}} / {{energyMax}}</span>
+                </div>
+                <div class="bar-outer">
+                    <div class="bar-inner" style="background: var(--hud-green); width: {{energyPct}}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification feedback banner -->
+        <div id="feedback-banner" class="feedback-banner"></div>
+
+        <!-- STATE 1: STANDBY OVERLAY -->
+        <div id="panel-standby" style="display: none;" class="lock-container">
+            <div class="lock-logo" style="color: var(--hud-blue); text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);">💻</div>
+            <h2 style="font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:800; color:#ffffff; margin-bottom:8px; text-transform:uppercase;">STANDBY SYSTEM ACTIVE</h2>
+            <p style="font-family:'Outfit',sans-serif; font-size:0.75rem; color:#64748b; line-height:1.4; margin-bottom:20px; max-width:80%; margin-left:auto; margin-right:auto;">
+                S.H.I.E.L.D. mainframe currently scans operational quadrants. Standard operations remain available. Stand by for priority global notifications.
+            </p>
+            <a href="/ultimate/mypage" class="cta-btn-glow" style="display:inline-block; font-size:9px; text-decoration:none; padding:10px 20px; border-radius:6px; border:1px solid var(--hud-blue); background:rgba(0, 240, 255, 0.05); color:#ffffff; font-family:'Space Mono',monospace; font-weight:bold;">
+                RETURN TO DASHBOARD
+            </a>
+        </div>
+
+        <!-- STATE 2: CALCULATING OVERLAY (Maintenance) -->
+        <div id="panel-calculating" style="display: none;" class="lock-container" style="border-color: rgba(245, 158, 11, 0.3); box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);">
+            <div class="lock-logo" style="color: var(--accent-gold);">📡</div>
+            <h2 style="font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:800; color:#ffffff; margin-bottom:8px; text-transform:uppercase;">RANK CALCULATION WINDOW</h2>
+            <p style="font-family:'Outfit',sans-serif; font-size:0.75rem; color:#94a3b8; line-height:1.4; margin-bottom:15px; max-width:85%; margin-left:auto; margin-right:auto;">
+                Operation timeline closed. S.H.I.E.L.D. Mainframe is compiling tactical data and rank vectors.
+            </p>
+            <div style="font-family:'Space Mono',monospace; font-size:8px; color:var(--accent-gold); letter-spacing:1px;" class="pulsing-cyan">
+                📡 SECURING DATABANKS... RANK REWARDS DISPATCHING IN
+            </div>
+            <div id="calc-countdown" class="timer-clock" style="margin-top: 15px; display:inline-block; font-size:12px; color:var(--accent-gold); border-color:var(--accent-gold);">CALCULATING...</div>
+        </div>
+
+        <!-- ACTIVE EVENT CONTENT BLOCK -->
+        <div id="panel-event-content" style="display: none;">
+            
+            <!-- Event Banner Header -->
+            <div class="event-banner-container">
+                <div class="event-banner-overlay">
+                    <div id="event-badge" class="event-type-badge">RAID OPERATION</div>
+                    <div class="event-title-main">{{eventTitle}}</div>
+                </div>
+            </div>
+
+            <!-- Timed flow Countdown strip -->
+            <div id="timer-strip" class="timer-strip">
+                <span id="timer-label" class="timer-lbl">BATTLE OPS END IN</span>
+                <span id="event-countdown" class="timer-clock">00:00:00</span>
+            </div>
+
+            <!-- Narrative / Threat Warning Panel -->
+            <div class="profile-panel" style="margin-bottom:16px; background:rgba(239, 68, 68, 0.02); border-color:rgba(239, 68, 68, 0.15);">
+                <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:var(--accent-red); margin-bottom:6px; letter-spacing:1px;">⚠️ TACTICAL INTEL BRIEFING</div>
+                <p style="font-family:'Outfit',sans-serif; font-size:0.75rem; color:#cbd5e1; line-height:1.45; margin:0;">
+                    {{eventDesc}}
+                </p>
+            </div>
+
+            <!-- Active Stats Grid -->
+            <div class="event-stats-grid">
+                <div class="event-stat-card rank">
+                    <span class="stat-lbl">CLEARANCE RANK</span>
+                    <span class="stat-val">#{{rank}}</span>
+                </div>
+                <div class="event-stat-card points">
+                    <span class="stat-lbl">CLEARANCE POINTS</span>
+                    <span class="stat-val">{{points}}</span>
+                </div>
+            </div>
+
+
+
+            <!-- RAID BOSS EXCLUSIVE SYSTEM -->
+            <div id="panel-raid-system" style="display: none; margin-bottom: 20px;">
+                
+                <!-- 1. Cooperative Helper Link Status -->
+                <div class="section-hdr">// COOPERATIVE ASSIST CHANNEL</div>
+                <div id="helper-status-linked" style="display: none;">
+                    <div class="profile-panel" style="border-color:rgba(0, 240, 255, 0.35); background:rgba(0, 240, 255, 0.02); margin-bottom:16px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--hud-blue);">📡 ACTIVE COOPERATIVE LINK</span>
+                            <button onclick="openHelperModal()" class="milestone-btn ready" style="padding:2px 8px; font-size:7px;">CHANGE LINK</button>
+                        </div>
+                        <div style="display:flex; gap:12px; align-items:center;">
+                            <img src="{{helperCardImage}}" style="width:50px; height:50px; border-radius:6px; border:1px solid rgba(0, 240, 255, 0.3); object-fit:cover;">
+                            <div style="display:flex; flex-direction:column; gap:2px;">
+                                <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff;">{{helperName}} <span style="color:#64748b; font-size:8px;">[Lv. {{helperLevel}}]</span></div>
+                                <div style="font-family:'Outfit',sans-serif; font-size:9px; font-weight:600; color:#fbbf24;">LEADER: {{helperCardTitle}}</div>
+                                <div style="font-family:'Space Mono',monospace; font-size:7.5px; color:#cbd5e1; line-height:1.2;">SKILL: <span style="color:var(--hud-blue);">{{helperSkillName}}</span> - {{helperSkillEffect}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="helper-status-unlinked" style="display: none;">
+                    <div class="profile-panel" style="border-color:rgba(239, 68, 68, 0.25); background:rgba(239, 68, 68, 0.01); margin-bottom:16px; text-align:center; padding:18px;">
+                        <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--accent-red); margin-bottom:6px; letter-spacing:1px;">📡 COOPERATIVE CHANNEL OFFLINE</div>
+                        <p style="font-family:'Outfit',sans-serif; font-size:0.75rem; color:#94a3b8; margin-bottom:12px; line-height:1.3;">Link another agent's leader card to receive a forced combat ability boost during operations.</p>
+                        <button onclick="openHelperModal()" class="milestone-btn ready" style="padding:6px 14px; font-size:8px; background:linear-gradient(135deg, var(--hud-blue), #0284c7); border-color:var(--hud-blue); color:#0f172a; box-shadow:0 0 10px rgba(0, 240, 255, 0.3);">
+                            LINK COOPERATIVE OPERATIVE
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Target Dossier Selections -->
+                <div class="section-hdr">// ACTIVE PRIORITY TARGETS DOSSIER</div>
+                
+                <!-- Easy Boss -->
+                <div class="raid-boss-card active" onclick="selectDifficulty('Easy', this)">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span class="difficulty-indicator easy">EASY TARGET</span>
+                        <span class="badge-lvl">LEVEL {{easyLevel}}</span>
+                    </div>
+                    <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff; margin-bottom:6px;">BODY PART TARGET: <span style="color:var(--hud-green);">{{easyPartName}}</span></div>
+                    
+                    <div class="progress-bar-lbl">
+                        <span>MAIN CORE SHIELDS</span>
+                        <span>{{easyMainHpCur}} / {{easyMainHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner" style="width: {{easyMainHpPct}}%;"></div>
+                    </div>
+
+                    <div class="progress-bar-lbl" style="margin-top: 4px;">
+                        <span>TARGET CORE BODY PART</span>
+                        <span>{{easyPartHpCur}} / {{easyPartHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner part" style="width: {{easyPartHpPct}}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Medium Boss -->
+                <div class="raid-boss-card" onclick="selectDifficulty('Medium', this)">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span class="difficulty-indicator medium">MEDIUM TARGET</span>
+                        <span class="badge-lvl">LEVEL {{medLevel}}</span>
+                    </div>
+                    <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff; margin-bottom:6px;">BODY PART TARGET: <span style="color:var(--accent-gold);">{{medPartName}}</span></div>
+                    
+                    <div class="progress-bar-lbl">
+                        <span>MAIN CORE SHIELDS</span>
+                        <span>{{medMainHpCur}} / {{medMainHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner" style="width: {{medMainHpPct}}%;"></div>
+                    </div>
+
+                    <div class="progress-bar-lbl" style="margin-top: 4px;">
+                        <span>TARGET CORE BODY PART</span>
+                        <span>{{medPartHpCur}} / {{medPartHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner part" style="width: {{medPartHpPct}}%;"></div>
+                    </div>
+                </div>
+
+                <!-- Hard Boss -->
+                <div class="raid-boss-card" onclick="selectDifficulty('Hard', this)">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span class="difficulty-indicator hard">HARD TARGET</span>
+                        <span class="badge-lvl">LEVEL {{hardLevel}}</span>
+                    </div>
+                    <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff; margin-bottom:6px;">BODY PART TARGET: <span style="color:var(--accent-red);">{{hardPartName}}</span></div>
+                    
+                    <div class="progress-bar-lbl">
+                        <span>MAIN CORE SHIELDS</span>
+                        <span>{{hardMainHpCur}} / {{hardMainHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner" style="width: {{hardMainHpPct}}%;"></div>
+                    </div>
+
+                    <div class="progress-bar-lbl" style="margin-top: 4px;">
+                        <span>TARGET CORE BODY PART</span>
+                        <span>{{hardPartHpCur}} / {{hardPartHpMax}} HP</span>
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-bar-inner part" style="width: {{hardPartHpPct}}%;"></div>
+                    </div>
+                </div>
+
+                <!-- 3. Strike Charge Option Selection -->
+                <div class="section-hdr" style="margin-top: 16px;">// ENGAGEMENT STRIKE CONTROLS</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
+                    <div class="strike-selector-btn active" id="strike-standard-btn" onclick="selectStrikeMultiplier(1)">
+                        <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:var(--hud-blue); margin-bottom:4px;">{{baseApCost}} AP CHARGE</div>
+                        <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff;">STANDARD STRIKE</div>
+                        <div style="font-family:'Outfit',sans-serif; font-size:7px; color:#64748b;">Deals 1.0x Combat Damage</div>
+                    </div>
+                    
+                    <div class="strike-selector-btn overdrive" id="strike-overdrive-btn" onclick="selectStrikeMultiplier(3)">
+                        <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:#fbbf24; margin-bottom:4px;">{{overdriveApCost}} AP OVERDRIVE</div>
+                        <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff;">OVERDRIVE STRIKE</div>
+                        <div style="font-family:'Outfit',sans-serif; font-size:7px; color:#64748b;">Deals 3.0x Combat Damage!</div>
+                    </div>
+                </div>
+
+                <!-- Engagement Trigger Form -->
+                <form action="/ultimate/event/raid/engage" method="POST" id="raid-strike-form">
+                    <input type="hidden" name="eventId" value="{{eventId}}">
+                    <input type="hidden" name="difficulty" id="strike-difficulty" value="Easy">
+                    <input type="hidden" name="costMultiplier" id="strike-multiplier" value="1">
+                    
+                    <button type="submit" class="cta-btn-glow" style="width:100%; border:1px solid rgba(0, 240, 255, 0.4); padding:12px; font-family:'Space Mono',monospace; font-size:10px; font-weight:bold; letter-spacing:1px; background:rgba(0, 240, 255, 0.05); color:#ffffff; cursor:pointer;">
+                        ⚔️ LAUNCH COMBAT STRIKE OPS
+                    </button>
+                </form>
+
+            </div>
+
+            <!-- Scoreboard Ranking dossier list -->
+            <div class="event-list-panel">
+                <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--accent-gold); letter-spacing:1px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">🏆 GLOBAL OPERATIVE SCOREBOARD</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    {{leaderboardHtml}}
+                </div>
+            </div>
+
+            <!-- Milestones Drop list -->
+            <div class="event-list-panel" style="margin-bottom: 20px;">
+                <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--hud-blue); letter-spacing:1px; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px;">🎁 MILITARY MILESTONE SUPPLIES</div>
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    {{milestonesHtml}}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- State management script -->
+    <script>
+        (function() {
+            // Load state boolean tags from controller variables
+            const isStandby = {{isStandby}};
+            const isUpcoming = {{isUpcoming}};
+            const isActive = {{isActive}};
+            const isCalculating = {{isCalculating}};
+            const isCompleted = {{isCompleted}};
+            const eventType = "{{eventType}}";
+            
+            // 1. Render State Panels
+            if (isStandby) {
+                document.getElementById("panel-standby").style.display = "block";
+            } else if (isCalculating) {
+                document.getElementById("panel-calculating").style.display = "block";
+            } else {
+                // Event is Active, Upcoming or Completed
+                document.getElementById("panel-event-content").style.display = "block";
+                
+                // Style event badge by type
+                const badge = document.getElementById("event-badge");
+                if (badge) {
+                    badge.textContent = getEventTypeName(eventType);
+                    badge.className = "event-type-badge " + eventType.toLowerCase();
+                }
+
+                if (eventType === "Raid" && !isUpcoming && !isCompleted) {
+                    document.getElementById("panel-raid-system").style.display = "block";
+                    const hasHelper = {{hasHelper}};
+                    if (hasHelper) {
+                        document.getElementById("helper-status-linked").style.display = "block";
+                    } else {
+                        document.getElementById("helper-status-unlinked").style.display = "block";
+                    }
+                }
+
+
+                if (isCompleted) {
+                    const strip = document.getElementById("timer-strip");
+                    if (strip) {
+                        strip.style.background = "rgba(16, 185, 129, 0.05)";
+                        strip.style.borderColor = "rgba(16, 185, 129, 0.2)";
+                        document.getElementById("timer-label").textContent = "CAMPAIGN CONCLUDED";
+                        document.getElementById("timer-label").style.color = "#10b981";
+                        document.getElementById("event-countdown").textContent = "SUCCESS";
+                        document.getElementById("event-countdown").style.color = "#10b981";
+                        document.getElementById("event-countdown").style.borderColor = "#10b981";
+                    }
+                }
+            }
+
+            function getEventTypeName(type) {
+                switch(type) {
+                    case "Raid": return "RAID ENCOUNTER";
+                    case "CompanyRaid": return "ALLIANCE RAID BOSS";
+                    case "War": return "ALLIANCE WAR EVENT";
+                    case "Training": return "TOWER progressive ops";
+                    case "Survival": return "SURVIVAL TRIAL ARENA";
+                    default: return "PRIORITY THREAT";
+                }
+            }
+
+            // 2. JS Tickers Countdown Clock
+            let totalSeconds = parseInt("{{timerSeconds}}") || 0;
+            const timerEl = document.getElementById(isCalculating ? "calc-countdown" : "event-countdown");
+
+            if (timerEl && totalSeconds > 0 && !isCompleted && !isStandby) {
+                function updateClock() {
+                    if (totalSeconds <= 0) {
+                        timerEl.textContent = "00:00:00";
+                        // Reload portal dynamically to transition states
+                        setTimeout(() => { location.reload(); }, 1500);
+                        return;
+                    }
+
+                    const days = Math.floor(totalSeconds / 86400);
+                    const hours = Math.floor((totalSeconds % 86400) / 3600);
+                    const minutes = Math.floor((totalSeconds % 3600) / 60);
+                    const seconds = totalSeconds % 60;
+
+                    let formatStr = "";
+                    if (days > 0) formatStr += `${days}D `;
+                    formatStr += `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                    timerEl.textContent = formatStr;
+                    totalSeconds--;
+                }
+                setInterval(updateClock, 1000);
+                updateClock();
+            }
+        })();
+    </script>
+
+    <!-- AJAX Milestones claiming script -->
+    <script>
+        async function claimMilestone(eventId, tierIndex, btn) {
+            if (!btn || btn.disabled) return;
+            
+            btn.disabled = true;
+            btn.textContent = "SECURING...";
+            
+            const banner = document.getElementById("feedback-banner");
+            banner.style.display = "none";
+
+            try {
+                const response = await fetch("/ultimate/event/claim_reward", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ eventId: eventId, tierIndex: tierIndex })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    banner.style.background = "rgba(16, 185, 129, 0.05)";
+                    banner.style.borderColor = "rgba(16, 185, 129, 0.15)";
+                    banner.style.color = "#10b981";
+                    banner.textContent = result.message.toUpperCase();
+                    banner.style.display = "block";
+
+                    // Update button state immediately
+                    btn.className = "milestone-btn claimed";
+                    btn.textContent = "SECURED";
+                    btn.disabled = true;
+                    
+                    // Mark card as claimed
+                    const card = btn.closest(".milestone-card");
+                    if (card) {
+                        card.className = "milestone-card claimed";
+                        const status = card.querySelector(".milestone-status");
+                        if (status) status.textContent = "STAMPED ✓";
+                    }
+                } else {
+                    banner.style.background = "rgba(239, 68, 68, 0.05)";
+                    banner.style.borderColor = "rgba(239, 68, 68, 0.15)";
+                    banner.style.color = "var(--accent-red)";
+                    banner.textContent = `TRANSMISSION REFUSED: ${result.message.toUpperCase()}`;
+                    banner.style.display = "block";
+                    
+                    btn.disabled = false;
+                    btn.textContent = "SECURE ASSET";
+                }
+            } catch (e) {
+                banner.style.background = "rgba(239, 68, 68, 0.05)";
+                banner.style.borderColor = "rgba(239, 68, 68, 0.15)";
+                banner.style.color = "var(--accent-red)";
+                banner.textContent = "CRITICAL MAINFRAME COMMUNICATION INTERRUPT.";
+                banner.style.display = "block";
+                
+                btn.disabled = false;
+                btn.textContent = "SECURE ASSET";
+            }
+        }
+    </script>
+
+    <!-- Cooperative Helper Modal Overlay -->
+    <div class="helper-modal-overlay" id="helper-modal">
+        <div class="helper-modal-content">
+            <div class="helper-modal-header">
+                <span style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--hud-blue); letter-spacing:1px;">📡 SELECT COOPERATIVE AGENT</span>
+                <span onclick="closeHelperModal()" style="cursor:pointer; color:#64748b; font-weight:bold; font-size:12px;">✖</span>
+            </div>
+            
+            <div id="helper-modal-loading" style="font-family:'Space Mono',monospace; font-size:8px; color:#64748b; text-align:center; padding:20px;">
+                📡 CONNECTING S.H.I.E.L.D. SECURE CHANNELS...
+            </div>
+            
+            <div id="helper-modal-list" style="display:none; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto; padding-right:4px;">
+                <!-- Loaded dynamically via AJAX -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Cooperative and Strike JavaScript Controllers -->
+    <script>
+        function selectDifficulty(diff, cardEl) {
+            if (!cardEl) return;
+            
+            // Remove active class from all raid cards
+            const cards = document.querySelectorAll('.raid-boss-card');
+            cards.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked card
+            cardEl.classList.add('active');
+            
+            // Update hidden form input
+            document.getElementById('strike-difficulty').value = diff;
+        }
+
+        function selectStrikeMultiplier(mult) {
+            // Update active state in buttons
+            const stdBtn = document.getElementById('strike-standard-btn');
+            const ovrBtn = document.getElementById('strike-overdrive-btn');
+            
+            stdBtn.classList.remove('active');
+            ovrBtn.classList.remove('active');
+            
+            if (mult === 3) {
+                ovrBtn.classList.add('active');
+            } else {
+                stdBtn.classList.add('active');
+            }
+            
+            // Update hidden form input
+            document.getElementById('strike-multiplier').value = mult;
+        }
+
+        function openHelperModal() {
+            const modal = document.getElementById('helper-modal');
+            modal.style.display = 'flex';
+            
+            // Reset modal states
+            document.getElementById('helper-modal-loading').style.display = 'block';
+            document.getElementById('helper-modal-list').style.display = 'none';
+            document.getElementById('helper-modal-list').innerHTML = '';
+            
+            // Fetch helpers via AJAX
+            fetch('/ultimate/event/raid/helpers')
+                .then(res => res.json())
+                .then(helpers => {
+                    const listContainer = document.getElementById('helper-modal-list');
+                    document.getElementById('helper-modal-loading').style.display = 'none';
+                    listContainer.style.display = 'flex';
+                    
+                    if (helpers.length === 0) {
+                        listContainer.innerHTML = '<div style="font-family:\'Space Mono\',monospace; font-size:8px; color:#64748b; text-align:center; padding:10px;">📡 NO OTHER S.H.I.E.L.D. AGENTS DETECTED IN THE SECTOR.</div>';
+                        return;
+                    }
+                    
+                    helpers.forEach(h => {
+                        const row = document.createElement('div');
+                        row.className = 'helper-row';
+                        row.onclick = () => selectHelper(h.profileId);
+                        
+                        row.innerHTML = `
+                            <img src="${h.cardImage}" style="width:40px; height:40px; border-radius:6px; border:1px solid rgba(0,240,255,0.2); object-fit:cover;">
+                            <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
+                                <div style="font-family:'Outfit',sans-serif; font-size:9px; font-weight:800; color:#ffffff;">${h.nickname} <span style="color:#64748b; font-size:7px;">[Lv. ${h.level}]</span></div>
+                                <div style="font-family:'Outfit',sans-serif; font-size:8px; font-weight:600; color:#fbbf24;">LEADER: ${h.cardTitle}</div>
+                                <div style="font-family:'Space Mono',monospace; font-size:7px; color:#cbd5e1; line-height:1.2;">SKILL: ${h.skillName}</div>
+                            </div>
+                        `;
+                        listContainer.appendChild(row);
+                    });
+                })
+                .catch(err => {
+                    document.getElementById('helper-modal-loading').textContent = '📡 CRITICAL DECRYPT CHANNEL MUX FAIL.';
+                });
+        }
+
+        function closeHelperModal() {
+            document.getElementById('helper-modal').style.display = 'none';
+        }
+
+        function selectHelper(helperId) {
+            const eventId = "{{eventId}}";
+            
+            fetch('/ultimate/event/raid/select_helper', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ eventId: eventId, helperProfileId: helperId })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert("COOPERATIVE CHANNEL BINDING FAIL.");
+                }
+            })
+            .catch(err => {
+                alert("CRITICAL COMMUNICATION DISCONNECT.");
+            });
+        }
+    </script>
+</body>
+</html>

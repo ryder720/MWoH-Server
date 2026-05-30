@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>S.H.I.E.L.D. Tactical Mainframe | Combat Evaluation Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/ultimate.css">
+    <style>
+        .outcome-header {
+            text-align: center;
+            padding: 24px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .outcome-header.oneshot {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: rgba(16, 185, 129, 0.35);
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .outcome-header.victory {
+            background: rgba(0, 240, 255, 0.08);
+            border-color: rgba(0, 240, 255, 0.35);
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+        }
+
+        .outcome-header.retreat {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: rgba(239, 68, 68, 0.35);
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .outcome-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .outcome-header.oneshot .outcome-title { color: #10b981; }
+        .outcome-header.victory .outcome-title { color: var(--hud-blue); }
+        .outcome-header.retreat .outcome-title { color: var(--accent-red); }
+
+        .outcome-subtitle {
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            line-height: 1.45;
+        }
+
+        /* Tactical Summary Metrics Card */
+        .metrics-card {
+            background: rgba(15, 23, 42, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 14px;
+        }
+
+        .metric-subcard {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .metric-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 7px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .metric-val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #f1f5f9;
+        }
+
+        .metric-val.damage { color: #f43f5e; text-shadow: 0 0 10px rgba(244, 63, 94, 0.15); }
+        .metric-val.defense { color: #e2e8f0; }
+        .metric-val.points { color: var(--hud-blue); text-shadow: 0 0 10px rgba(0, 240, 255, 0.15); }
+        .metric-val.silver { color: var(--accent-gold); text-shadow: 0 0 10px rgba(245, 158, 11, 0.15); }
+
+        /* HP comparison slider */
+        .hp-assessment {
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 12px;
+        }
+
+        .assessment-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .assessment-lbl {
+            font-family: 'Space Mono', monospace;
+            font-size: 8px;
+            color: #94a3b8;
+            text-transform: uppercase;
+        }
+
+        .assessment-hp-details {
+            font-family: 'Space Mono', monospace;
+            font-size: 9px;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+
+        .health-bar-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 3px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.03);
+            margin-top: 4px;
+            position: relative;
+        }
+
+        .health-bar-inner {
+            height: 100%;
+            background: #10b981;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .health-bar-inner.part {
+            background: #f59e0b;
+        }
+
+        /* Combat Log Terminal */
+        .log-terminal {
+            background: #090d16;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-family: 'Space Mono', monospace;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 6px;
+        }
+
+        .terminal-title {
+            font-size: 8px;
+            color: #64748b;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .terminal-status {
+            font-size: 7px;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+            padding: 1px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .log-row {
+            font-size: 8.5px;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+            word-break: break-word;
+        }
+
+        .log-row:before {
+            content: "> ";
+            color: #00f0ff;
+        }
+
+        .log-row:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Return Action Button */
+        .return-btn-glow {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            border-radius: 8px;
+            padding: 14px;
+            color: #ffffff;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.1);
+            text-transform: uppercase;
+        }
+
+        .return-btn-glow:hover {
+            border-color: var(--hud-blue);
+            background: rgba(0, 240, 255, 0.06);
+            box-shadow: 0 4px 25px rgba(0, 240, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .return-btn-glow:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="webview-body">
+    <div class="header">
+        <a href="/ultimate/event" class="back-btn">&lt; PORTAL</a>
+        <h1>COMBAT DEBRIEFING</h1>
+        <div style="width: 50px;"></div>
+    </div>
+
+    <div class="container" style="padding-top: 15px; padding-bottom: 40px;">
+        
+        <!-- Premium Win / Loss Status Header -->
+        <div class="outcome-header {{headerClass}}">
+            <h2 class="outcome-title">{{headerTitle}}</h2>
+            <p class="outcome-subtitle">{{headerSubtitle}}</p>
+        </div>
+
+        <!-- Combat Summary Readout -->
+        <div class="metrics-card">
+            <div style="font-family:'Space Mono',monospace; font-size:9px; font-weight:bold; color:var(--hud-blue); letter-spacing:1.5px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:6px; margin-bottom:14px;">📡 TELEMETRY DATA EVALUATION</div>
+
+            <!-- Health Pools Before & After -->
+            <div class="hp-assessment">
+                <div class="assessment-row">
+                    <span class="assessment-lbl">{{bossName}} MAIN CORES</span>
+                    <span class="assessment-hp-details">{{mainHpAfter}} / {{mainHpBefore}} HP</span>
+                </div>
+                <div class="health-bar-container">
+                    <!-- Javascript or calculated percentage bar width -->
+                    <div id="main-hp-bar" class="health-bar-inner"></div>
+                </div>
+            </div>
+
+            <div class="hp-assessment" style="border-bottom:none; margin-bottom:0; padding-bottom:0;">
+                <div class="assessment-row">
+                    <span class="assessment-lbl">PART TARGET: {{bodyPartName}}</span>
+                    <span class="assessment-hp-details">{{partHpAfter}} / {{partHpBefore}} HP</span>
+                </div>
+                <div class="health-bar-container">
+                    <div id="part-hp-bar" class="health-bar-inner part"></div>
+                </div>
+            </div>
+
+            <!-- Rewards & Hits grid -->
+            <div class="metrics-grid">
+                <div class="metric-subcard">
+                    <span class="metric-lbl">TOTAL SQUAD ATK</span>
+                    <span class="metric-val damage">{{playerDamage}}</span>
+                </div>
+                <div class="metric-subcard">
+                    <span class="metric-lbl">BOSS DEFENSE ABSORB</span>
+                    <span class="metric-val defense">{{bossDefense}}</span>
+                </div>
+                <div class="metric-subcard">
+                    <span class="metric-lbl">SYNC POINTS EARNED</span>
+                    <span class="metric-val points">+{{pointsEarned}} PTS</span>
+                </div>
+                <div class="metric-subcard">
+                    <span class="metric-lbl">SILVER DEPOSITED</span>
+                    <span class="metric-val silver">+{{silverEarned}} SLV</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal log outputs -->
+        <div class="log-terminal">
+            <div class="terminal-header">
+                <span class="terminal-title">🖥️ COMBAT ENTRANCE LOGS</span>
+                <span class="terminal-status">Online</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                {{combatLogsHtml}}
+            </div>
+        </div>
+
+        <!-- Portal Return Navigation -->
+        <a href="/ultimate/event" class="return-btn-glow">
+            &lt; Return to Tactical Hub
+        </a>
+
+    </div>
+
+    <!-- Health percentage animation calculation -->
+    <script>
+        (function() {
+            // Read string representation values of before & after parameters
+            const mainBefore = parseFloat("{{mainHpBefore}}".replace(/,/g, '')) || 1;
+            const mainAfter = parseFloat("{{mainHpAfter}}".replace(/,/g, '')) || 0;
+            const partBefore = parseFloat("{{partHpBefore}}".replace(/,/g, '')) || 1;
+            const partAfter = parseFloat("{{partHpAfter}}".replace(/,/g, '')) || 0;
+
+            const mainPct = Math.max(0, Math.min(100, (mainAfter / mainBefore) * 100));
+            const partPct = Math.max(0, Math.min(100, (partAfter / partBefore) * 100));
+
+            // Set immediately then trigger browser transitions
+            document.getElementById("main-hp-bar").style.width = mainPct + "%";
+            document.getElementById("part-hp-bar").style.width = partPct + "%";
+        })();
+    </script>
+</body>
+</html>

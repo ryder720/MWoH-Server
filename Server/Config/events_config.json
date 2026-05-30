@@ -1,0 +1,38 @@
+[
+  {
+    "Id": "event_raid_galactus",
+    "Title": "COLLISION COURSE: GALACTUS",
+    "Description": "S.H.I.E.L.D. Mainframe Alert: The Devourer of Worlds is entering Earth's orbit. All agents are ordered to deploy on progressive missions, locate Galactus's heralds, and coordinate attack squad strikes before the cosmic threat consumes the planet!",
+    "BannerImage": "/images/events/banner_galactus.jpg",
+    "EventType": "Raid",
+    "StartDate": "2026-05-20T00:00:00Z",
+    "EndDate": "2026-06-10T00:00:00Z",
+    "ResultDate": "2026-06-12T00:00:00Z",
+    "IsActiveOverride": true,
+    "CustomConfigJson": "{\"BossName\":\"Galactus\",\"EasyBaseHp\":900,\"MediumBaseHp\":5000,\"HardBaseHp\":15000,\"EasyBaseDef\":50,\"MediumBaseDef\":250,\"HardBaseDef\":1000,\"PointsPerEasyDefeat\":150,\"PointsPerMediumDefeat\":750,\"PointsPerHardDefeat\":3500,\"Milestones\":[{\"TargetPoints\":1000,\"RewardType\":\"Item\",\"RewardValue\":1,\"RewardQuantity\":2,\"RewardName\":\"Energy ISO-8 (L) x2\"},{\"TargetPoints\":5000,\"RewardType\":\"MobaCoin\",\"RewardValue\":1000,\"RewardQuantity\":1,\"RewardName\":\"1,000 MobaCoins\"},{\"TargetPoints\":10000,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"[Leopardess] Tigra\"}],\"RankRewards\":[{\"MinRank\":1,\"MaxRank\":3,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":3,\"RewardName\":\"3x [Leopardess] Tigra (Legend)\"},{\"MinRank\":4,\"MaxRank\":10,\"RewardType\":\"Card\",\"RewardValue\":1001,\"RewardQuantity\":1,\"RewardName\":\"1x [Leopardess] Tigra (Legend)\"},{\"MinRank\":11,\"MaxRank\":100,\"RewardType\":\"Silver\",\"RewardValue\":250000,\"RewardQuantity\":1,\"RewardName\":\"250,000 Silver\"}]}"
+  },
+  {
+    "Id": "event_alliance_boss",
+    "Title": "ALLIANCE INVASION: SENTINEL CORE",
+    "Description": "An armada of mutant-hunting Sentinels has breached S.H.I.E.L.D. defensive sectors. Coordinate with your alliance comrades to summon and destroy the central Master Mold Sentinel unit. Team synergy and shared intel will decide this war!",
+    "BannerImage": "/images/events/banner_sentinels.jpg",
+    "EventType": "CompanyRaid",
+    "StartDate": "2026-06-15T00:00:00Z",
+    "EndDate": "2026-06-25T00:00:00Z",
+    "ResultDate": "2026-06-27T00:00:00Z",
+    "IsActiveOverride": false,
+    "CustomConfigJson": "{\"BossName\":\"Master Mold\",\"BossBaseHp\":25000000,\"Milestones\":[{\"TargetPoints\":2000,\"RewardType\":\"Silver\",\"RewardValue\":50000,\"RewardQuantity\":1,\"RewardName\":\"50,000 Silver\"}],\"RankRewards\":[]}"
+  },
+  {
+    "Id": "event_arena_survival",
+    "Title": "SURVIVAL TRIAL: ARENA DEPLOYMENT",
+    "Description": "The ultimate tactical challenge has commenced. Test your Attack and Defense squads against rival operatives in the S.H.I.E.L.D. sparring arena. Keep your win streak active to secure clearances and earn elite commendations.",
+    "BannerImage": "/images/events/banner_arena.jpg",
+    "EventType": "Survival",
+    "StartDate": "2026-04-10T00:00:00Z",
+    "EndDate": "2026-04-20T00:00:00Z",
+    "ResultDate": "2026-04-22T00:00:00Z",
+    "IsActiveOverride": false,
+    "CustomConfigJson": "{\"Milestones\":[],\"RankRewards\":[]}"
+  }
+]

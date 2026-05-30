@@ -291,6 +291,26 @@
             </div>
         </div>
 
+        <!-- Sleek Active Incursion Banner -->
+        <a href="/ultimate/event" style="text-decoration: none;" id="event-incursion-banner">
+            <div class="profile-panel" style="background: rgba(0, 240, 255, 0.02); border: 1px solid rgba(0, 240, 255, 0.2); display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; margin-top: 14px; margin-bottom: 14px; border-radius: 12px; box-shadow: 0 0 15px rgba(0, 240, 255, 0.1); transition: all 0.2s ease;" onmouseover="this.style.borderColor='rgba(0, 240, 255, 0.6)'; this.style.boxShadow='0 0 20px rgba(0, 240, 255, 0.25)';" onmouseout="this.style.borderColor='rgba(0, 240, 255, 0.2)'; this.style.boxShadow='0 0 15px rgba(0, 240, 255, 0.1)';" class="cta-btn-glow">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 20px; animation: pulseSignal 2s infinite;">📡</span>
+                    <div style="display: flex; flex-direction: column;">
+                        <span style="font-family: 'Space Mono', monospace; font-size: 8px; font-weight: bold; color: var(--hud-blue); letter-spacing: 1.5px;">📡 S.H.I.E.L.D. TACTICAL ALERT</span>
+                        <span style="font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: bold; color: #cbd5e1; text-transform: uppercase; margin-top: 2px;">ACTIVE INCURSIONS & PRIORITY CAMPAIGNS</span>
+                    </div>
+                </div>
+                <span style="font-family: 'Space Mono', monospace; font-size: 9px; font-weight: bold; color: var(--hud-blue); letter-spacing: 0.5px;">LAUNCH DECK &rarr;</span>
+            </div>
+        </a>
+        <style>
+            @keyframes pulseSignal {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.5; transform: scale(1.1); }
+            }
+        </style>
+
         <!-- Stat Allocation Panel -->
         <div id="stat-allocation-panel" class="profile-panel allocation-panel" style="display: none; border-color: var(--accent-gold); box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);">
             <div class="allocation-hdr">// S.H.I.E.L.D. AGENT DEVELOPMENT CORE</div>
