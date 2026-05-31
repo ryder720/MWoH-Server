@@ -495,7 +495,7 @@ namespace MwohServer.Controllers
                 foreach (var pi in profile.InventoryItems)
                 {
                     var temp = pi.ItemTemplate;
-                    if (temp == null) continue;
+                    if (temp == null || temp.Type == "Resource") continue;
 
                      var icon = temp.Type switch
                     {
