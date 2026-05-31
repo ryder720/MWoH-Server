@@ -315,7 +315,7 @@ namespace MwohServer.Tests
 
                     // Resolve standard combat
                     var startEasyMainHp = raidStateWithHelper.EasyTarget.MainHpCurrent;
-                    var battleRes = engine.ResolveRaidBattle(profileAlpha.Id, eventId, "Easy", 1);
+                    var battleRes = engine.ResolveRaidBattle(profileAlpha.Id, eventId, "Easy");
                     
                     AssertTrue("Raid Battle engaged successfully", battleRes.Success);
                     AssertEquals("Standard strike deducted deck AP (10)", 190, pAlpha.AttackPowerCurrent);
@@ -351,10 +351,10 @@ namespace MwohServer.Tests
                     // Re-bind helper
                     engine.SelectRaidHelper(profileAlpha.Id, eventId, profileBeta.Id);
 
-                    // Overdrive Strike (150 AP)
-                    var battleRes2 = engine.ResolveRaidBattle(profileAlpha.Id, eventId, "Easy", 3);
-                    AssertTrue("Overdrive strike engaged successfully", battleRes2.Success);
-                    AssertEquals("Overdrive strike consumed dynamic AP (30)", 120, pAlpha.AttackPowerCurrent);
+                    // Standard Strike One-Shot test
+                    var battleRes2 = engine.ResolveRaidBattle(profileAlpha.Id, eventId, "Easy");
+                    AssertTrue("Standard strike engaged successfully", battleRes2.Success);
+                    AssertEquals("Standard strike consumed dynamic AP (10)", 140, pAlpha.AttackPowerCurrent);
                     AssertEquals("Combat resolved with legendary One-Shot Victory type", 1, battleRes2.VictoryType == "OneShot" ? 1 : 0);
 
                     var statePostOneShot = engine.GetRaidState(profileAlpha.Id, eventId);

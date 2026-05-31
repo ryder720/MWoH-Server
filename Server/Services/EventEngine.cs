@@ -525,7 +525,7 @@ namespace MwohServer.Services
             _dbContext.SaveChanges();
         }
 
-        public RaidBattleResolutionResult ResolveRaidBattle(int profileId, string eventId, string difficulty, int costMultiplier)
+        public RaidBattleResolutionResult ResolveRaidBattle(int profileId, string eventId, string difficulty)
         {
             var result = new RaidBattleResolutionResult { Difficulty = difficulty };
             var activeEvent = GetActiveEvent();
@@ -562,7 +562,7 @@ namespace MwohServer.Services
             // AP check based on dynamic deck cost
             int baseApCost = friendlyDeck.Sum(c => c.CardTemplate?.PowerRequirement ?? 10);
             if (baseApCost <= 0) baseApCost = 10;
-            int apCost = baseApCost * (costMultiplier == 3 ? 3 : 1);
+            int apCost = baseApCost;
 
             if (profile.AttackPowerCurrent < apCost)
             {
@@ -630,7 +630,7 @@ namespace MwohServer.Services
             // Evaluate Squad stats
             var friendlyStats = _abilityEvaluator.EvaluateDeck(friendlyDeck, new List<PlayerCard>(), isAttackingDeck: true);
             long totalAtk = friendlyStats.Sum(s => s.FinalAtk);
-            long baseDmg = totalAtk * (costMultiplier == 3 ? 3 : 1);
+            long baseDmg = totalAtk;
 
             // Fetch config scaling def
             string bossName = "Galactus";
@@ -688,14 +688,7 @@ namespace MwohServer.Services
             }
 
             logs.Add($"[TACTICAL BOARDS] Squad aggregate ATK evaluated at {totalAtk:N0} PTS.");
-            if (costMultiplier == 3)
-            {
-                logs.Add($"[OVERDRIVE CHARGES] {apCost} AP Overdrive Strike initiated. Damage output increased by 3.0x!");
-            }
-            else
-            {
-                logs.Add($"[STANDARD STRIKE] {apCost} AP Strike initiated.");
-            }
+            logs.Add($"[STANDARD STRIKE] {apCost} AP Strike initiated.");
             logs.Add($"[BOSS BARRIER] {bossName} shields absorbed {bossDef:N0} damage.");
             logs.Add($"[STRIKE INVASION] Squad dealt {netDmg:N0} net damage to {bossName}'s {target.BodyPartName}.");
 
@@ -712,8 +705,8 @@ namespace MwohServer.Services
             if (netDmg >= mainHpBefore)
             {
                 victoryType = "OneShot";
-                pointsEarned = pointsPerDefeat * 2 * costMultiplier;
-                silverEarned = (long)(baseSilver * (1.0 + target.Level * 0.05) * 2 * costMultiplier);
+                pointsEarned = pointsPerDefeat * 2;
+                silverEarned = (long)(baseSilver * (1.0 + target.Level * 0.05) * 2);
                 
                 target.IsInitialized = false; // regenerates next load
                 state.HelperProfileId = null; // clear helper
@@ -724,8 +717,8 @@ namespace MwohServer.Services
             else if (netDmg >= partHpBefore)
             {
                 victoryType = "PartDefeated";
-                pointsEarned = pointsPerDefeat * costMultiplier;
-                silverEarned = (long)(baseSilver * (1.0 + target.Level * 0.05) * costMultiplier);
+                pointsEarned = pointsPerDefeat;
+                silverEarned = (long)(baseSilver * (1.0 + target.Level * 0.05));
 
                 target.IsInitialized = false; // regenerates next load
                 state.HelperProfileId = null; // clear helper
@@ -736,7 +729,7 @@ namespace MwohServer.Services
             else
             {
                 victoryType = "Defeat";
-                pointsEarned = (int)Math.Max(5, (netDmg * 0.05) * costMultiplier);
+                pointsEarned = (int)Math.Max(5, netDmg * 0.05);
                 silverEarned = 0;
 
                 logs.Add($"[TACTICAL STANDBY] Remaining HP: {target.MainHpCurrent:N0} (Main), {target.BodyPartHpCurrent:N0} ({target.BodyPartName}). Damage serialized to database.");

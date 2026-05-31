@@ -454,17 +454,7 @@
             box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
         }
 
-        .strike-selector-btn.overdrive.active {
-            background: rgba(245, 158, 11, 0.03);
-            border-color: #fbbf24;
-            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
-            animation: pulseGoldBorder 2s infinite ease-in-out;
-        }
 
-        @keyframes pulseGoldBorder {
-            0%, 100% { border-color: rgba(245, 158, 11, 0.5); }
-            50% { border-color: rgba(245, 158, 11, 1); }
-        }
     </style>
 </head>
 <body class="webview-body">
@@ -672,30 +662,13 @@
                     </div>
                 </div>
 
-                <!-- 3. Strike Charge Option Selection -->
-                <div class="section-hdr" style="margin-top: 16px;">// ENGAGEMENT STRIKE CONTROLS</div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px;">
-                    <div class="strike-selector-btn active" id="strike-standard-btn" onclick="selectStrikeMultiplier(1)">
-                        <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:var(--hud-blue); margin-bottom:4px;">{{baseApCost}} AP CHARGE</div>
-                        <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff;">STANDARD STRIKE</div>
-                        <div style="font-family:'Outfit',sans-serif; font-size:7px; color:#64748b;">Deals 1.0x Combat Damage</div>
-                    </div>
-                    
-                    <div class="strike-selector-btn overdrive" id="strike-overdrive-btn" onclick="selectStrikeMultiplier(3)">
-                        <div style="font-family:'Space Mono',monospace; font-size:8px; font-weight:bold; color:#fbbf24; margin-bottom:4px;">{{overdriveApCost}} AP OVERDRIVE</div>
-                        <div style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:800; color:#ffffff;">OVERDRIVE STRIKE</div>
-                        <div style="font-family:'Outfit',sans-serif; font-size:7px; color:#64748b;">Deals 3.0x Combat Damage!</div>
-                    </div>
-                </div>
-
                 <!-- Engagement Trigger Form -->
-                <form action="/ultimate/event/raid/engage" method="POST" id="raid-strike-form">
+                <form action="/ultimate/event/raid/engage" method="POST" id="raid-strike-form" style="margin-top: 16px;">
                     <input type="hidden" name="eventId" value="{{eventId}}">
                     <input type="hidden" name="difficulty" id="strike-difficulty" value="Easy">
-                    <input type="hidden" name="costMultiplier" id="strike-multiplier" value="1">
                     
                     <button type="submit" class="cta-btn-glow" style="width:100%; border:1px solid rgba(0, 240, 255, 0.4); padding:12px; font-family:'Space Mono',monospace; font-size:10px; font-weight:bold; letter-spacing:1px; background:rgba(0, 240, 255, 0.05); color:#ffffff; cursor:pointer;">
-                        ⚔️ LAUNCH COMBAT STRIKE OPS
+                        ⚔️ LAUNCH COMBAT STRIKE OPS ({{baseApCost}} AP)
                     </button>
                 </form>
 
@@ -910,23 +883,7 @@
             document.getElementById('strike-difficulty').value = diff;
         }
 
-        function selectStrikeMultiplier(mult) {
-            // Update active state in buttons
-            const stdBtn = document.getElementById('strike-standard-btn');
-            const ovrBtn = document.getElementById('strike-overdrive-btn');
-            
-            stdBtn.classList.remove('active');
-            ovrBtn.classList.remove('active');
-            
-            if (mult === 3) {
-                ovrBtn.classList.add('active');
-            } else {
-                stdBtn.classList.add('active');
-            }
-            
-            // Update hidden form input
-            document.getElementById('strike-multiplier').value = mult;
-        }
+
 
         function openHelperModal() {
             const modal = document.getElementById('helper-modal');

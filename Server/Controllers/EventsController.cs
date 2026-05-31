@@ -85,7 +85,6 @@ namespace MwohServer.Controllers
             }
             int baseApCost = activeDeck.Sum(c => c.CardTemplate?.PowerRequirement ?? 10);
             if (baseApCost <= 0) baseApCost = 10;
-            int overdriveApCost = baseApCost * 3;
 
             var replacements = new Dictionary<string, string>
             {
@@ -94,8 +93,7 @@ namespace MwohServer.Controllers
                 { "energyCur", profile.EnergyCurrent.ToString() },
                 { "energyMax", profile.EnergyMax.ToString() },
                 { "energyPct", ((double)profile.EnergyCurrent / profile.EnergyMax * 100).ToString("N0") },
-                { "baseApCost", baseApCost.ToString() },
-                { "overdriveApCost", overdriveApCost.ToString() }
+                { "baseApCost", baseApCost.ToString() }
             };
 
             // Default Raid Replacements (prevent template parser errors)
@@ -424,7 +422,7 @@ namespace MwohServer.Controllers
             var user = ResolveCurrentUser();
             var profileId = user.Profile?.Id ?? 1;
 
-            var result = _eventEngine.ResolveRaidBattle(profileId, request.EventId, request.Difficulty, request.CostMultiplier);
+            var result = _eventEngine.ResolveRaidBattle(profileId, request.EventId, request.Difficulty);
             
             if (!result.Success)
             {
@@ -475,7 +473,6 @@ namespace MwohServer.Controllers
                 string style = "";
                 if (log.StartsWith("[LEGENDARY OUTCOME]") || log.StartsWith("[TACTICAL CLEARANCE]")) style = "color:#10b981;";
                 else if (log.StartsWith("[SQUAD INITIALIZATION]") || log.StartsWith("[COOPERATIVE LINK]")) style = "color:#64748b;";
-                else if (log.Contains("Overdrive")) style = "color:#fbbf24;";
                 
                 logsHtml += $"<div class='log-row' style='{style}'>{log}</div>";
             }
@@ -702,7 +699,6 @@ namespace MwohServer.Controllers
         {
             public string EventId { get; set; } = string.Empty;
             public string Difficulty { get; set; } = "Easy";
-            public int CostMultiplier { get; set; } = 1;
         }
 
         private class MilestoneConfig

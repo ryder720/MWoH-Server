@@ -19,7 +19,7 @@ namespace MwohServer.Services
         RaidProgressState GetRaidState(int profileId, string eventId);
         List<HelperDto> GetAvailableHelpers(int profileId, int limit = 6);
         void SelectRaidHelper(int profileId, string eventId, int helperProfileId);
-        RaidBattleResolutionResult ResolveRaidBattle(int profileId, string eventId, string difficulty, int costMultiplier);
+        RaidBattleResolutionResult ResolveRaidBattle(int profileId, string eventId, string difficulty);
     }
 
     public class ClaimMilestoneResult
