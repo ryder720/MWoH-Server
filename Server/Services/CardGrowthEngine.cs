@@ -136,7 +136,7 @@ namespace MwohServer.Services
                 {
                     if (matCard.IsLeader || matCard.IsInAttackDeck || matCard.IsInDefenseDeck)
                     {
-                        return new EnhanceResult { Success = false, Message = $"Cannot sacrifice active representative or squad member: {matCard.CardTemplate?.Title}." };
+                        return new EnhanceResult { Success = false, Message = $"Cannot sacrifice active representative or squad member: {matCard.GetDisplayName()}." };
                     }
                     if (matCard.Id == targetCard.Id)
                     {
@@ -272,7 +272,7 @@ namespace MwohServer.Services
                 return new EnhanceResult { Success = false, Message = "Database write error occurred." };
             }
 
-            string forgeMessage = $"Forge committed! {targetCard.CardTemplate?.Title} upgraded to level {newLevel}!";
+            string forgeMessage = $"Forge committed! {targetCard.GetDisplayName()} upgraded to level {newLevel}!";
             if (abilityLeveledUp)
             {
                 forgeMessage += $" Sync Ability [ {targetCard.CardTemplate?.AbilityName} ] upgraded to Level {targetCard.AbilityLevel}!";
@@ -368,11 +368,11 @@ namespace MwohServer.Services
             // 2. Representative or squad guards
             if (baseCard.IsLeader || baseCard.IsInAttackDeck || baseCard.IsInDefenseDeck)
             {
-                return new FusionResult { Success = false, Message = $"Cannot fuse the core card because it is active in your deck/leader slot: {baseCard.CardTemplate?.Title}." };
+                return new FusionResult { Success = false, Message = $"Cannot fuse the core card because it is active in your deck/leader slot: {baseCard.GetDisplayName()}." };
             }
             if (partnerCard.IsLeader || partnerCard.IsInAttackDeck || partnerCard.IsInDefenseDeck)
             {
-                return new FusionResult { Success = false, Message = $"Cannot consume the partner card because it is active in your deck/leader slot: {partnerCard.CardTemplate?.Title}." };
+                return new FusionResult { Success = false, Message = $"Cannot consume the partner card because it is active in your deck/leader slot: {partnerCard.GetDisplayName()}." };
             }
 
             // 3. Determine target template (suffix logic)
@@ -470,7 +470,7 @@ namespace MwohServer.Services
                 return new FusionResult { Success = false, Message = "Database write error occurred." };
             }
 
-            string fusionMessage = $"Fusion committed! upgraded to [ {targetTemplate.VisualTitle} ]!";
+            string fusionMessage = $"Fusion committed! upgraded to [ {targetTemplate.GetDisplayName()} ]!";
             if (isMaxFusion)
             {
                 fusionMessage += " 🔥 MAX FUSION BONUS ACHIEVED: 10% stats carry-over applied!";

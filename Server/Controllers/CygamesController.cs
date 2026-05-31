@@ -282,7 +282,7 @@ namespace MwohServer.Controllers
             {
                 id = c.Id,
                 templateId = c.CardTemplateId,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 visualTitle = c.CardTemplate?.VisualTitle ?? "Hero",
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
@@ -551,7 +551,7 @@ namespace MwohServer.Controllers
             var cardsList = profile?.Cards.Select(c => new
             {
                 id = c.Id,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 visualTitle = c.CardTemplate?.VisualTitle ?? "Hero",
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
@@ -853,7 +853,7 @@ namespace MwohServer.Controllers
                 <div class="leader-card" style="border-color: {neonColor}; box-shadow: 0 0 20px {glowColor};">
                     <div class="card-rarity-badge" style="color: {rarityColor}; border-color: {rarityColor};">{rarity.ToUpper()}</div>
                     <div class="card-title-bar">
-                        <span class="card-name">{leader.CardTemplate?.Title ?? "Unknown Hero"}</span>
+                        <span class="card-name">{leader.GetDisplayName()}</span>
                         <span class="card-variant">{leader.CardTemplate?.VariantName ?? "Base"}</span>
                     </div>
                     <div class="card-artwork-frame">
@@ -976,7 +976,7 @@ namespace MwohServer.Controllers
             var cardsList = profile.Cards.Select(c => new
             {
                 id = c.Id,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
                 rarity = c.CardTemplate?.Rarity ?? "Normal",
                 level = c.CurrentLevel,
@@ -1012,7 +1012,7 @@ namespace MwohServer.Controllers
             var cardsList = profile.Cards.Select(c => new
             {
                 id = c.Id,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 visualTitle = c.CardTemplate?.VisualTitle ?? "Hero",
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
@@ -1076,7 +1076,7 @@ namespace MwohServer.Controllers
             var replacements = new Dictionary<string, string>
             {
                 { "id", card.Id.ToString() },
-                { "title", card.CardTemplate?.Title ?? "Unknown Hero" },
+                { "title", card.GetDisplayName() },
                 { "alignment", card.CardTemplate?.Alignment ?? "Speed" },
                 { "alignmentUpper", (card.CardTemplate?.Alignment ?? "Speed").ToUpper() },
                 { "rarity", card.CardTemplate?.Rarity ?? "Normal" },
@@ -1231,7 +1231,7 @@ namespace MwohServer.Controllers
                         nickname = otherProfile.Nickname,
                         level = otherProfile.Level,
                         playerId = otherProfile.PlayerIdString,
-                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderName = leaderCard?.GetDisplayName() ?? "Agent Recruit",
                         leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield",
                         leaderAtk = leaderCard?.CurrentAtk ?? 0,
                         leaderDef = leaderCard?.CurrentDef ?? 0
@@ -1261,7 +1261,7 @@ namespace MwohServer.Controllers
                         nickname = senderProfile.Nickname,
                         level = senderProfile.Level,
                         playerId = senderProfile.PlayerIdString,
-                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderName = leaderCard?.GetDisplayName() ?? "Agent Recruit",
                         leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield"
                     });
                 }
@@ -1289,7 +1289,7 @@ namespace MwohServer.Controllers
                         nickname = receiverProfile.Nickname,
                         level = receiverProfile.Level,
                         playerId = receiverProfile.PlayerIdString,
-                        leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                        leaderName = leaderCard?.GetDisplayName() ?? "Agent Recruit",
                         leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield"
                     });
                 }
@@ -1371,7 +1371,7 @@ namespace MwohServer.Controllers
                     nickname = r.Nickname,
                     level = r.Level,
                     playerId = r.PlayerIdString,
-                    leaderName = leaderCard?.CardTemplate?.Title ?? "Agent Recruit",
+                    leaderName = leaderCard?.GetDisplayName() ?? "Agent Recruit",
                     leaderImage = leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield",
                     friendshipStatus = status,
                     isRallied = isRallied
@@ -1476,7 +1476,7 @@ namespace MwohServer.Controllers
             {
                 id = c.Id,
                 cardTemplateId = c.CardTemplateId,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
                 rarity = c.CardTemplate?.Rarity ?? "Normal",
@@ -1527,7 +1527,7 @@ namespace MwohServer.Controllers
             {
                 id = c.Id,
                 cardTemplateId = c.CardTemplateId,
-                title = c.CardTemplate?.Title ?? "Unknown Hero",
+                title = c.GetDisplayName(),
                 variant = c.CardTemplate?.VariantName ?? "Base",
                 alignment = c.CardTemplate?.Alignment ?? "Speed",
                 rarity = c.CardTemplate?.Rarity ?? "Normal",
@@ -2181,7 +2181,7 @@ namespace MwohServer.Controllers
                 { "agentName", targetPlayer.Nickname },
                 { "level", targetPlayer.Level.ToString() },
                 { "playerIdString", targetPlayer.PlayerIdString },
-                { "leaderName", leaderCard?.CardTemplate?.Title ?? "Agent Recruit" },
+                { "leaderName", leaderCard?.GetDisplayName() ?? "Agent Recruit" },
                 { "leaderImage", leaderCard?.CardTemplate?.VisualTitle ?? "Standard_Shield" },
                 { "leaderRarity", leaderCard?.CardTemplate?.Rarity ?? "Normal" },
                 { "leaderAlignment", leaderCard?.CardTemplate?.Alignment ?? "Speed" },
@@ -2910,14 +2910,14 @@ namespace MwohServer.Controllers
                 {
                     var card = _dbContext.PlayerCards.Include(pc => pc.CardTemplate).FirstOrDefault(pc => pc.Id == cid);
                     if (card != null && card.CardTemplate != null)
-                        offerTextList.Add($"🃏 {card.CardTemplate.Title} (Lv. {card.CurrentLevel})");
+                        offerTextList.Add($"🃏 {card.GetDisplayName()} (Lv. {card.CurrentLevel})");
                 }
 
                 foreach (var cid in requestedCardIds)
                 {
                     var card = _dbContext.PlayerCards.Include(pc => pc.CardTemplate).FirstOrDefault(pc => pc.Id == cid);
                     if (card != null && card.CardTemplate != null)
-                        reqTextList.Add($"🃏 {card.CardTemplate.Title} (Lv. {card.CurrentLevel})");
+                        reqTextList.Add($"🃏 {card.GetDisplayName()} (Lv. {card.CurrentLevel})");
                 }
 
                 foreach (var item in offeredItems)
@@ -3100,7 +3100,7 @@ namespace MwohServer.Controllers
                 .Where(c => !c.IsInTrade && !c.IsLeader && !c.IsInAttackDeck && !c.IsInDefenseDeck)
                 .Select(c => new {
                     id = c.Id,
-                    title = c.CardTemplate?.Title ?? "Unknown Card",
+                    title = c.GetDisplayName(),
                     rarity = c.CardTemplate?.Rarity ?? "Normal",
                     level = c.CurrentLevel,
                     image = c.CardTemplate?.VisualTitle ?? "Standard_Shield"
@@ -3111,7 +3111,7 @@ namespace MwohServer.Controllers
                 .Where(c => !c.IsInTrade && !c.IsLeader && !c.IsInAttackDeck && !c.IsInDefenseDeck)
                 .Select(c => new {
                     id = c.Id,
-                    title = c.CardTemplate?.Title ?? "Unknown Card",
+                    title = c.GetDisplayName(),
                     rarity = c.CardTemplate?.Rarity ?? "Normal",
                     level = c.CurrentLevel,
                     image = c.CardTemplate?.VisualTitle ?? "Standard_Shield"

@@ -423,7 +423,7 @@ namespace MwohServer.Services
                         {
                             supportBonusAtk += leaderCard.CurrentAtk;
                             supportBonusDef += leaderCard.CurrentDef;
-                            combatLogLines.Add($"🤝 Agent {supportProfile.Nickname} deployed {leaderCard.CardTemplate?.Title ?? "Card"} (ATK: {leaderCard.CurrentAtk:N0} / DEF: {leaderCard.CurrentDef:N0}) to assist!");
+                            combatLogLines.Add($"🤝 Agent {supportProfile.Nickname} deployed {leaderCard.GetDisplayName()} (ATK: {leaderCard.CurrentAtk:N0} / DEF: {leaderCard.CurrentDef:N0}) to assist!");
                         }
                     }
                 }

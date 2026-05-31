@@ -171,12 +171,12 @@ namespace MwohServer.Services
 
                         if (card.IsInTrade)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is already locked in another trade." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is already locked in another trade." };
                         }
 
                         if (card.IsLeader || card.IsInAttackDeck || card.IsInDefenseDeck)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is currently deployed in squad configuration or designated as Leader." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is currently deployed in squad configuration or designated as Leader." };
                         }
 
                         lockedCards.Add(card);
@@ -193,12 +193,12 @@ namespace MwohServer.Services
 
                         if (card.IsInTrade)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is locked in another trade." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is locked in another trade." };
                         }
 
                         if (card.IsLeader || card.IsInAttackDeck || card.IsInDefenseDeck)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is currently deployed in receiver's squad configurations." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is currently deployed in receiver's squad configurations." };
                         }
                     }
 
@@ -331,12 +331,12 @@ namespace MwohServer.Services
 
                         if (card.IsInTrade)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is locked in another pending trade." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is locked in another pending trade." };
                         }
 
                         if (card.IsLeader || card.IsInAttackDeck || card.IsInDefenseDeck)
                         {
-                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.CardTemplate?.Title}' is currently deployed in squad configuration or designated as Leader." };
+                            return new TradeActionResult { Success = false, Message = $"⚠️ LOCK EXCEPTION // '{card.GetDisplayName()}' is currently deployed in squad configuration or designated as Leader." };
                         }
 
                         requestedCards.Add(card);

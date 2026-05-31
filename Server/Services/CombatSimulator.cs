@@ -59,7 +59,7 @@ namespace MwohServer.Services
                     {
                         triggeredAttackerCardIds.Add(card.Id);
                         attackerTriggerCount++;
-                        attackerAbilityLogs.Add($"[ABILITY TRIGGER] {card.CardTemplate.VisualTitle} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
+                        attackerAbilityLogs.Add($"[ABILITY TRIGGER] {card.GetDisplayName()} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
                     }
                 }
             }
@@ -76,7 +76,7 @@ namespace MwohServer.Services
                     {
                         triggeredDefenderCardIds.Add(card.Id);
                         defenderTriggerCount++;
-                        defenderAbilityLogs.Add($"[ABILITY TRIGGER] {card.CardTemplate.VisualTitle} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
+                        defenderAbilityLogs.Add($"[ABILITY TRIGGER] {card.GetDisplayName()} activated {card.CardTemplate.AbilityName}! Effect: {card.CardTemplate.AbilityEffect} (Lvl {card.AbilityLevel})");
                     }
                 }
             }
@@ -113,7 +113,7 @@ namespace MwohServer.Services
                     {
                         Id = c.CardTemplate!.Id,
                         Title = c.CardTemplate.Title,
-                        VisualTitle = c.CardTemplate.VisualTitle,
+                        VisualTitle = c.GetDisplayName(),
                         Alignment = c.CardTemplate.Alignment,
                         Rarity = c.CardTemplate.Rarity,
                         Faction = c.CardTemplate.Faction,
@@ -159,7 +159,7 @@ namespace MwohServer.Services
                     {
                         Id = c.CardTemplate!.Id,
                         Title = c.CardTemplate.Title,
-                        VisualTitle = c.CardTemplate.VisualTitle,
+                        VisualTitle = c.GetDisplayName(),
                         Alignment = c.CardTemplate.Alignment,
                         Rarity = c.CardTemplate.Rarity,
                         Faction = c.CardTemplate.Faction,

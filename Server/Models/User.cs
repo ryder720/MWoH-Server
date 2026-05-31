@@ -169,6 +169,18 @@ namespace MwohServer.Models
         
         // Variant tracker
         public string VariantName { get; set; } = string.Empty;
+
+        public string GetDisplayName()
+        {
+            string variant = VariantName ?? "";
+            int plusCount = 0;
+            for (int i = variant.Length - 1; i >= 0; i--)
+            {
+                if (variant[i] == '+') plusCount++;
+                else break;
+            }
+            return Title + new string('+', plusCount);
+        }
     }
 
     // Dynamic instance of a card owned by a specific player profile
@@ -259,6 +271,12 @@ namespace MwohServer.Models
 
             CurrentAtk = newBaseAtk + activeMasteryAtk + FusionBonusAtk;
             CurrentDef = newBaseDef + activeMasteryDef + FusionBonusDef;
+        }
+
+        public string GetDisplayName()
+        {
+            if (CardTemplate == null) return "Unknown Hero";
+            return CardTemplate.GetDisplayName();
         }
     }
 
