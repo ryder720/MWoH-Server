@@ -272,7 +272,7 @@ namespace MwohServer.Services
                 return new EnhanceResult { Success = false, Message = "Database write error occurred." };
             }
 
-            string forgeMessage = $"Forge committed! {targetCard.GetDisplayName()} upgraded to level {newLevel}!";
+            string forgeMessage = $"Enhancement committed! {targetCard.GetDisplayName()} boosted to level {newLevel}!";
             if (abilityLeveledUp)
             {
                 forgeMessage += $" Sync Ability [ {targetCard.CardTemplate?.AbilityName} ] upgraded to Level {targetCard.AbilityLevel}!";
