@@ -620,6 +620,9 @@
         // Setup initial client data values
         const playerLvl = parseInt("{{level}}") || 1;
         const acceptedAllies = parseInt("{{alliesCount}}") || 0;
+        const speedLvl = parseInt("{{speedAdaptor}}") || 0;
+        const bruiserLvl = parseInt("{{bruiserAdaptor}}") || 0;
+        const tacticsLvl = parseInt("{{tacticsAdaptor}}") || 0;
         
         let personalSilver = parseInt("{{silver}}".replace(/,/g, '')) || 0;
         let resourcesStock = [];
@@ -1005,6 +1008,33 @@
 
         // Boot
         renderDropsVault();
+
+        function updateUpgradeButtons() {
+            const getCost = (lvl) => {
+                if (lvl === 0) return "3,000,000";
+                if (lvl === 1) return "4,000,000";
+                if (lvl === 2) return "6,000,000";
+                return "MAX";
+            };
+
+            const updateButton = (id, lvl) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const cost = getCost(lvl);
+                if (cost === "MAX") {
+                    btn.textContent = "MAXED";
+                    btn.disabled = true;
+                    btn.className = "alliance-action-btn decline";
+                } else {
+                    btn.textContent = `Upgrade [${cost}]`;
+                }
+            };
+
+            updateButton('btn-speed-upgrade', speedLvl);
+            updateButton('btn-bruiser-upgrade', bruiserLvl);
+            updateButton('btn-tactics-upgrade', tacticsLvl);
+        }
+        updateUpgradeButtons();
     </script>
 </body>
 </html>
