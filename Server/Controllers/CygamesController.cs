@@ -838,11 +838,15 @@ namespace MwohServer.Controllers
                 var rarity = leader.CardTemplate?.Rarity ?? "Normal";
                 var rarityColor = rarity switch
                 {
-                    "Normal" => "#e2e8f0",
-                    "Rare" => "#38bdf8",
-                    "Super Rare" => "#c084fc",
-                    "Legendary" => "#f59e0b",
-                    _ => "#e2e8f0"
+                    "Common" or "Normal"                      => "#94a3b8", // Sleek Slate
+                    "Uncommon" or "High Normal"               => "#22c55e", // Vibrant Emerald Green
+                    "Rare"                                    => "#3b82f6", // Rich Sapphire Blue
+                    "Special Rare" or "High Rare"             => "#a855f7", // Deep Amethyst Purple
+                    "Super Special Rare" or "Super Rare"      => "#ec4899", // Vibrant Ruby Pink
+                    "Ultimate Rare" or "Ultra Rare"           => "#38bdf8", // Electric Cyan Blue
+                    "Legendary" or "Legend"                   => "#eab308", // Gleaming Amber Gold
+                    "Ultimate Legendary" or "Special Legend"  => "#ef4444", // Radiant Cosmic Red
+                    _                                         => "#e2e8f0"
                 };
 
                 leaderHtml = $"""

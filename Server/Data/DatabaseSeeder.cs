@@ -13,6 +13,15 @@ namespace MwohServer.Data
     {
         public static void SeedCards(MwohDbContext context, ILogger logger)
         {
+            // Auto-migration check: If database has outdated legacy card rarities, clear tables to trigger clean re-seed.
+            if (context.CardTemplates.Any(t => t.Rarity == "Normal" || t.Rarity == "Super Rare"))
+            {
+                logger.LogInformation("[Seeder] Outdated legacy card rarities detected in database. Clearing PlayerCards and CardTemplates to force a clean standard re-seed...");
+                context.PlayerCards.RemoveRange(context.PlayerCards);
+                context.CardTemplates.RemoveRange(context.CardTemplates);
+                context.SaveChanges();
+            }
+
             if (context.CardTemplates.Any())
             {
                 logger.LogInformation("[Seeder] Card templates already seeded. Skipping JSON import.");
@@ -88,12 +97,14 @@ namespace MwohServer.Data
                             {
                                 int rarityMultiplier = rarity switch
                                 {
-                                    "Ultimate Legendary" => 280,
-                                    "Legendary" => 250,
-                                    "Super Rare" => 180,
-                                    "Rare" => 140,
-                                    "High Normal" => 100,
-                                    _ => 80 // Normal
+                                    "Ultimate Legendary" or "Special Legend"      => 280,
+                                    "Legendary" or "Legend"                       => 250,
+                                    "Ultimate Rare" or "Ultra Rare"               => 210,
+                                    "Super Special Rare" or "Super Rare"          => 180,
+                                    "Special Rare" or "High Rare"                 => 160,
+                                    "Rare"                                        => 140,
+                                    "Uncommon" or "High Normal"                   => 100,
+                                    _                                             => 80 // Common / Normal
                                 };
                                 baseAtk = power * rarityMultiplier;
                                 baseDef = (int)(baseAtk * 0.9);
@@ -208,7 +219,7 @@ namespace MwohServer.Data
                 Title = "Iron Man",
                 VisualTitle = "[Arc Reactor] Iron Man",
                 Alignment = "Tactics",
-                Rarity = "Super Rare",
+                Rarity = "Super Special Rare",
                 Faction = "Super Hero",
                 Gender = "Male",
                 PowerRequirement = 14,
@@ -252,7 +263,7 @@ namespace MwohServer.Data
                 Title = "Black Widow",
                 VisualTitle = "[Covert Operative] Black Widow",
                 Alignment = "Speed",
-                Rarity = "Normal",
+                Rarity = "Common",
                 Faction = "Super Hero",
                 Gender = "Female",
                 PowerRequirement = 8,

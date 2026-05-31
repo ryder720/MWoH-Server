@@ -226,15 +226,15 @@ namespace MwohServer.Models
             if (CardTemplate == null) return 50;
             return CardTemplate.Rarity switch
             {
-                "Common" or "Normal"          => 30,
-                "High Normal" or "Uncommon"   => 40,
-                "Rare"                        => 50,
-                "High Rare"                   => 60,
-                "Super Rare"                  => 70,
-                "Ultra Rare"                  => 80,
-                "Legend" or "Legendary"       => 90,
-                "Special Legend"              => 100,
-                _                             => 50
+                "Common" or "Normal"                      => 20,
+                "Uncommon" or "High Normal"               => 30,
+                "Rare"                                    => 40,
+                "Special Rare" or "High Rare"             => 50,
+                "Super Special Rare" or "Super Rare"      => 60,
+                "Ultimate Rare" or "Ultra Rare"           => 70,
+                "Legendary" or "Legend"                   => 80,
+                "Ultimate Legendary" or "Special Legend"  => 90,
+                _                                         => 50
             };
         }
 

@@ -53,13 +53,15 @@ namespace MwohServer.Services
         {
             return rarity switch
             {
-                "Normal" or "Common" => 100,
-                "High Normal" or "Uncommon" => 250,
-                "Rare" => 600,
-                "High Rare" => 1200,
-                "Super Rare" or "Ultra Rare" => 1500,
-                "Legend" or "Legendary" or "Special Legend" => 3000,
-                _ => 100
+                "Common" or "Normal"                      => 100,
+                "Uncommon" or "High Normal"               => 250,
+                "Rare"                                    => 600,
+                "Special Rare" or "High Rare"             => 1200,
+                "Super Special Rare" or "Super Rare"      => 1500,
+                "Ultimate Rare" or "Ultra Rare"           => 2000,
+                "Legendary" or "Legend"                   => 3000,
+                "Ultimate Legendary" or "Special Legend"  => 4000,
+                _                                         => 100
             };
         }
         #endregion
@@ -208,13 +210,13 @@ namespace MwohServer.Services
                                 var matRarity = matCard.CardTemplate?.Rarity ?? "Normal";
                                 chanceForMat = matRarity switch
                                 {
-                                    "Common" or "Normal" => 20,
-                                    "High Normal" or "Uncommon" => 20,
-                                    "Rare" => 40,
-                                    "High Rare" => 60,
-                                    "Super Rare" => 80,
-                                    "Ultra Rare" or "Legend" or "Legendary" or "Special Legend" => 100,
-                                    _ => 20
+                                    "Common" or "Normal"                                                  => 20,
+                                    "Uncommon" or "High Normal"                                           => 20,
+                                    "Rare"                                                                => 40,
+                                    "Special Rare" or "High Rare"                                         => 60,
+                                    "Super Special Rare" or "Super Rare"                                  => 80,
+                                    "Ultimate Rare" or "Ultra Rare" or "Legendary" or "Legend" or "Ultimate Legendary" or "Special Legend" => 100,
+                                    _                                                                     => 20
                                 };
                             }
                             abilityLevelUpChance += chanceForMat;
@@ -395,14 +397,14 @@ namespace MwohServer.Services
             var rarity = baseCard.CardTemplate.Rarity ?? "Normal";
             int silverCost = rarity switch
             {
-                "Common" or "Normal" => 1575,
-                "High Normal" or "Uncommon" => 3075,
-                "Rare" => 8075,
-                "High Rare" or "Special Rare" => 20075,
-                "Super Rare" or "Super Special Rare" => 40075,
-                "Ultra Rare" or "Ultimate Rare" => 81505,
-                "Legend" or "Legendary" or "Special Legend" => 120000,
-                _ => 8075
+                "Common" or "Normal"                                                  => 1575,
+                "High Normal" or "Uncommon"                                           => 3075,
+                "Rare"                                                                => 8075,
+                "High Rare" or "Special Rare"                                         => 20075,
+                "Super Rare" or "Super Special Rare"                                  => 40075,
+                "Ultra Rare" or "Ultimate Rare"                                       => 81505,
+                "Legend" or "Legendary" or "Ultimate Legendary" or "Special Legend"   => 120000,
+                _                                                                     => 8075
             };
 
             if (profile.SilverBalance < silverCost)
