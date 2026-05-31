@@ -13,12 +13,14 @@ namespace MwohServer.Services
         private readonly ILogger<ItemLedger> _logger;
         private readonly MwohDbContext _dbContext;
         private readonly IGachaSummoner _gachaSummoner;
+        private readonly ICardGrowthEngine _cardGrowthEngine;
 
-        public ItemLedger(ILogger<ItemLedger> logger, MwohDbContext dbContext, IGachaSummoner gachaSummoner)
+        public ItemLedger(ILogger<ItemLedger> logger, MwohDbContext dbContext, IGachaSummoner gachaSummoner, ICardGrowthEngine cardGrowthEngine)
         {
             _logger = logger;
             _dbContext = dbContext;
             _gachaSummoner = gachaSummoner;
+            _cardGrowthEngine = cardGrowthEngine;
         }
 
         public List<PlayerInventoryItem> GetInventory(int profileId)
@@ -88,37 +90,28 @@ namespace MwohServer.Services
                     return new ItemUseResult { Success = false, Message = "Please select a target card to boost." };
                 }
 
-                var card = _dbContext.PlayerCards
-                    .Include(pc => pc.CardTemplate)
-                    .FirstOrDefault(pc => pc.PlayerProfileId == profileId && pc.Id == targetCardId);
-
-                if (card == null)
+                // Delegate to CardGrowthEngine to keep cap calculation & consumption unified
+                var growthResult = _cardGrowthEngine.Enhance(profileId, targetCardId, "serum", new List<int> { itemId });
+                if (!growthResult.Success)
                 {
-                    return new ItemUseResult { Success = false, Message = "Target card not located in catalog." };
+                    return new ItemUseResult { Success = false, Message = growthResult.Message };
                 }
 
-                int maxLevel = card.GetMaxLevel();
-                if (card.CurrentLevel >= maxLevel)
+                message = growthResult.Message;
+                var card = growthResult.TargetCard;
+                if (card != null)
                 {
-                    return new ItemUseResult { Success = false, Message = $"⚠️ CAP REACHED // {card.CardTemplate?.Title} is already at its rarity clearance limit (Lv. {maxLevel})." };
+                    updatedCard = new
+                    {
+                        id = card.Id,
+                        level = card.CurrentLevel,
+                        atk = card.CurrentAtk,
+                        def = card.CurrentDef,
+                        masteryCur = card.CurrentMastery
+                    };
                 }
-
-                int boost = invItem.ItemTemplate.EffectValue > 0 ? invItem.ItemTemplate.EffectValue : 3;
-                int oldLevel = card.CurrentLevel;
-                card.CurrentLevel = Math.Min(maxLevel, card.CurrentLevel + boost);
-                int levelsGained = card.CurrentLevel - oldLevel;
-
-                card.RecalculateStats();
-
-                message = $"🧪 SERUM INJECTED // {card.CardTemplate?.Title} boosted by +{levelsGained} level(s)!";
-                updatedCard = new
-                {
-                    id = card.Id,
-                    level = card.CurrentLevel,
-                    atk = card.CurrentAtk,
-                    def = card.CurrentDef,
-                    masteryCur = card.CurrentMastery
-                };
+                
+                alreadyDecremented = true; // Let CardGrowthEngine handle the deduction
             }
             else if (invItem.ItemTemplate.Type == "MasteryIso8")
             {

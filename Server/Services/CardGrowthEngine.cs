@@ -49,22 +49,6 @@ namespace MwohServer.Services
             return 105;
         }
 
-        public static int GetMaxLevelByRarity(string rarity)
-        {
-            return rarity switch
-            {
-                "Common" or "Normal" => 30,
-                "High Normal" or "Uncommon" => 40,
-                "Rare" => 50,
-                "High Rare" => 60,
-                "Super Rare" => 70,
-                "Ultra Rare" => 80,
-                "Legend" or "Legendary" => 90,
-                "Special Legend" => 100,
-                _ => 50
-            };
-        }
-
         private static int GetBoosterBaseXP(string rarity)
         {
             return rarity switch
@@ -88,6 +72,7 @@ namespace MwohServer.Services
                 .Include(p => p.Cards)
                 .ThenInclude(c => c.CardTemplate)
                 .Include(p => p.InventoryItems)
+                .ThenInclude(pi => pi.ItemTemplate)
                 .FirstOrDefault(p => p.Id == profileId);
 
             if (profile == null)
@@ -102,20 +87,41 @@ namespace MwohServer.Services
             }
 
             int expGain = 0;
-            PlayerInventoryItem? invItem = null;
+            List<PlayerInventoryItem> consumedSerums = new List<PlayerInventoryItem>();
+            Dictionary<int, int> requestedSerumCounts = new Dictionary<int, int>();
             List<PlayerCard>? materialCardsList = null;
             int silverCost = 0;
 
             if (materialType == "serum")
             {
-                var materialId = materialIds[0];
-                invItem = profile.InventoryItems.FirstOrDefault(pi => pi.ItemTemplateId == materialId);
-                if (invItem == null || invItem.Quantity <= 0)
+                foreach (var matId in materialIds)
                 {
-                    return new EnhanceResult { Success = false, Message = "Insufficient Serum quantity in depot." };
+                    if (requestedSerumCounts.ContainsKey(matId))
+                        requestedSerumCounts[matId]++;
+                    else
+                        requestedSerumCounts[matId] = 1;
                 }
-                expGain = materialId == 36 ? 5000 : 1000;
-                silverCost = GetBaseCardSilverCost(targetCard.CurrentLevel);
+
+                foreach (var kvp in requestedSerumCounts)
+                {
+                    var materialId = kvp.Key;
+                    var quantityNeeded = kvp.Value;
+
+                    var serumItem = profile.InventoryItems.FirstOrDefault(pi => pi.ItemTemplateId == materialId);
+                    if (serumItem == null || serumItem.Quantity < quantityNeeded)
+                    {
+                        var serumName = serumItem?.ItemTemplate?.Name ?? $"Serum (ID: {materialId})";
+                        return new EnhanceResult { Success = false, Message = $"Insufficient {serumName} quantity in depot." };
+                    }
+
+                    bool isSuper = (serumItem.ItemTemplate != null && serumItem.ItemTemplate.Name.Contains("Super", StringComparison.OrdinalIgnoreCase)) || materialId == 36;
+                    int expPerSerum = isSuper ? 5000 : 1000;
+                    expGain += expPerSerum * quantityNeeded;
+                    consumedSerums.Add(serumItem);
+                }
+
+                // Liftoff silver fee restriction for LevelUpSerum
+                silverCost = 0;
             }
             else if (materialType == "card")
             {
@@ -157,8 +163,7 @@ namespace MwohServer.Services
                 return new EnhanceResult { Success = false, Message = "Unsupported material type." };
             }
 
-            var rarity = targetCard.CardTemplate?.Rarity ?? "Normal";
-            var maxLevel = GetMaxLevelByRarity(rarity);
+            var maxLevel = targetCard.GetMaxLevel();
 
             bool targetHasAbility = !string.IsNullOrEmpty(targetCard.CardTemplate?.AbilityName);
             bool canUpgradeAbility = targetHasAbility && targetCard.AbilityLevel < 10;
@@ -176,30 +181,10 @@ namespace MwohServer.Services
                 return new EnhanceResult { Success = false, Message = "Insufficient Silver budget for forge synthesis." };
             }
 
-            var levelsGained = expGain / 100;
-            var newLevel = Math.Min(maxLevel, targetCard.CurrentLevel + levelsGained);
+            var newLevel = Math.Min(maxLevel, targetCard.CurrentLevel + (expGain / 100));
             targetCard.CurrentLevel = newLevel;
 
-            // Interpolate stats
-            var baseAtk = targetCard.CardTemplate?.BaseAtk ?? 1000;
-            var baseDef = targetCard.CardTemplate?.BaseDef ?? 1000;
-            var maxAtk = targetCard.CardTemplate?.MaxAtk ?? 4000;
-            var maxDef = targetCard.CardTemplate?.MaxDef ?? 4000;
-
-            var progress = maxLevel > 1 ? (double)(newLevel - 1) / (maxLevel - 1) : 0.0;
-            var newBaseAtk = (int)Math.Round(baseAtk + (maxAtk - baseAtk) * progress);
-            var newBaseDef = (int)Math.Round(baseDef + (maxDef - baseDef) * progress);
-
-            // Re-apply active mastery stats on top of interpolated level stats
-            var maxMastery = targetCard.CardTemplate?.MaxMastery ?? 100;
-            if (maxMastery <= 0) maxMastery = 100;
-            var masteryBonusAtk = targetCard.CardTemplate?.MasteryBonusAtk ?? 0;
-            var masteryBonusDef = targetCard.CardTemplate?.MasteryBonusDef ?? 0;
-            var activeMasteryAtk = maxMastery > 0 ? (masteryBonusAtk * targetCard.CurrentMastery) / maxMastery : 0;
-            var activeMasteryDef = maxMastery > 0 ? (masteryBonusDef * targetCard.CurrentMastery) / maxMastery : 0;
-
-            targetCard.CurrentAtk = newBaseAtk + activeMasteryAtk + targetCard.FusionBonusAtk;
-            targetCard.CurrentDef = newBaseDef + activeMasteryDef + targetCard.FusionBonusDef;
+            targetCard.RecalculateStats();
 
             // Calculate Ability Level-Up Chance
             int abilityLevelUpChance = 0;
@@ -254,9 +239,16 @@ namespace MwohServer.Services
             // Deduct cost and consume material
             profile.SilverBalance -= silverCost;
 
-            if (materialType == "serum" && invItem != null)
+            if (materialType == "serum")
             {
-                invItem.Quantity--;
+                foreach (var kvp in requestedSerumCounts)
+                {
+                    var serumItem = consumedSerums.FirstOrDefault(s => s.ItemTemplateId == kvp.Key);
+                    if (serumItem != null)
+                    {
+                        serumItem.Quantity -= kvp.Value;
+                    }
+                }
             }
             else if (materialType == "card" && materialCardsList != null)
             {
@@ -320,8 +312,53 @@ namespace MwohServer.Services
                 return new FusionResult { Success = false, Message = "Could not resolve template assets for selected cards." };
             }
 
-            // 1. Title verification (must be identical)
-            if (baseCard.CardTemplate.Title != partnerCard.CardTemplate.Title)
+            if (baseCard.CardTemplate.Title.EndsWith("Cosmic Cube", StringComparison.OrdinalIgnoreCase))
+            {
+                return new FusionResult { Success = false, Message = "A Cosmic Cube cannot be used as the base card for fusion." };
+            }
+
+            bool isPartnerCosmicCube = partnerCard.CardTemplate.Title.EndsWith("Cosmic Cube", StringComparison.OrdinalIgnoreCase);
+            if (isPartnerCosmicCube)
+            {
+                // Validate alignment compatibility
+                if (!string.Equals(baseCard.CardTemplate.Alignment, partnerCard.CardTemplate.Alignment, StringComparison.OrdinalIgnoreCase))
+                {
+                    return new FusionResult { Success = false, Message = $"Cosmic Cube alignment ({partnerCard.CardTemplate.Alignment}) does not match base card alignment ({baseCard.CardTemplate.Alignment})." };
+                }
+
+                // Validate rarity compatibility
+                var cubeRarity = partnerCard.CardTemplate.Rarity ?? "";
+                var baseRarity = baseCard.CardTemplate.Rarity ?? "";
+                bool rarityMatch = false;
+
+                if (cubeRarity.Contains("Legend", StringComparison.OrdinalIgnoreCase) || cubeRarity.Contains("Legendary", StringComparison.OrdinalIgnoreCase))
+                {
+                    rarityMatch = baseRarity.Contains("Legend", StringComparison.OrdinalIgnoreCase) || baseRarity.Contains("Legendary", StringComparison.OrdinalIgnoreCase);
+                }
+                else // Ultimate Rare / Ultra Rare
+                {
+                    rarityMatch = baseRarity.Contains("Ultra", StringComparison.OrdinalIgnoreCase) || baseRarity.Contains("Ultimate", StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (!rarityMatch)
+                {
+                    return new FusionResult { Success = false, Message = $"Cosmic Cube rarity ({cubeRarity}) is not compatible with base card rarity ({baseRarity})." };
+                }
+
+                // In-memory copy base card's exact stats onto the Cosmic Cube partner card
+                partnerCard.CurrentLevel = baseCard.CurrentLevel;
+                partnerCard.CurrentMastery = baseCard.CurrentMastery;
+                partnerCard.AbilityLevel = baseCard.AbilityLevel;
+                partnerCard.CurrentAtk = baseCard.CurrentAtk;
+                partnerCard.CurrentDef = baseCard.CurrentDef;
+                partnerCard.FusionBonusAtk = baseCard.FusionBonusAtk;
+                partnerCard.FusionBonusDef = baseCard.FusionBonusDef;
+                partnerCard.CardTemplate = baseCard.CardTemplate;
+                partnerCard.CardTemplateId = baseCard.CardTemplateId;
+            }
+
+            // 1. Title verification (must be identical or partner must be a compatible Cosmic Cube)
+            if (!isPartnerCosmicCube && baseCard.CardTemplate.Title != partnerCard.CardTemplate.Title)
             {
                 return new FusionResult { Success = false, Message = "Fusion requires two identical Hero assets!" };
             }
@@ -374,8 +411,8 @@ namespace MwohServer.Services
             }
 
             // 5. Carry-over stat calculation (Max Level Check)
-            var baseMaxLvl = GetMaxLevelByRarity(baseCard.CardTemplate?.Rarity ?? "Normal");
-            var partnerMaxLvl = GetMaxLevelByRarity(partnerCard.CardTemplate?.Rarity ?? "Normal");
+            var baseMaxLvl = baseCard.GetMaxLevel();
+            var partnerMaxLvl = partnerCard.GetMaxLevel();
             
             bool isMaxFusion = (baseCard.CurrentLevel >= baseMaxLvl) && (partnerCard.CurrentLevel >= partnerMaxLvl);
             double factor = isMaxFusion ? 0.10 : 0.05;

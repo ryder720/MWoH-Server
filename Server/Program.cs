@@ -830,6 +830,7 @@ public static class AdminConsoleEngine
             Console.WriteLine("  runshieldtests                                 - Execute S.H.I.E.L.D. Team Engine unit tests");
             Console.WriteLine("  runvaulttests                                  - Execute S.H.I.E.L.D. Resource Vault unit tests");
             Console.WriteLine("  runprofiletests                                - Execute S.H.I.E.L.D. Profile Manager unit tests");
+            Console.WriteLine("  runcardgrowthtests                             - Execute S.H.I.E.L.D. Card Growth & Serum unit tests");
             Console.WriteLine("  events reload                                  - Reload all active event templates");
             Console.WriteLine("  events list                                    - List all event templates and statuses");
             Console.WriteLine("  events calculate <eventId>                     - Force rank compiles and award dispatch");
@@ -1190,6 +1191,24 @@ public static class AdminConsoleEngine
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Profile Manager Test Suite failed!");
+                Console.ResetColor();
+            }
+            return;
+        }
+
+        if (primary == "runcardgrowthtests")
+        {
+            var growthEngine = (ICardGrowthEngine)serviceProvider.GetService(typeof(ICardGrowthEngine))!;
+            var itemLedger = (IItemLedger)serviceProvider.GetService(typeof(IItemLedger))!;
+            var success = MwohServer.Tests.CardGrowthTests.Run(growthEngine, itemLedger, db);
+            if (success)
+            {
+                Console.WriteLine("[Admin Console] S.H.I.E.L.D. Card Growth & Serum Test Suite completed successfully!");
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("[Admin Console] ERROR: S.H.I.E.L.D. Card Growth & Serum Test Suite failed!");
                 Console.ResetColor();
             }
             return;

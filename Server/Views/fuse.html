@@ -462,6 +462,21 @@
         let currentPage = 1;
         const PAGE_SIZE = 8; // 2 rows of 4 column compact grids
 
+        function isCosmicCube(card) {
+            return card.title && card.title.endsWith("Cosmic Cube");
+        }
+
+        function isRarityCompatible(baseRarity, cubeRarity) {
+            if (!baseRarity || !cubeRarity) return false;
+            const isBaseLegend = baseRarity.includes("Legend") || baseRarity.includes("Legendary");
+            const isCubeLegend = cubeRarity.includes("Legend") || cubeRarity.includes("Legendary");
+            if (isCubeLegend) {
+                return isBaseLegend;
+            } else {
+                return baseRarity.includes("Ultra") || baseRarity.includes("Ultimate");
+            }
+        }
+
         function filterCoreCards(align) {
             currentFilter = align;
             currentPage = 1; // Reset to page 1 on filter
@@ -478,9 +493,22 @@
             const grid = document.getElementById('core-card-grid');
             grid.innerHTML = '';
 
-            // Core candidates must have duplicates
+            // Core candidates must have duplicates or compatible Cosmic Cubes
             const coreEligible = cards.filter(c => {
-                const duplicates = cards.filter(d => d.id !== c.id && d.title === c.title && !d.isLeader && !d.inUse);
+                if (isCosmicCube(c)) return false; // Cosmic Cubes cannot be base cards
+
+                const duplicates = cards.filter(d => {
+                    if (d.id === c.id || d.isLeader || d.inUse) return false;
+                    
+                    if (d.title === c.title) return true; // Standard duplicate
+                    
+                    if (isCosmicCube(d)) {
+                        const alignmentMatch = d.alignment === c.alignment;
+                        const rarityMatch = isRarityCompatible(c.rarity, d.rarity);
+                        return alignmentMatch && rarityMatch;
+                    }
+                    return false;
+                });
                 return duplicates.length > 0;
             });
 
@@ -581,10 +609,21 @@
             const coreCard = cards.find(c => c.id === selectedCardId);
             if (!coreCard) return;
 
-            // Partner must be identical duplicate, not core, not leader/decked
-            const eligiblePartners = cards.filter(c => c.id !== coreCard.id && c.title === coreCard.title && !c.isLeader && !c.inUse);
+            // Partner must be identical duplicate or a compatible Cosmic Cube, not core, not leader/decked
+            const eligiblePartners = cards.filter(p => {
+                if (p.id === coreCard.id || p.isLeader || p.inUse) return false;
 
-            document.getElementById('partner-count-indicator').textContent = `${eligiblePartners.length} identical duplicates in depot`;
+                if (p.title === coreCard.title) return true; // Standard duplicate
+
+                if (isCosmicCube(p)) {
+                    const alignmentMatch = p.alignment === coreCard.alignment;
+                    const rarityMatch = isRarityCompatible(coreCard.rarity, p.rarity);
+                    return alignmentMatch && rarityMatch;
+                }
+                return false;
+            });
+
+            document.getElementById('partner-count-indicator').textContent = `${eligiblePartners.length} compatible material files in depot`;
 
             eligiblePartners.forEach(p => {
                 const itemEl = document.createElement('div');
@@ -707,10 +746,24 @@
             const cardB = cards.find(c => c.id === selectedPartnerId);
             const artB = document.getElementById('proj-art-b');
 
+            let displayCardB = cardB;
+            if (cardB && isCosmicCube(cardB)) {
+                displayCardB = {
+                    ...cardB,
+                    level: cardA.level,
+                    maxLevel: cardA.maxLevel,
+                    atk: cardA.atk,
+                    def: cardA.def,
+                    masteryCur: cardA.masteryCur,
+                    masteryMax: cardA.masteryMax,
+                    rarity: cardA.rarity
+                };
+            }
+
             if (cardB) {
-                document.getElementById('proj-lvl-b').textContent = `Lvl ${cardB.level} / ${cardB.maxLevel}`;
-                document.getElementById('proj-atk-b').textContent = `ATK: ${cardB.atk.toLocaleString()}`;
-                document.getElementById('proj-def-b').textContent = `DEF: ${cardB.def.toLocaleString()}`;
+                document.getElementById('proj-lvl-b').textContent = `Lvl ${displayCardB.level} / ${displayCardB.maxLevel}`;
+                document.getElementById('proj-atk-b').textContent = `ATK: ${displayCardB.atk.toLocaleString()}`;
+                document.getElementById('proj-def-b').textContent = `DEF: ${displayCardB.def.toLocaleString()}`;
                 if (cardB.imageFile) {
                     artB.style.backgroundImage = `url('/images/cards/${cardB.imageFile}')`;
                     artB.textContent = '';
@@ -750,17 +803,17 @@
 
                 // Carry over Factor logic
                 const maxLvlA = getMaxLevelByRarity(cardA.rarity);
-                const maxLvlB = getMaxLevelByRarity(cardB.rarity);
-                const isMax = (cardA.level >= maxLvlA) && (cardB.level >= maxLvlB);
+                const maxLvlB = getMaxLevelByRarity(displayCardB.rarity);
+                const isMax = (cardA.level >= maxLvlA) && (displayCardB.level >= maxLvlB);
                 
                 const factor = isMax ? 0.10 : 0.05;
 
-                const inheritedAtk = Math.round((cardA.atk + cardB.atk) * factor);
-                const inheritedDef = Math.round((cardA.def + cardB.def) * factor);
+                const inheritedAtk = Math.round((cardA.atk + displayCardB.atk) * factor);
+                const inheritedDef = Math.round((cardA.def + displayCardB.def) * factor);
 
                 // Mastery transfer sum
                 const masteryContribA = (cardA.masteryCur >= cardA.masteryMax) ? cardA.level : 0;
-                const masteryContribB = (cardB.masteryCur >= cardB.masteryMax) ? cardB.level : 0;
+                const masteryContribB = (displayCardB.masteryCur >= displayCardB.masteryMax) ? displayCardB.level : 0;
                 const startingMastery = masteryContribA + masteryContribB;
 
                 // Fee

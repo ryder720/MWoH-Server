@@ -313,6 +313,138 @@ namespace MwohServer.Data
                 ImageFileName = "Thor_1.jpg",
                 VariantName = "Base"
             });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Speed Cosmic Cube",
+                VisualTitle = "[Speed] Cosmic Cube",
+                Alignment = "Speed",
+                Rarity = "Ultimate Rare",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a U Rare speed (or a U Rare all-alignment) card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "SpeedCosmicCube_1.jpg",
+                VariantName = "[Speed] Cosmic Cube"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Speed L Cosmic Cube",
+                VisualTitle = "[Speed] L Cosmic Cube",
+                Alignment = "Speed",
+                Rarity = "Legendary",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a Legendary speed card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "SpeedLCosmicCube_1.jpg",
+                VariantName = "[Speed] L Cosmic Cube"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Bruiser Cosmic Cube",
+                VisualTitle = "[Bruiser] Cosmic Cube",
+                Alignment = "Bruiser",
+                Rarity = "Ultimate Rare",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a U Rare bruiser (or a U Rare all-alignment) card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "BruiserCosmicCube_1.jpg",
+                VariantName = "[Bruiser] Cosmic Cube"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Bruiser L Cosmic Cube",
+                VisualTitle = "[Bruiser] L Cosmic Cube",
+                Alignment = "Bruiser",
+                Rarity = "Legendary",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a Legendary bruiser card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "BruiserLCosmicCube_1.jpg",
+                VariantName = "[Bruiser] L Cosmic Cube"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Tactics Cosmic Cube",
+                VisualTitle = "[Tactics] Cosmic Cube",
+                Alignment = "Tactics",
+                Rarity = "Ultimate Rare",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a U Rare tactics (or a U Rare all-alignment) card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "TacticsCosmicCube_1.jpg",
+                VariantName = "[Tactics] Cosmic Cube"
+            });
+            context.CardTemplates.Add(new CardTemplate
+            {
+                Title = "Tactics L Cosmic Cube",
+                VisualTitle = "[Tactics] L Cosmic Cube",
+                Alignment = "Tactics",
+                Rarity = "Legendary",
+                Faction = "Super Hero",
+                Gender = "None",
+                PowerRequirement = 999,
+                BaseAtk = 50,
+                BaseDef = 50,
+                MaxAtk = 50,
+                MaxDef = 50,
+                MasteryBonusAtk = 0,
+                MasteryBonusDef = 0,
+                MaxMastery = 0,
+                AbilityName = "",
+                AbilityEffect = "",
+                Quote = "Fuse a Legendary tactics card with this Cosmic Cube to obtain the fused version of the base card.",
+                ImageFileName = "TacticsLCosmicCube_1.jpg",
+                VariantName = "[Tactics] L Cosmic Cube"
+            });
             context.SaveChanges();
         }
 
